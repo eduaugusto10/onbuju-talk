@@ -797,11 +797,21 @@ export default function App() {
             <Pressable onPress={clearSymbols} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Limpar">
               <Text style={styles.clearButtonText}>Limpar</Text>
             </Pressable>
+            <Pressable
+              onPress={() => void handleGenerate()}
+              style={[styles.generateButton, isGenerating && styles.generateButtonBusy]}
+              accessibilityRole="button"
+              accessibilityLabel="Gerar frase com IA"
+              disabled={isGenerating}
+            >
+              <Text style={styles.generateButtonText}>
+                {isGenerating ? 'Gerando...' : '✨ Gerar frase'}
+              </Text>
+            </Pressable>
             {isAdmin && (
-              <ActionButton label={isGenerating ? 'Gerando...' : 'Gerar'} onPress={() => void handleGenerate()} tone="secondary" />
-            )}
-            {isAdmin && (
-              <ActionButton label="Salvar" onPress={saveCustomSymbol} tone="neutral" />
+              <Pressable onPress={saveCustomSymbol} style={styles.saveGroupButton} accessibilityRole="button" accessibilityLabel="Salvar grupo">
+                <Text style={styles.saveGroupButtonText}>Salvar</Text>
+              </Pressable>
             )}
             <Pressable onPress={handlePlay} style={styles.playButton} accessibilityRole="button" accessibilityLabel="Ouvir a frase">
               <Text style={styles.playButtonText}>{isPlaying ? 'Falando...' : '▶  Ouvir'}</Text>
@@ -1743,7 +1753,7 @@ const styles = StyleSheet.create({
     minHeight: 32
   },
   playButton: {
-    flex: 3,
+    flex: 2.5,
     backgroundColor: '#5B8C7A',
     borderRadius: 16,
     paddingVertical: 18,
@@ -1754,7 +1764,7 @@ const styles = StyleSheet.create({
   playButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 22,
+    fontSize: 20,
     letterSpacing: 0.5
   },
   clearButton: {
@@ -1769,7 +1779,41 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: '#C06B5E',
     fontWeight: '700',
-    fontSize: 16
+    fontSize: 15
+  },
+  generateButton: {
+    flex: 2,
+    backgroundColor: '#E8B86E',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 64
+  },
+  generateButtonBusy: {
+    opacity: 0.7
+  },
+  generateButtonText: {
+    color: '#4A3A1F',
+    fontWeight: '800',
+    fontSize: 15,
+    textAlign: 'center'
+  },
+  saveGroupButton: {
+    flex: 1,
+    backgroundColor: '#EFEAE0',
+    borderWidth: 2,
+    borderColor: '#E8E1D2',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 64
+  },
+  saveGroupButtonText: {
+    color: '#2B2A28',
+    fontWeight: '700',
+    fontSize: 14
   },
   actionPrimary: {
     backgroundColor: '#5B8C7A'
