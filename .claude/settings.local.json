@@ -13,7 +13,9 @@
       "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update:configure --non-interactive)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"initial commit\")"
+      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"initial commit\")",
+      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"configure eas update\")",
+      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"primeiro teste - redesenho AAC\" --non-interactive)"
     ]
   }
 }
