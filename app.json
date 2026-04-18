@@ -14,9 +14,7 @@
       }
     },
     "owner": "eduaugusto10",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "exposdk:54.0.0",
     "updates": {
       "url": "https://u.expo.dev/5f12ea26-156a-4789-ae97-a1e5e3d44a32"
     },
