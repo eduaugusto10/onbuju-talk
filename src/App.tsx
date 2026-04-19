@@ -793,32 +793,26 @@ export default function App() {
             onSubmitEditing={() => Keyboard.dismiss()}
           />
 
-          <View style={styles.actionStack}>
-            <View style={styles.secondaryRow}>
-              <Pressable onPress={clearSymbols} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Limpar">
-                <Text style={styles.clearButtonText}>Limpar</Text>
+          <View style={styles.iconActionRow}>
+            <Pressable onPress={clearSymbols} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Limpar seleção">
+              <Text style={styles.iconGlyph}>🗑</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => void handleGenerate()}
+              style={[styles.generateButton, isGenerating && styles.generateButtonBusy]}
+              accessibilityRole="button"
+              accessibilityLabel="Gerar frase com IA"
+              disabled={isGenerating}
+            >
+              <Text style={styles.iconGlyph}>{isGenerating ? '…' : '✨'}</Text>
+            </Pressable>
+            {isAdmin && (
+              <Pressable onPress={saveCustomSymbol} style={styles.saveGroupButton} accessibilityRole="button" accessibilityLabel="Salvar grupo">
+                <Text style={styles.iconGlyph}>💾</Text>
               </Pressable>
-              <Pressable
-                onPress={() => void handleGenerate()}
-                style={[styles.generateButton, isGenerating && styles.generateButtonBusy]}
-                accessibilityRole="button"
-                accessibilityLabel="Gerar frase com IA"
-                disabled={isGenerating}
-              >
-                <Text style={styles.generateButtonText} numberOfLines={1}>
-                  {isGenerating ? 'Gerando...' : '✨ Gerar frase'}
-                </Text>
-              </Pressable>
-              {isAdmin && (
-                <Pressable onPress={saveCustomSymbol} style={styles.saveGroupButton} accessibilityRole="button" accessibilityLabel="Salvar grupo">
-                  <Text style={styles.saveGroupButtonText} numberOfLines={1}>Salvar</Text>
-                </Pressable>
-              )}
-            </View>
+            )}
             <Pressable onPress={handlePlay} style={styles.playButton} accessibilityRole="button" accessibilityLabel="Ouvir a frase">
-              <Text style={styles.playButtonText} numberOfLines={1}>
-                {isPlaying ? 'Falando...' : '▶  Ouvir a frase'}
-              </Text>
+              <Text style={styles.iconGlyph}>{isPlaying ? '🔊' : '▶'}</Text>
             </Pressable>
           </View>
         </View>
@@ -1756,46 +1750,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 32
   },
-  actionStack: {
-    gap: 10
-  },
-  secondaryRow: {
+  iconActionRow: {
     flexDirection: 'row',
-    gap: 8
-  },
-  playButton: {
-    backgroundColor: '#5B8C7A',
-    borderRadius: 18,
-    paddingVertical: 20,
+    gap: 10,
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 72
+    justifyContent: 'space-between'
   },
-  playButtonText: {
-    color: '#ffffff',
-    fontWeight: '800',
-    fontSize: 22,
-    letterSpacing: 0.4
+  iconGlyph: {
+    fontSize: 24,
+    lineHeight: 28
   },
   clearButton: {
     flex: 1,
     backgroundColor: '#F5E0DB',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52
   },
-  clearButtonText: {
-    color: '#C06B5E',
-    fontWeight: '700',
-    fontSize: 15
-  },
   generateButton: {
-    flex: 2,
+    flex: 1,
     backgroundColor: '#E8B86E',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52
@@ -1803,26 +1781,25 @@ const styles = StyleSheet.create({
   generateButtonBusy: {
     opacity: 0.6
   },
-  generateButtonText: {
-    color: '#4A3A1F',
-    fontWeight: '800',
-    fontSize: 15
-  },
   saveGroupButton: {
     flex: 1,
     backgroundColor: '#EFEAE0',
     borderWidth: 1.5,
     borderColor: '#E8E1D2',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52
   },
-  saveGroupButtonText: {
-    color: '#2B2A28',
-    fontWeight: '700',
-    fontSize: 14
+  playButton: {
+    flex: 1,
+    backgroundColor: '#5B8C7A',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52
   },
   actionPrimary: {
     backgroundColor: '#5B8C7A'
