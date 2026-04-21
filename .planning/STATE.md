@@ -1,10 +1,10 @@
 # STATE
 
 ## Current Position
-- Phase: Phase 12 - Vocabulario Core e Motor Planning (aguardando planejamento)
+- Phase: Phase 13 - Frases Prontas e Historico (aguardando planejamento)
 - Plan: -
-- Status: Roadmap criado, aguardando planejamento da Phase 12
-- Last activity: 2026-04-21 - ROADMAP.md da milestone v4 criado (5 fases, Phase 12-16)
+- Status: Phase 12 concluida, pronto para planejar Phase 13
+- Last activity: 2026-04-21 - Phase 12 (Vocabulario Core e Motor Planning) concluida
 
 ## Status
 - Projeto inicializado no fluxo GSD.
@@ -14,7 +14,8 @@
 - Milestone ativa: v4 - Comunicacao Pessoal e Rotina Visual.
 - REQUIREMENTS.md da v4 definida (12 requisitos, 3 categorias: COMM, CONT, ORG).
 - ROADMAP.md da v4 definido com 5 fases (Phase 12-16), 100% de cobertura.
-- Fase atual: Phase 12 (aguardando `/gsd-plan-phase 12`).
+- Phase 12 (Vocabulario Core e Motor Planning) concluida: 2/12 requisitos entregues (COMM-01, COMM-02).
+- Fase atual: Phase 13 (aguardando `/gsd-plan-phase 13`).
 
 ## Accumulated Context
 - App Expo SDK 54 estabilizado com cache de imagem local e base de testes automatizados.
@@ -29,7 +30,7 @@
   - Phase 16 (rotina visual + polimento) consome simbolos pessoais, categorias e voz gravada, e fecha a milestone com regressao.
 
 ## Proximo Comando Recomendado
-- `/gsd-plan-phase 12`
+- `/gsd-plan-phase 13`
 
 ## Ultima Atualizacao
-- ROADMAP.md da milestone v4 criado em 2026-04-21 com 5 fases (Phase 12 a Phase 16) e cobertura 12/12 dos requisitos. Proximo passo: planejar Phase 12.
+- Phase 12 (Vocabulario Core e Motor Planning) concluida em 2026-04-21. Requisitos COMM-01 e COMM-02 entregues. Proximo passo: `/gsd-plan-phase 13` (Frases Prontas e Historico).

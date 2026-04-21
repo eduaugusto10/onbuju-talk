@@ -10,6 +10,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -23,17 +24,19 @@ import { getCachedImageUri, getImageCacheMetrics, warmImageCache } from './servi
 import { generateNormalizedPhrase, saveAiApiKey } from './services/aiService';
 import { CustomSymbol, SymbolItem } from './types';
 import { CHILD_GRID_COLUMNS } from './theme';
+import { CORE_VOCABULARY_MAX, DEFAULT_CORE_VOCABULARY } from './constants';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
 type ContrastMode = 'padrao' | 'alto';
-type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca';
+type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario';
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
 const DEFAULT_GRID_COLUMNS: GridColumns = 3;
 const MIN_GRID_COLUMNS = 2;
 const MAX_GRID_COLUMNS = 5;
+const DEFAULT_AI_API_KEY = (process.env.EXPO_PUBLIC_GOOGLE_AI_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_API_KEY || '').trim();
 
 const STORAGE_KEYS = {
   favorites: 'arasaac_favorites',
@@ -45,8 +48,26 @@ const STORAGE_KEYS = {
   contrastMode: 'contrast_mode',
   visualFeedback: 'visual_feedback',
   introSkipEnabled: 'intro_skip_enabled',
-  gridColumns: 'grid_columns'
+  gridColumns: 'grid_columns',
+  coreVocabulary: 'core_vocabulary'
 };
+
+const normalizeCoreWord = (word: string) => word.trim().toLowerCase();
+
+function sanitizeCoreVocabulary(words: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of words) {
+    if (typeof raw !== 'string') continue;
+    const normalized = normalizeCoreWord(raw);
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+    if (result.length >= CORE_VOCABULARY_MAX) break;
+  }
+  return result;
+}
 
 const CATEGORIES = {
   favorites: 'Favoritos',
@@ -99,6 +120,8 @@ export default function App() {
   const [contrastMode, setContrastMode] = useState<ContrastMode>('padrao');
   const [visualFeedbackEnabled, setVisualFeedbackEnabled] = useState(true);
   const [gridColumns, setGridColumns] = useState<GridColumns>(DEFAULT_GRID_COLUMNS);
+  const [coreVocabulary, setCoreVocabulary] = useState<string[]>(() => sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
+  const [newCoreWord, setNewCoreWord] = useState('');
   const [isBootHydrating, setIsBootHydrating] = useState(true);
   const [showIntroScreen, setShowIntroScreen] = useState(false);
   const [skipIntroNextOpen, setSkipIntroNextOpen] = useState(false);
@@ -110,13 +133,14 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
-  const [aiApiKeyInput, setAiApiKeyInput] = useState('');
+  const [aiApiKeyInput, setAiApiKeyInput] = useState(DEFAULT_AI_API_KEY);
   const [adminPasswordHash, setAdminPasswordHash] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const needsAdminSetup = !adminPasswordHash;
   const uiScaleFactor = uiScale === 'compacto' ? 0.92 : uiScale === 'confortavel' ? 1.08 : 1;
   const isHighContrast = contrastMode === 'alto';
   const effectiveGridColumns: GridColumns = isAdmin ? gridColumns : (CHILD_GRID_COLUMNS as GridColumns);
+  const androidTopInset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
 
   const phraseText = useMemo(() => {
     return normalizedPhrase || selectedSymbols.map(s => s.label.toUpperCase()).join(' + ');
@@ -130,9 +154,15 @@ export default function App() {
     setAdminPassword('');
     setNewAdminPassword('');
     setConfirmAdminPassword('');
-    setAiApiKeyInput('');
+    setAiApiKeyInput(DEFAULT_AI_API_KEY);
     setConfigSection('perfil');
   }, []);
+
+  const openConfigModal = useCallback(() => {
+    resetConfigFields();
+    setConfigSection('seguranca');
+    setIsConfigModalOpen(true);
+  }, [resetConfigFields]);
 
   const handleAdminLogin = useCallback(() => {
     if (!adminPasswordHash) {
@@ -199,7 +229,7 @@ export default function App() {
       return;
     }
     await saveAiApiKey(key);
-    setAiApiKeyInput('');
+    setAiApiKeyInput(key);
     showToast('Chave da IA salva no dispositivo.', 'success');
   }, [aiApiKeyInput, showToast]);
 
@@ -234,7 +264,8 @@ export default function App() {
           savedContrastMode,
           savedVisualFeedback,
           savedIntroSkipEnabled,
-          savedGridColumns
+          savedGridColumns,
+          savedCoreVocabulary
         ] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.favorites),
           AsyncStorage.getItem(STORAGE_KEYS.customSymbols),
@@ -245,7 +276,8 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.contrastMode),
           AsyncStorage.getItem(STORAGE_KEYS.visualFeedback),
           AsyncStorage.getItem(STORAGE_KEYS.introSkipEnabled),
-          AsyncStorage.getItem(STORAGE_KEYS.gridColumns)
+          AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
+          AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary)
         ]);
 
         if (savedFavorites) {
@@ -273,6 +305,20 @@ export default function App() {
           setVisualFeedbackEnabled(savedVisualFeedback === '1');
         }
         setGridColumns(normalizeGridColumns(savedGridColumns));
+
+        if (savedCoreVocabulary) {
+          try {
+            const parsed = JSON.parse(savedCoreVocabulary);
+            if (Array.isArray(parsed)) {
+              const sanitized = sanitizeCoreVocabulary(parsed);
+              if (sanitized.length > 0) {
+                setCoreVocabulary(sanitized);
+              }
+            }
+          } catch {
+            /* keep default */
+          }
+        }
 
         const introShouldBeSkipped = savedIntroSkipEnabled === '1';
         setSkipIntroNextOpen(introShouldBeSkipped);
@@ -332,6 +378,10 @@ export default function App() {
     void AsyncStorage.setItem(STORAGE_KEYS.gridColumns, String(gridColumns));
   }, [gridColumns]);
 
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.coreVocabulary, JSON.stringify(coreVocabulary));
+  }, [coreVocabulary]);
+
   const toggleFavorite = useCallback((symbol: SymbolItem) => {
     if (!isAdmin) {
       showToast('Somente admin pode alterar favoritos.', 'error');
@@ -356,6 +406,58 @@ export default function App() {
     setSelectedSymbols(prev => [...prev, symbol]);
     setNormalizedPhrase(prev => (prev ? `${prev} ${symbol.label}` : prev));
   }, []);
+
+  const addCoreWord = useCallback((word: string) => {
+    const normalized = normalizeCoreWord(word);
+    if (!normalized) return;
+    const slug = normalized.replace(/\s+/g, '-');
+    addSymbol({
+      id: `core-${slug}-${Date.now()}`,
+      label: normalized,
+      imageUrl: '',
+      category: 'core'
+    });
+  }, [addSymbol]);
+
+  const addCoreVocabularyWord = useCallback(() => {
+    const normalized = normalizeCoreWord(newCoreWord);
+    if (!normalized) {
+      showToast('Digite uma palavra valida.', 'error');
+      return;
+    }
+    if (coreVocabulary.length >= CORE_VOCABULARY_MAX) {
+      showToast(`Maximo de ${CORE_VOCABULARY_MAX} palavras no core.`, 'error');
+      return;
+    }
+    if (coreVocabulary.includes(normalized)) {
+      showToast('Essa palavra ja esta no vocabulario core.', 'error');
+      return;
+    }
+    setCoreVocabulary(prev => [...prev, normalized]);
+    setNewCoreWord('');
+  }, [coreVocabulary, newCoreWord, showToast]);
+
+  const removeCoreVocabularyWord = useCallback((word: string) => {
+    setCoreVocabulary(prev => prev.filter(item => item !== word));
+  }, []);
+
+  const moveCoreVocabularyWord = useCallback((word: string, direction: -1 | 1) => {
+    setCoreVocabulary(prev => {
+      const index = prev.indexOf(word);
+      if (index === -1) return prev;
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      return next;
+    });
+  }, []);
+
+  const resetCoreVocabulary = useCallback(() => {
+    setCoreVocabulary(sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
+    showToast('Vocabulario core restaurado.', 'success');
+  }, [showToast]);
 
   const clearSymbols = useCallback(() => {
     setSelectedSymbols([]);
@@ -394,7 +496,7 @@ export default function App() {
     setIsGenerating(true);
     try {
       const result = await generateNormalizedPhrase(labels);
-      setNormalizedPhrase(result.text);
+      setNormalizedPhrase(result.text.toUpperCase());
       if (result.degraded && result.message) {
         showToast(result.message, 'error');
       }
@@ -403,7 +505,7 @@ export default function App() {
         console.error('Error generating phrase:', error);
       }
       showToast('Erro ao gerar frase. Usando fallback local.', 'error');
-      setNormalizedPhrase(labels.join(' '));
+      setNormalizedPhrase(labels.join(' ').toUpperCase());
     } finally {
       setIsGenerating(false);
     }
@@ -604,16 +706,13 @@ export default function App() {
 
   return (
     <SafeAreaView style={[styles.safeArea, isHighContrast && styles.safeAreaHighContrast]}>
-      <View style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor }]}>
+      <View style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10 }]}>
         <View style={[styles.headerCard, isHighContrast && styles.cardHighContrast]}>
           <View style={styles.headerRow}>
             <Pressable
               style={styles.menuButton}
-              onPress={() => {
-                resetConfigFields();
-                setConfigSection(isAdmin || adminPasswordHash ? 'seguranca' : 'seguranca');
-                setIsConfigModalOpen(true);
-              }}
+              onPress={openConfigModal}
+              hitSlop={12}
               accessibilityRole="button"
               accessibilityLabel="Abrir configurações do cuidador"
             >
@@ -649,7 +748,6 @@ export default function App() {
               )}
             </View>
           </View>
-
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -764,6 +862,39 @@ export default function App() {
           )}
         </View>
 
+        {coreVocabulary.length > 0 && (
+          <View
+            style={[styles.coreVocabBar, isHighContrast && styles.coreVocabBarHighContrast]}
+            accessibilityLabel="Vocabulario essencial"
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.coreVocabRow}
+            >
+              {coreVocabulary.map(word => (
+                <Pressable
+                  key={`core-word-${word}`}
+                  onPress={() => addCoreWord(word)}
+                  style={[styles.coreVocabButton, isHighContrast && styles.coreVocabButtonHighContrast]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Adicionar palavra ${word}`}
+                >
+                  <Text
+                    style={[
+                      styles.coreVocabButtonText,
+                      { fontSize: 14 * uiScaleFactor },
+                      isHighContrast && styles.coreVocabButtonTextHighContrast
+                    ]}
+                  >
+                    {word.toUpperCase()}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <View style={[styles.composerCard, isHighContrast && styles.cardHighContrast]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedList}>
             {selectedSymbols.length === 0 && visualFeedbackEnabled ? (
@@ -777,7 +908,18 @@ export default function App() {
                     setNormalizedPhrase('');
                   }}
                 >
-                  <CachedImage uri={symbol.imageUrl} style={styles.selectedImage} resizeMode="contain" />
+                  {symbol.imageUrl ? (
+                    <CachedImage uri={symbol.imageUrl} style={styles.selectedImage} resizeMode="contain" />
+                  ) : (
+                    <View style={[styles.selectedTextChip, isHighContrast && styles.selectedTextChipHighContrast]}>
+                      <Text
+                        style={[styles.selectedTextChipText, isHighContrast && styles.selectedTextChipTextHighContrast]}
+                        numberOfLines={1}
+                      >
+                        {symbol.label.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
               ))
             )}
@@ -794,8 +936,9 @@ export default function App() {
           />
 
           <View style={styles.iconActionRow}>
-            <Pressable onPress={clearSymbols} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Limpar seleção">
+            <Pressable onPress={clearSymbols} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Deletar seleção">
               <Text style={styles.iconGlyph}>🗑</Text>
+              <Text style={styles.clearButtonLabel}>Deletar</Text>
             </Pressable>
             <Pressable
               onPress={() => void handleGenerate()}
@@ -805,14 +948,17 @@ export default function App() {
               disabled={isGenerating}
             >
               <Text style={styles.iconGlyph}>{isGenerating ? '…' : '✨'}</Text>
+              <Text style={styles.generateButtonLabel}>Gerar</Text>
             </Pressable>
             {isAdmin && (
               <Pressable onPress={saveCustomSymbol} style={styles.saveGroupButton} accessibilityRole="button" accessibilityLabel="Salvar grupo">
                 <Text style={styles.iconGlyph}>💾</Text>
+                <Text style={styles.saveGroupButtonLabel}>Salvar</Text>
               </Pressable>
             )}
             <Pressable onPress={handlePlay} style={styles.playButton} accessibilityRole="button" accessibilityLabel="Ouvir a frase">
               <Text style={styles.iconGlyph}>{isPlaying ? '🔊' : '▶'}</Text>
+              <Text style={styles.playButtonLabel}>Ouvir</Text>
             </Pressable>
           </View>
         </View>
@@ -902,7 +1048,108 @@ export default function App() {
                 active={configSection === 'perfil'}
                 onPress={() => setConfigSection('perfil')}
               />
+              <ConfigNavItem
+                label="Vocabulario"
+                icon="🗣"
+                active={configSection === 'vocabulario'}
+                onPress={() => setConfigSection('vocabulario')}
+              />
             </View>
+
+            {configSection === 'vocabulario' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Vocabulario core</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                  Palavras essenciais que aparecem sempre na mesma posicao para reforcar o motor planning.
+                </Text>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador em "Cuidador" para editar o vocabulario core.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.coreVocabEditorList}>
+                      {coreVocabulary.map((word, index) => (
+                        <View
+                          key={`core-edit-${word}`}
+                          style={[styles.coreVocabEditorRow, isHighContrast && styles.coreVocabEditorRowHighContrast]}
+                        >
+                          <Text
+                            style={[styles.coreVocabEditorLabel, isHighContrast && styles.textHighContrast]}
+                            numberOfLines={1}
+                          >
+                            {word.toUpperCase()}
+                          </Text>
+                          <Pressable
+                            onPress={() => moveCoreVocabularyWord(word, -1)}
+                            disabled={index === 0}
+                            style={[styles.coreVocabEditorButton, index === 0 && styles.coreVocabEditorButtonDisabled]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Mover ${word} para cima`}
+                          >
+                            <Text style={styles.coreVocabEditorButtonText}>↑</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => moveCoreVocabularyWord(word, 1)}
+                            disabled={index === coreVocabulary.length - 1}
+                            style={[
+                              styles.coreVocabEditorButton,
+                              index === coreVocabulary.length - 1 && styles.coreVocabEditorButtonDisabled
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Mover ${word} para baixo`}
+                          >
+                            <Text style={styles.coreVocabEditorButtonText}>↓</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => removeCoreVocabularyWord(word)}
+                            style={[styles.coreVocabEditorButton, styles.coreVocabEditorButtonDanger]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remover ${word}`}
+                          >
+                            <Text style={[styles.coreVocabEditorButtonText, styles.coreVocabEditorButtonTextDanger]}>✕</Text>
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+
+                    <View style={styles.coreVocabEditorAddRow}>
+                      <TextInput
+                        value={newCoreWord}
+                        onChangeText={setNewCoreWord}
+                        placeholder="Nova palavra (ex: agua)"
+                        placeholderTextColor="#94a3b8"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={[styles.modalInput, styles.coreVocabEditorInput, isHighContrast && styles.inputHighContrast]}
+                        onSubmitEditing={addCoreVocabularyWord}
+                      />
+                      <Pressable
+                        onPress={addCoreVocabularyWord}
+                        style={styles.modalButtonPrimary}
+                        accessibilityRole="button"
+                        accessibilityLabel="Adicionar palavra ao core"
+                      >
+                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                      </Pressable>
+                    </View>
+
+                    <Pressable
+                      onPress={resetCoreVocabulary}
+                      style={styles.modalButtonLight}
+                      accessibilityRole="button"
+                      accessibilityLabel="Restaurar vocabulario core padrao"
+                    >
+                      <Text>Restaurar padrao</Text>
+                    </Pressable>
+
+                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                      Maximo de {CORE_VOCABULARY_MAX} palavras. Palavras duplicadas sao ignoradas.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
 
             {configSection === 'perfil' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
@@ -1068,9 +1315,9 @@ export default function App() {
                       <Text style={styles.modalButtonPrimaryText}>Atualizar senha</Text>
                     </Pressable>
 
-                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Chave da IA (opcional)</Text>
+                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Chave da IA</Text>
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Use somente se não estiver usando variável de ambiente.
+                      A chave do `.env` é usada por padrão. Você pode substituir por outra aqui.
                     </Text>
                     <TextInput
                       value={aiApiKeyInput}
@@ -1725,6 +1972,124 @@ const styles = StyleSheet.create({
     borderColor: '#bfdbfe',
     backgroundColor: '#ffffff'
   },
+  selectedTextChip: {
+    minWidth: 40,
+    height: 30,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#5B8C7A',
+    backgroundColor: '#E9F2EE',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  selectedTextChipHighContrast: {
+    borderColor: '#facc15',
+    backgroundColor: '#1e293b'
+  },
+  selectedTextChipText: {
+    color: '#1e3a34',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4
+  },
+  selectedTextChipTextHighContrast: {
+    color: '#fde68a'
+  },
+  coreVocabBar: {
+    backgroundColor: '#EEF4F0',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#CFE1D6',
+    paddingVertical: 8,
+    paddingHorizontal: 8
+  },
+  coreVocabBarHighContrast: {
+    backgroundColor: '#0b1220',
+    borderColor: '#facc15'
+  },
+  coreVocabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center'
+  },
+  coreVocabButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#5B8C7A',
+    minWidth: 64,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  coreVocabButtonHighContrast: {
+    backgroundColor: '#facc15'
+  },
+  coreVocabButtonText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    letterSpacing: 0.6
+  },
+  coreVocabButtonTextHighContrast: {
+    color: '#020617'
+  },
+  coreVocabEditorList: {
+    gap: 8,
+    marginTop: 6
+  },
+  coreVocabEditorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: '#F6F7F3',
+    borderWidth: 1,
+    borderColor: '#E2E6D7'
+  },
+  coreVocabEditorRowHighContrast: {
+    backgroundColor: '#0b1220',
+    borderColor: '#facc15'
+  },
+  coreVocabEditorLabel: {
+    flex: 1,
+    color: '#0f172a',
+    fontWeight: '700',
+    letterSpacing: 0.5
+  },
+  coreVocabEditorButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    minWidth: 36,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  coreVocabEditorButtonDisabled: {
+    opacity: 0.4
+  },
+  coreVocabEditorButtonDanger: {
+    backgroundColor: '#FEE2E2'
+  },
+  coreVocabEditorButtonText: {
+    color: '#1f2937',
+    fontWeight: '700'
+  },
+  coreVocabEditorButtonTextDanger: {
+    color: '#b91c1c'
+  },
+  coreVocabEditorAddRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginTop: 8
+  },
+  coreVocabEditorInput: {
+    flex: 1,
+    marginBottom: 0
+  },
   phraseText: {
     minHeight: 30,
     backgroundColor: '#ffffff',
@@ -1757,26 +2122,44 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   iconGlyph: {
-    fontSize: 24,
-    lineHeight: 28
+    fontSize: 22,
+    lineHeight: 26
   },
   clearButton: {
     flex: 1,
     backgroundColor: '#F5E0DB',
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52
+    minHeight: 64,
+    gap: 2
+  },
+  clearButtonLabel: {
+    color: '#8B3A2F',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase'
   },
   generateButton: {
     flex: 1,
     backgroundColor: '#E8B86E',
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52
+    minHeight: 64,
+    gap: 2
+  },
+  generateButtonLabel: {
+    color: '#6B3F0F',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase'
   },
   generateButtonBusy: {
     opacity: 0.6
@@ -1787,19 +2170,37 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#E8E1D2',
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52
+    minHeight: 64,
+    gap: 2
+  },
+  saveGroupButtonLabel: {
+    color: '#5C4A2A',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase'
   },
   playButton: {
     flex: 1,
     backgroundColor: '#5B8C7A',
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52
+    minHeight: 64,
+    gap: 2
+  },
+  playButtonLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase'
   },
   actionPrimary: {
     backgroundColor: '#5B8C7A'

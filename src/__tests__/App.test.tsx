@@ -129,4 +129,45 @@ describe('App', () => {
       expect(screen.getByText('Tudo')).toBeTruthy();
     });
   });
+
+  it('mostra vocabulario core padrao apos iniciar', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Adicionar palavra quero')).toBeTruthy();
+      expect(screen.getByLabelText('Adicionar palavra ajuda')).toBeTruthy();
+      expect(screen.getByLabelText('Adicionar palavra mae')).toBeTruthy();
+    });
+  });
+
+  it('adiciona palavra do core a selecao e persiste vocabulario', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    render(<App />);
+
+    const queroButton = await screen.findByLabelText('Adicionar palavra quero');
+    fireEvent.press(queroButton);
+
+    await waitFor(() => {
+      expect(asyncStorageMock.setItem).toHaveBeenCalledWith(
+        'core_vocabulary',
+        expect.stringContaining('quero')
+      );
+    });
+  });
+
+  it('restaura vocabulario core salvo no boot', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'core_vocabulary') return JSON.stringify(['agua', 'banheiro']);
+      return null;
+    });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Adicionar palavra agua')).toBeTruthy();
+      expect(screen.getByLabelText('Adicionar palavra banheiro')).toBeTruthy();
+      expect(screen.queryByLabelText('Adicionar palavra quero')).toBeNull();
+    });
+  });
 });

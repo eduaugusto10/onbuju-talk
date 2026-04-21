@@ -23,3 +23,16 @@ export const FALLBACK_CATEGORIES = [
   'Escola',
   'Saúde'
 ];
+
+export const DEFAULT_CORE_VOCABULARY: string[] = [
+  'quero',
+  'nao',
+  'sim',
+  'mais',
+  'parar',
+  'ajuda',
+  'mae',
+  'pai'
+];
+
+export const CORE_VOCABULARY_MAX = 12;
