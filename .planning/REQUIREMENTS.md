@@ -56,21 +56,21 @@ Features explicitamente fora do escopo com justificativa:
 
 ## Traceability
 
-| REQ-ID   | Category                     | Phase | Notes |
-|----------|------------------------------|-------|-------|
-| COMM-01  | Comunicacao e Vocabulario    | -     | -     |
-| COMM-02  | Comunicacao e Vocabulario    | -     | -     |
-| COMM-03  | Comunicacao e Vocabulario    | -     | -     |
-| COMM-04  | Comunicacao e Vocabulario    | -     | -     |
-| COMM-05  | Comunicacao e Vocabulario    | -     | -     |
-| CONT-01  | Conteudo Pessoal             | -     | -     |
-| CONT-02  | Conteudo Pessoal             | -     | -     |
-| CONT-03  | Conteudo Pessoal             | -     | -     |
-| CONT-04  | Conteudo Pessoal             | -     | -     |
-| ORG-01   | Organizacao Visual           | -     | -     |
-| ORG-02   | Organizacao Visual           | -     | -     |
-| ORG-03   | Organizacao Visual           | -     | -     |
+| REQ-ID   | Category                     | Phase    | Notes                                         |
+|----------|------------------------------|----------|-----------------------------------------------|
+| COMM-01  | Comunicacao e Vocabulario    | Phase 12 | Faixa fixa de vocabulario core                |
+| COMM-02  | Comunicacao e Vocabulario    | Phase 12 | Editor de vocabulario core + padrao pt-BR     |
+| COMM-03  | Comunicacao e Vocabulario    | Phase 13 | Banco de frases prontas, reproducao 1 toque   |
+| COMM-04  | Comunicacao e Vocabulario    | Phase 13 | Editor de frases prontas no modo admin        |
+| COMM-05  | Comunicacao e Vocabulario    | Phase 13 | Historico de frases recentes                  |
+| CONT-01  | Conteudo Pessoal             | Phase 14 | Criacao de simbolo via camera                 |
+| CONT-02  | Conteudo Pessoal             | Phase 14 | Criacao de simbolo via galeria                |
+| CONT-03  | Conteudo Pessoal             | Phase 15 | Gravacao de audio do cuidador                 |
+| CONT-04  | Conteudo Pessoal             | Phase 15 | Reproducao da voz gravada com fallback TTS    |
+| ORG-01   | Organizacao Visual           | Phase 16 | Editor de rotina visual                       |
+| ORG-02   | Organizacao Visual           | Phase 16 | Tela de rotina do dia com marcacao de passos  |
+| ORG-03   | Organizacao Visual           | Phase 14 | Categorias customizadas (partilha picker infra)|
 
 ---
 
-**Total:** 12 requirements | **Categorias:** 3 | **Status:** aguardando roadmap
+**Total:** 12 requirements | **Categorias:** 3 | **Status:** roadmap criado, aguardando planejamento da Phase 12
