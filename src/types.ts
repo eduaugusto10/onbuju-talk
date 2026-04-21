@@ -13,3 +13,15 @@ export interface CustomSymbol {
   createdAt: string;
   phrase?: string;
 }
+
+export interface SavedPhrase {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface HistoryPhrase {
+  id: string;
+  text: string;
+  spokenAt: string;
+}

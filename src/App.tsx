@@ -22,14 +22,20 @@ import * as Speech from 'expo-speech';
 import { arasaacService } from './services/arasaacService';
 import { getCachedImageUri, getImageCacheMetrics, warmImageCache } from './services/imageCacheService';
 import { generateNormalizedPhrase, saveAiApiKey } from './services/aiService';
-import { CustomSymbol, SymbolItem } from './types';
+import { CustomSymbol, HistoryPhrase, SavedPhrase, SymbolItem } from './types';
 import { CHILD_GRID_COLUMNS } from './theme';
-import { CORE_VOCABULARY_MAX, DEFAULT_CORE_VOCABULARY } from './constants';
+import {
+  CORE_VOCABULARY_MAX,
+  DEFAULT_CORE_VOCABULARY,
+  DEFAULT_SAVED_PHRASES,
+  PHRASE_HISTORY_MAX,
+  SAVED_PHRASES_MAX
+} from './constants';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
 type ContrastMode = 'padrao' | 'alto';
-type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario';
+type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases';
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
@@ -49,7 +55,9 @@ const STORAGE_KEYS = {
   visualFeedback: 'visual_feedback',
   introSkipEnabled: 'intro_skip_enabled',
   gridColumns: 'grid_columns',
-  coreVocabulary: 'core_vocabulary'
+  coreVocabulary: 'core_vocabulary',
+  savedPhrases: 'arasaac_saved_phrases',
+  phraseHistory: 'arasaac_phrase_history'
 };
 
 const normalizeCoreWord = (word: string) => word.trim().toLowerCase();
@@ -69,10 +77,62 @@ function sanitizeCoreVocabulary(words: string[]): string[] {
   return result;
 }
 
+const normalizeSpokenText = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+function buildDefaultSavedPhrases(): SavedPhrase[] {
+  return DEFAULT_SAVED_PHRASES.map((text, index) => ({
+    id: `default-phrase-${index}`,
+    text: normalizeSpokenText(text),
+    createdAt: new Date(0).toISOString()
+  })).filter(phrase => phrase.text.length > 0);
+}
+
+function sanitizeSavedPhrases(raw: unknown): SavedPhrase[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const result: SavedPhrase[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const candidate = entry as Partial<SavedPhrase>;
+    const text = typeof candidate.text === 'string' ? normalizeSpokenText(candidate.text) : '';
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `phrase-${Date.now()}-${result.length}`;
+    const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
+    result.push({ id, text, createdAt });
+    if (result.length >= SAVED_PHRASES_MAX) break;
+  }
+  return result;
+}
+
+function sanitizePhraseHistory(raw: unknown): HistoryPhrase[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const result: HistoryPhrase[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const candidate = entry as Partial<HistoryPhrase>;
+    const text = typeof candidate.text === 'string' ? normalizeSpokenText(candidate.text) : '';
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `history-${Date.now()}-${result.length}`;
+    const spokenAt = typeof candidate.spokenAt === 'string' && candidate.spokenAt ? candidate.spokenAt : new Date().toISOString();
+    result.push({ id, text, spokenAt });
+    if (result.length >= PHRASE_HISTORY_MAX) break;
+  }
+  return result;
+}
+
 const CATEGORIES = {
   favorites: 'Favoritos',
   all: 'Tudo',
-  custom: 'Customizados'
+  custom: 'Customizados',
+  savedPhrases: 'Frases',
+  history: 'Historico'
 };
 
 const normalizePhrase = (symbols: SymbolItem[]) => {
@@ -122,6 +182,11 @@ export default function App() {
   const [gridColumns, setGridColumns] = useState<GridColumns>(DEFAULT_GRID_COLUMNS);
   const [coreVocabulary, setCoreVocabulary] = useState<string[]>(() => sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
   const [newCoreWord, setNewCoreWord] = useState('');
+  const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>(() => buildDefaultSavedPhrases());
+  const [phraseHistory, setPhraseHistory] = useState<HistoryPhrase[]>([]);
+  const [newPhraseInput, setNewPhraseInput] = useState('');
+  const [editingPhraseId, setEditingPhraseId] = useState<string | null>(null);
+  const [editingPhraseText, setEditingPhraseText] = useState('');
   const [isBootHydrating, setIsBootHydrating] = useState(true);
   const [showIntroScreen, setShowIntroScreen] = useState(false);
   const [skipIntroNextOpen, setSkipIntroNextOpen] = useState(false);
@@ -265,7 +330,9 @@ export default function App() {
           savedVisualFeedback,
           savedIntroSkipEnabled,
           savedGridColumns,
-          savedCoreVocabulary
+          savedCoreVocabulary,
+          savedPhrasesRaw,
+          savedPhraseHistory
         ] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.favorites),
           AsyncStorage.getItem(STORAGE_KEYS.customSymbols),
@@ -277,7 +344,9 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.visualFeedback),
           AsyncStorage.getItem(STORAGE_KEYS.introSkipEnabled),
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
-          AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary)
+          AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary),
+          AsyncStorage.getItem(STORAGE_KEYS.savedPhrases),
+          AsyncStorage.getItem(STORAGE_KEYS.phraseHistory)
         ]);
 
         if (savedFavorites) {
@@ -317,6 +386,29 @@ export default function App() {
             }
           } catch {
             /* keep default */
+          }
+        }
+
+        if (savedPhrasesRaw) {
+          try {
+            const parsed = JSON.parse(savedPhrasesRaw);
+            const sanitized = sanitizeSavedPhrases(parsed);
+            if (sanitized.length > 0) {
+              setSavedPhrases(sanitized);
+            } else {
+              setSavedPhrases([]);
+            }
+          } catch {
+            /* keep default */
+          }
+        }
+
+        if (savedPhraseHistory) {
+          try {
+            const parsed = JSON.parse(savedPhraseHistory);
+            setPhraseHistory(sanitizePhraseHistory(parsed));
+          } catch {
+            /* keep empty */
           }
         }
 
@@ -381,6 +473,14 @@ export default function App() {
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.coreVocabulary, JSON.stringify(coreVocabulary));
   }, [coreVocabulary]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.savedPhrases, JSON.stringify(savedPhrases));
+  }, [savedPhrases]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.phraseHistory, JSON.stringify(phraseHistory));
+  }, [phraseHistory]);
 
   const toggleFavorite = useCallback((symbol: SymbolItem) => {
     if (!isAdmin) {
@@ -459,6 +559,103 @@ export default function App() {
     showToast('Vocabulario core restaurado.', 'success');
   }, [showToast]);
 
+  const recordPhraseHistory = useCallback((rawText: string) => {
+    const normalized = normalizeSpokenText(rawText);
+    if (!normalized) return;
+    setPhraseHistory(prev => {
+      const filtered = prev.filter(item => item.text.toLowerCase() !== normalized.toLowerCase());
+      const entry: HistoryPhrase = {
+        id: `history-${Date.now()}`,
+        text: normalized,
+        spokenAt: new Date().toISOString()
+      };
+      return [entry, ...filtered].slice(0, PHRASE_HISTORY_MAX);
+    });
+  }, []);
+
+  const speakPhraseText = useCallback(
+    (rawText: string) => {
+      const text = normalizeSpokenText(rawText);
+      if (!text) {
+        showToast('Frase vazia.', 'error');
+        return;
+      }
+      Speech.stop();
+      Speech.speak(text, {
+        language: 'pt-BR',
+        rate,
+        pitch,
+        onError: () => showToast('Nao foi possivel reproduzir a voz.', 'error')
+      });
+      recordPhraseHistory(text);
+    },
+    [pitch, rate, recordPhraseHistory, showToast]
+  );
+
+  const addSavedPhrase = useCallback(() => {
+    const text = normalizeSpokenText(newPhraseInput);
+    if (!text) {
+      showToast('Digite uma frase valida.', 'error');
+      return;
+    }
+    if (savedPhrases.length >= SAVED_PHRASES_MAX) {
+      showToast(`Maximo de ${SAVED_PHRASES_MAX} frases prontas.`, 'error');
+      return;
+    }
+    if (savedPhrases.some(item => item.text.toLowerCase() === text.toLowerCase())) {
+      showToast('Essa frase ja esta salva.', 'error');
+      return;
+    }
+    const entry: SavedPhrase = {
+      id: `phrase-${Date.now()}`,
+      text,
+      createdAt: new Date().toISOString()
+    };
+    setSavedPhrases(prev => [entry, ...prev]);
+    setNewPhraseInput('');
+  }, [newPhraseInput, savedPhrases, showToast]);
+
+  const removeSavedPhrase = useCallback((id: string) => {
+    setSavedPhrases(prev => prev.filter(item => item.id !== id));
+    setEditingPhraseId(current => (current === id ? null : current));
+  }, []);
+
+  const startEditingPhrase = useCallback((phrase: SavedPhrase) => {
+    setEditingPhraseId(phrase.id);
+    setEditingPhraseText(phrase.text);
+  }, []);
+
+  const cancelEditingPhrase = useCallback(() => {
+    setEditingPhraseId(null);
+    setEditingPhraseText('');
+  }, []);
+
+  const commitEditingPhrase = useCallback(() => {
+    if (!editingPhraseId) return;
+    const text = normalizeSpokenText(editingPhraseText);
+    if (!text) {
+      showToast('Frase vazia.', 'error');
+      return;
+    }
+    setSavedPhrases(prev => {
+      const duplicated = prev.some(
+        item => item.id !== editingPhraseId && item.text.toLowerCase() === text.toLowerCase()
+      );
+      if (duplicated) {
+        showToast('Essa frase ja esta salva.', 'error');
+        return prev;
+      }
+      return prev.map(item => (item.id === editingPhraseId ? { ...item, text } : item));
+    });
+    setEditingPhraseId(null);
+    setEditingPhraseText('');
+  }, [editingPhraseId, editingPhraseText, showToast]);
+
+  const clearPhraseHistory = useCallback(() => {
+    setPhraseHistory([]);
+    showToast('Historico de frases limpo.', 'success');
+  }, [showToast]);
+
   const clearSymbols = useCallback(() => {
     setSelectedSymbols([]);
     setNormalizedPhrase('');
@@ -467,7 +664,8 @@ export default function App() {
   const handlePlay = useCallback(() => {
     if (isPlaying) return;
     setIsPlaying(true);
-    const text = normalizedPhrase.trim() || selectedSymbols.map(item => item.label).join(' ').trim();
+    const rawText = normalizedPhrase.trim() || selectedSymbols.map(item => item.label).join(' ').trim();
+    const text = normalizeSpokenText(rawText);
     if (!text) {
       setIsPlaying(false);
       showToast('Digite um texto ou selecione símbolos antes de ouvir.', 'error');
@@ -485,10 +683,11 @@ export default function App() {
         showToast('Não foi possível reproduzir a voz.', 'error');
       }
     });
+    recordPhraseHistory(text);
     if (Platform.OS === 'ios') {
       showToast('No iPhone, desative o modo silencioso para ouvir.', 'error');
     }
-  }, [isPlaying, normalizedPhrase, pitch, rate, selectedSymbols, showToast]);
+  }, [isPlaying, normalizedPhrase, pitch, rate, recordPhraseHistory, selectedSymbols, showToast]);
 
   const handleGenerate = useCallback(async () => {
     if (selectedSymbols.length === 0) return;
@@ -554,7 +753,12 @@ export default function App() {
       setSearchTerm('');
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setIsSearchOpen(false);
-      if (category === CATEGORIES.favorites || category === CATEGORIES.custom) {
+      if (
+        category === CATEGORIES.favorites ||
+        category === CATEGORIES.custom ||
+        category === CATEGORIES.savedPhrases ||
+        category === CATEGORIES.history
+      ) {
         return;
       }
 
@@ -766,6 +970,18 @@ export default function App() {
               highContrast={isHighContrast}
               onPress={() => void handleCategoryClick(CATEGORIES.all)}
             />
+            <CategoryButton
+              label={CATEGORIES.savedPhrases}
+              active={activeCategory === CATEGORIES.savedPhrases}
+              highContrast={isHighContrast}
+              onPress={() => void handleCategoryClick(CATEGORIES.savedPhrases)}
+            />
+            <CategoryButton
+              label={CATEGORIES.history}
+              active={activeCategory === CATEGORIES.history}
+              highContrast={isHighContrast}
+              onPress={() => void handleCategoryClick(CATEGORIES.history)}
+            />
             {customSymbols.length > 0 && (
               <CategoryButton
                 label={CATEGORIES.custom}
@@ -832,6 +1048,53 @@ export default function App() {
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                 <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>Nenhum grupo salvo.</Text>
+                </View>
+              }
+            />
+          ) : activeCategory === CATEGORIES.savedPhrases ? (
+            <FlatList
+              data={savedPhrases}
+              keyExtractor={item => item.id}
+              key="saved-phrases"
+              contentContainerStyle={styles.phraseList}
+              renderItem={({ item }) => (
+                <PhraseCard
+                  text={item.text}
+                  tone="saved"
+                  highContrast={isHighContrast}
+                  uiScaleFactor={uiScaleFactor}
+                  onPress={() => speakPhraseText(item.text)}
+                  onDelete={isAdmin ? () => removeSavedPhrase(item.id) : undefined}
+                />
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
+                    Nenhuma frase salva ainda.
+                  </Text>
+                </View>
+              }
+            />
+          ) : activeCategory === CATEGORIES.history ? (
+            <FlatList
+              data={phraseHistory}
+              keyExtractor={item => item.id}
+              key="phrase-history"
+              contentContainerStyle={styles.phraseList}
+              renderItem={({ item }) => (
+                <PhraseCard
+                  text={item.text}
+                  tone="history"
+                  highContrast={isHighContrast}
+                  uiScaleFactor={uiScaleFactor}
+                  onPress={() => speakPhraseText(item.text)}
+                />
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
+                    Nenhuma frase no historico ainda.
+                  </Text>
                 </View>
               }
             />
@@ -1054,6 +1317,12 @@ export default function App() {
                 active={configSection === 'vocabulario'}
                 onPress={() => setConfigSection('vocabulario')}
               />
+              <ConfigNavItem
+                label="Frases"
+                icon="💬"
+                active={configSection === 'frases'}
+                onPress={() => setConfigSection('frases')}
+              />
             </View>
 
             {configSection === 'vocabulario' && (
@@ -1145,6 +1414,129 @@ export default function App() {
 
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
                       Maximo de {CORE_VOCABULARY_MAX} palavras. Palavras duplicadas sao ignoradas.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+
+            {configSection === 'frases' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Frases prontas</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                  Frases que o cuidador pre-monta para uso em um toque pela crianca.
+                </Text>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador em "Cuidador" para editar as frases prontas.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.phraseEditorList}>
+                      {savedPhrases.length === 0 && (
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Nenhuma frase salva ainda. Adicione abaixo.
+                        </Text>
+                      )}
+                      {savedPhrases.map(phrase => {
+                        const isEditing = editingPhraseId === phrase.id;
+                        return (
+                          <View
+                            key={`phrase-edit-${phrase.id}`}
+                            style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+                          >
+                            {isEditing ? (
+                              <TextInput
+                                value={editingPhraseText}
+                                onChangeText={setEditingPhraseText}
+                                style={[styles.phraseEditorInput, isHighContrast && styles.inputHighContrast]}
+                                placeholder="Editar frase"
+                                placeholderTextColor="#94a3b8"
+                                autoFocus
+                                onSubmitEditing={commitEditingPhrase}
+                              />
+                            ) : (
+                              <Text
+                                style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]}
+                                numberOfLines={2}
+                              >
+                                {phrase.text}
+                              </Text>
+                            )}
+                            {isEditing ? (
+                              <>
+                                <Pressable
+                                  onPress={commitEditingPhrase}
+                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonPrimary]}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Salvar edicao da frase ${phrase.text}`}
+                                >
+                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextPrimary]}>OK</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={cancelEditingPhrase}
+                                  style={styles.phraseEditorButton}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Cancelar edicao da frase"
+                                >
+                                  <Text style={styles.phraseEditorButtonText}>✕</Text>
+                                </Pressable>
+                              </>
+                            ) : (
+                              <>
+                                <Pressable
+                                  onPress={() => startEditingPhrase(phrase)}
+                                  style={styles.phraseEditorButton}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Editar frase ${phrase.text}`}
+                                >
+                                  <Text style={styles.phraseEditorButtonText}>✎</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => removeSavedPhrase(phrase.id)}
+                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Remover frase ${phrase.text}`}
+                                >
+                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                                </Pressable>
+                              </>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+
+                    <View style={styles.phraseEditorAddRow}>
+                      <TextInput
+                        value={newPhraseInput}
+                        onChangeText={setNewPhraseInput}
+                        placeholder="Nova frase (ex: quero agua)"
+                        placeholderTextColor="#94a3b8"
+                        style={[styles.modalInput, styles.phraseEditorAddInput, isHighContrast && styles.inputHighContrast]}
+                        onSubmitEditing={addSavedPhrase}
+                      />
+                      <Pressable
+                        onPress={addSavedPhrase}
+                        style={styles.modalButtonPrimary}
+                        accessibilityRole="button"
+                        accessibilityLabel="Adicionar nova frase pronta"
+                      >
+                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                      </Pressable>
+                    </View>
+
+                    <Pressable
+                      onPress={clearPhraseHistory}
+                      style={styles.modalButtonLight}
+                      accessibilityRole="button"
+                      accessibilityLabel="Limpar historico de frases"
+                    >
+                      <Text>Limpar historico ({phraseHistory.length})</Text>
+                    </Pressable>
+
+                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                      Maximo de {SAVED_PHRASES_MAX} frases. Historico guarda as ultimas {PHRASE_HISTORY_MAX} frases faladas.
                     </Text>
                   </>
                 )}
@@ -1495,6 +1887,59 @@ function SymbolCard({
       <Text style={[styles.symbolLabel, isDense && styles.symbolLabelDense]} numberOfLines={1}>
         {item.label}
       </Text>
+    </Pressable>
+  );
+}
+
+function PhraseCard({
+  text,
+  tone,
+  highContrast,
+  uiScaleFactor,
+  onPress,
+  onDelete
+}: {
+  text: string;
+  tone: 'saved' | 'history';
+  highContrast: boolean;
+  uiScaleFactor: number;
+  onPress: () => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.phraseCard,
+        tone === 'history' && styles.phraseCardHistory,
+        highContrast && styles.phraseCardHighContrast
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Falar frase ${text}`}
+    >
+      <Text
+        style={[
+          styles.phraseCardText,
+          { fontSize: 16 * uiScaleFactor },
+          highContrast && styles.phraseCardTextHighContrast
+        ]}
+      >
+        {text}
+      </Text>
+      <View style={styles.phraseCardActions}>
+        <Text style={[styles.phraseCardPlayIcon, highContrast && styles.phraseCardPlayIconHighContrast]}>▶</Text>
+        {onDelete && (
+          <Pressable
+            onPress={onDelete}
+            hitSlop={10}
+            style={styles.phraseCardDeleteButton}
+            accessibilityRole="button"
+            accessibilityLabel={`Remover frase ${text}`}
+          >
+            <Text style={styles.phraseCardDeleteIcon}>✕</Text>
+          </Pressable>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -2087,6 +2532,134 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   coreVocabEditorInput: {
+    flex: 1,
+    marginBottom: 0
+  },
+  phraseList: {
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    gap: 8
+  },
+  phraseCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EEF5EF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C7DCC6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8
+  },
+  phraseCardHistory: {
+    backgroundColor: '#FEF3E7',
+    borderColor: '#F0C997'
+  },
+  phraseCardHighContrast: {
+    backgroundColor: '#0b1220',
+    borderColor: '#facc15'
+  },
+  phraseCardText: {
+    flex: 1,
+    color: '#0f172a',
+    fontWeight: '600'
+  },
+  phraseCardTextHighContrast: {
+    color: '#facc15'
+  },
+  phraseCardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginLeft: 10
+  },
+  phraseCardPlayIcon: {
+    color: '#2f855a',
+    fontSize: 18,
+    fontWeight: '700'
+  },
+  phraseCardPlayIconHighContrast: {
+    color: '#facc15'
+  },
+  phraseCardDeleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  phraseCardDeleteIcon: {
+    color: '#b91c1c',
+    fontWeight: '800'
+  },
+  phraseEditorList: {
+    gap: 8,
+    marginTop: 8
+  },
+  phraseEditorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#F6F7F3',
+    borderWidth: 1,
+    borderColor: '#E2E6D7'
+  },
+  phraseEditorRowHighContrast: {
+    backgroundColor: '#0b1220',
+    borderColor: '#facc15'
+  },
+  phraseEditorLabel: {
+    flex: 1,
+    color: '#0f172a',
+    fontWeight: '600'
+  },
+  phraseEditorInput: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    color: '#0f172a'
+  },
+  phraseEditorButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    minWidth: 36,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  phraseEditorButtonDanger: {
+    backgroundColor: '#FEE2E2'
+  },
+  phraseEditorButtonPrimary: {
+    backgroundColor: '#5B8C7A'
+  },
+  phraseEditorButtonText: {
+    color: '#1f2937',
+    fontWeight: '700'
+  },
+  phraseEditorButtonTextDanger: {
+    color: '#b91c1c'
+  },
+  phraseEditorButtonTextPrimary: {
+    color: '#ffffff'
+  },
+  phraseEditorAddRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginTop: 8
+  },
+  phraseEditorAddInput: {
     flex: 1,
     marginBottom: 0
   },

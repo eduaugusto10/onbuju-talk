@@ -131,7 +131,7 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 ## Phase Summary (Milestone 4)
 
 - [x] **Phase 12: Vocabulario Core e Motor Planning** - Faixa fixa de palavras-nucleo pt-BR configuravel pelo cuidador. ✓
-- [ ] **Phase 13: Frases Prontas e Historico** - Banco de frases e reuso de frases recentes em um toque.
+- [x] **Phase 13: Frases Prontas e Historico** - Banco de frases e reuso de frases recentes em um toque. ✓
 - [ ] **Phase 14: Simbolos Pessoais e Categorias Customizadas** - Camera, galeria e categorias do cuidador.
 - [ ] **Phase 15: Voz Gravada do Cuidador** - Audio familiar sobrepondo TTS com fallback transparente.
 - [ ] **Phase 16: Rotina Visual e Polimento da Milestone** - Rotina do dia e regressao final sem quebras.
@@ -141,7 +141,7 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 12. Vocabulario Core e Motor Planning | 1/1 | Complete | 2026-04-21 |
-| 13. Frases Prontas e Historico | 0/0 | Not started | - |
+| 13. Frases Prontas e Historico | 1/1 | Complete | 2026-04-21 |
 | 14. Simbolos Pessoais e Categorias Customizadas | 0/0 | Not started | - |
 | 15. Voz Gravada do Cuidador | 0/0 | Not started | - |
 | 16. Rotina Visual e Polimento da Milestone | 0/0 | Not started | - |

@@ -36,3 +36,15 @@ export const DEFAULT_CORE_VOCABULARY: string[] = [
 ];
 
 export const CORE_VOCABULARY_MAX = 12;
+
+export const DEFAULT_SAVED_PHRASES: string[] = [
+  'quero banheiro',
+  'estou com fome',
+  'me ajuda',
+  'quero agua',
+  'quero brincar',
+  'obrigado'
+];
+
+export const SAVED_PHRASES_MAX = 30;
+export const PHRASE_HISTORY_MAX = 20;

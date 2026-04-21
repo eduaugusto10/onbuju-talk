@@ -1,6 +1,6 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import App from '../App';
 
 jest.mock('expo-speech', () => ({
@@ -168,6 +168,63 @@ describe('App', () => {
       expect(screen.getByLabelText('Adicionar palavra agua')).toBeTruthy();
       expect(screen.getByLabelText('Adicionar palavra banheiro')).toBeTruthy();
       expect(screen.queryByLabelText('Adicionar palavra quero')).toBeNull();
+    });
+  });
+
+  it('mostra frases prontas padrao na categoria Frases', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Tudo')).toBeTruthy());
+    fireEvent.press(screen.getByText('Frases'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Falar frase quero banheiro')).toBeTruthy();
+      expect(screen.getByLabelText('Falar frase me ajuda')).toBeTruthy();
+    });
+  });
+
+  it('falar frase pronta registra no historico e persiste', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Frases')).toBeTruthy());
+    fireEvent.press(screen.getByText('Frases'));
+
+    const phraseBtn = await screen.findByLabelText('Falar frase quero banheiro');
+    await act(async () => {
+      fireEvent.press(phraseBtn);
+    });
+
+    await waitFor(() => {
+      expect(asyncStorageMock.setItem).toHaveBeenCalledWith(
+        'arasaac_phrase_history',
+        expect.stringContaining('quero banheiro')
+      );
+    });
+
+    fireEvent.press(screen.getByText('Historico'));
+    await waitFor(() => {
+      expect(screen.getByLabelText('Falar frase quero banheiro')).toBeTruthy();
+    });
+  });
+
+  it('restaura historico de frases salvo no boot', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_phrase_history')
+        return JSON.stringify([
+          { id: 'h-1', text: 'bom dia', spokenAt: new Date().toISOString() }
+        ]);
+      return null;
+    });
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Historico')).toBeTruthy());
+    fireEvent.press(screen.getByText('Historico'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Falar frase bom dia')).toBeTruthy();
     });
   });
 });
