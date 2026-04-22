@@ -40,7 +40,7 @@ import {
   SavedPhrase,
   SymbolItem
 } from './types';
-import { CHILD_GRID_COLUMNS } from './theme';
+import { CHILD_GRID_COLUMNS, colors, spacing, typography } from './theme';
 import {
   CORE_VOCABULARY_MAX,
   CUSTOM_CATEGORIES_MAX,
@@ -3331,26 +3331,28 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   headerCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.systemBackground,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E8E1D2',
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    gap: 7
+    paddingHorizontal: spacing.md - 1,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm - 1
   },
   cardHighContrast: {
     backgroundColor: '#0f172a',
     borderColor: '#334155'
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a'
+    fontSize: typography.title2.fontSize,
+    lineHeight: typography.title2.lineHeight,
+    fontWeight: typography.title2.fontWeight,
+    color: colors.label
   },
   headerTagline: {
-    fontSize: 11,
-    color: '#64748b',
+    fontSize: typography.caption2.fontSize,
+    lineHeight: typography.caption2.lineHeight,
+    color: colors.secondaryLabel,
     marginTop: 1,
     fontWeight: '500'
   },

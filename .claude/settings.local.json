@@ -15,7 +15,21 @@
       "Bash(git add *)",
       "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"initial commit\")",
       "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"configure eas update\")",
-      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"primeiro teste - redesenho AAC\" --non-interactive)"
+      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"primeiro teste - redesenho AAC\" --non-interactive)",
+      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"set runtime version for expo go compatibility\")",
+      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"expo go compatible\" --non-interactive)",
+      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"restore generate button in default action row\")",
+      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"retorna botao Gerar frase na tela principal\" --non-interactive)",
+      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"stack action buttons in two rows - fix text overflow\")",
+      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"acoes em duas linhas - Ouvir largo embaixo\" --non-interactive)",
+      "Bash(git -c user.email=local@local -c user.name=local commit -q -m \"icon-only action buttons on single row\")",
+      "Bash(EXPO_TOKEN=q7-z918NbpQR_fJ5BRaZVB1A7fB3kPLImLQVLNvZ npx eas update --branch preview --message \"botoes menores em icones em linha unica\" --non-interactive)",
+      "WebSearch",
+      "Bash(git commit -m ' *)",
+      "Skill(gsd-autonomous)",
+      "Skill(gsd-plan-phase)",
+      "Skill(gsd-discuss-phase)",
+      "Skill(gsd-ui-phase)"
     ]
   }
 }
