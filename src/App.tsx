@@ -12,6 +12,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   UIManager,
@@ -42,6 +43,7 @@ import {
 } from './types';
 import { CHILD_GRID_COLUMNS, colors, shadows, spacing, typography } from './theme';
 import { IOSBottomSheet } from './ui';
+import { triggerHaptic } from './services/hapticsService';
 import {
   CORE_VOCABULARY_MAX,
   CUSTOM_CATEGORIES_MAX,
@@ -709,6 +711,7 @@ export default function App() {
   );
 
   const addSymbol = useCallback((symbol: SymbolItem) => {
+    triggerHaptic('light');
     setSelectedSymbols(prev => [...prev, symbol]);
     setNormalizedPhrase(prev => (prev ? `${prev} ${symbol.label}` : prev));
   }, []);
@@ -969,6 +972,7 @@ export default function App() {
       showToast('Rotulo muito longo (max 40 caracteres).', 'error');
       return;
     }
+    triggerHaptic('success');
     const entry: PersonalSymbol = {
       id: `personal-${Date.now()}`,
       label,
@@ -1155,6 +1159,7 @@ export default function App() {
   const attachRecordedAudioToSymbol = useCallback(
     async (symbolId: string) => {
       if (!draftAudioUri) return;
+      triggerHaptic('success');
       const target = personalSymbols.find(item => item.id === symbolId);
       const previousAudio = target?.audioUri ?? null;
       setPersonalSymbols(prev =>
@@ -1257,6 +1262,7 @@ export default function App() {
   }, []);
 
   const toggleRoutineStep = useCallback((id: string) => {
+    triggerHaptic('success');
     setRoutineProgress(prev => {
       const today = getTodayIso();
       const base = prev.date === today ? prev : { date: today, completedStepIds: [] };
@@ -1274,12 +1280,14 @@ export default function App() {
   }, [showToast]);
 
   const clearSymbols = useCallback(() => {
+    triggerHaptic('warning');
     setSelectedSymbols([]);
     setNormalizedPhrase('');
   }, []);
 
   const handlePlay = useCallback(() => {
     if (isPlaying) return;
+    triggerHaptic('light');
     setIsPlaying(true);
     const rawText = normalizedPhrase.trim() || selectedSymbols.map(item => item.label).join(' ').trim();
     const text = normalizeSpokenText(rawText);
@@ -1308,6 +1316,7 @@ export default function App() {
 
   const handleGenerate = useCallback(async () => {
     if (selectedSymbols.length === 0) return;
+    triggerHaptic('medium');
     const labels = selectedSymbols.map(symbol => symbol.label);
     setIsGenerating(true);
     try {
@@ -1343,6 +1352,7 @@ export default function App() {
   const confirmSaveCustomSymbol = useCallback(() => {
     const name = newGroupName.trim();
     if (!name) return;
+    triggerHaptic('success');
 
     const item: CustomSymbol = {
       id: `custom-${Date.now()}`,
@@ -2684,15 +2694,25 @@ export default function App() {
             {configSection === 'acessibilidade' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Acessibilidade</Text>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Contraste</Text>
-                <View style={styles.settingActions}>
-                  <OptionChip label="Padrão" active={contrastMode === 'padrao'} highContrast={isHighContrast} onPress={() => setContrastMode('padrao')} />
-                  <OptionChip label="Alto" active={contrastMode === 'alto'} highContrast={isHighContrast} onPress={() => setContrastMode('alto')} />
+                <View style={styles.iosToggleRow}>
+                  <Text style={[styles.iosToggleLabel, isHighContrast && styles.textHighContrast]}>Alto contraste</Text>
+                  <Switch
+                    value={contrastMode === 'alto'}
+                    onValueChange={v => setContrastMode(v ? 'alto' : 'padrao')}
+                    trackColor={{ false: colors.systemGray4, true: colors.systemBlue }}
+                    thumbColor="#FFFFFF"
+                    accessibilityLabel="Alternar alto contraste"
+                  />
                 </View>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Feedback visual</Text>
-                <View style={styles.settingActions}>
-                  <OptionChip label="Ativado" active={visualFeedbackEnabled} highContrast={isHighContrast} onPress={() => setVisualFeedbackEnabled(true)} />
-                  <OptionChip label="Reduzido" active={!visualFeedbackEnabled} highContrast={isHighContrast} onPress={() => setVisualFeedbackEnabled(false)} />
+                <View style={styles.iosToggleRow}>
+                  <Text style={[styles.iosToggleLabel, isHighContrast && styles.textHighContrast]}>Feedback visual</Text>
+                  <Switch
+                    value={visualFeedbackEnabled}
+                    onValueChange={setVisualFeedbackEnabled}
+                    trackColor={{ false: colors.systemGray4, true: colors.systemBlue }}
+                    thumbColor="#FFFFFF"
+                    accessibilityLabel="Alternar feedback visual"
+                  />
                 </View>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>No modo reduzido, textos auxiliares e dicas visuais são minimizados.</Text>
               </View>
@@ -4346,27 +4366,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 14,
+    paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#E8E1D2',
-    backgroundColor: '#FFFFFF'
+    borderRadius: 12,
+    borderWidth: 0,
+    backgroundColor: colors.secondaryFill
   },
   configNavItemActive: {
-    backgroundColor: '#D9E7E0',
-    borderColor: '#5B8C7A'
+    backgroundColor: colors.systemBlue
   },
   configNavIcon: {
     fontSize: 18
   },
   configNavItemText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#2B2A28'
+    fontWeight: '500',
+    color: colors.label
   },
   configNavItemTextActive: {
-    color: '#3F6656'
+    color: '#FFFFFF',
+    fontWeight: '600'
+  },
+  iosToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    minHeight: 44
+  },
+  iosToggleLabel: {
+    flex: 1,
+    ...typography.body,
+    color: colors.label
   },
   modalButtonDanger: {
     backgroundColor: '#F5E0DB',
@@ -4403,10 +4434,13 @@ const styles = StyleSheet.create({
     color: '#0f172a'
   },
   modalSectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#2B2A28',
-    marginTop: 4
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.secondaryLabel,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    paddingTop: 4,
+    paddingBottom: 6
   },
   modalHint: {
     color: '#6B6A67',
@@ -4419,12 +4453,12 @@ const styles = StyleSheet.create({
     paddingBottom: 4
   },
   configSectionCard: {
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#E8E1D2',
-    backgroundColor: '#FBF9F3',
-    padding: 18,
-    gap: 12
+    borderRadius: 16,
+    borderWidth: 0,
+    backgroundColor: colors.secondarySystemGroupedBackground,
+    padding: 16,
+    gap: 12,
+    ...shadows.sm
   },
   configSectionCardHighContrast: {
     backgroundColor: '#111827',
