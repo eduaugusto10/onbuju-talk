@@ -147,8 +147,10 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 | 16. Rotina Visual e Polimento da Milestone | 1/1 | Complete | 2026-04-21 |
 
 ## Milestone 5 - Refatoracao de Design no Estilo iOS
+- Milestone 5 - Refatoracao de Design no Estilo iOS (shipped 2026-04-21) -> ver arquivo: `.planning/milestones/v5-ROADMAP.md`
 
-Goal: Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone), preservando 100% da funcionalidade entregue nas milestones v1-v4. Escopo exclusivamente visual/UX. Numeracao continua a partir da Phase 17.
+<details>
+<summary>Phases arquivadas (expandir para ver detalhes historicos)</summary>
 
 ### Phase 17 - Design System iOS (Tokens e Primitivos)
 - Objetivo: estabelecer o design system iOS do projeto — tokens de cor, tipografia, espacamento, raios e sombras — e componentes primitivos reutilizaveis.
@@ -256,3 +258,5 @@ Goal: Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone),
 | 19. Sheets e Modais iOS | 1/1 | Complete | 2026-04-21 |
 | 20. Config "Ajustes" iOS + Haptic Feedback | 1/1 | Complete | 2026-04-21 |
 | 21. Regressao, Polimento e Release | 1/1 | Complete | 2026-04-21 |
+
+</details>

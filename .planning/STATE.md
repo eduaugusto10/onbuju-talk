@@ -1,41 +1,27 @@
 # STATE
 
 ## Current Position
-- Milestone: v5 - Refatoracao de Design no Estilo iOS - COMPLETA
-- Phase: 21 - Regressao, Polimento e Release - COMPLETA
-- Status: Milestone v5 concluida (Phases 17-21 todas completas); pronta para audit/archive/cleanup.
-- Last activity: 2026-04-21 - Milestone v5 fechada (regressao OK, release checklist atualizado).
+- Milestone: v5 - Refatoracao de Design no Estilo iOS - ARCHIVED (shipped 2026-04-21)
+- Phase: nenhuma ativa
+- Status: Aguardando nova milestone ou validacao manual em device (RELEASE-CHECKLIST.md).
+- Last activity: 2026-04-21 - Milestone v5 auditada, arquivada e cleanup executado.
 
 ## Status
-- Projeto inicializado no fluxo GSD.
-- Codebase map ja criado em `.planning/codebase/`.
-- Milestone 1 - Estabilizacao Mobile arquivada (v1).
-- Milestone 3 - Experiencia de Abertura (Tela Inicial) arquivada (v3).
-- Milestone v4 - Comunicacao Pessoal e Rotina Visual concluida 2026-04-21 (12/12 requisitos; aguardando arquivamento).
-- Milestone v5 - Refatoracao iOS concluida 2026-04-21 (16/16 requisitos; Phases 17-21 completas).
-- Aguardando: audit/complete/cleanup da milestone v5.
+- Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
+- Milestone v4 (Comunicacao Pessoal e Rotina Visual) concluida em 2026-04-21 com 12/12 requisitos; aguardando arquivamento formal.
+- Codebase map em `.planning/codebase/`.
+- `npm run lint` limpo; `npm run test` 22/26 (4 pre-existentes herdados aceitos).
+- Validacao manual em device listada em `.planning/RELEASE-CHECKLIST.md`.
 
 ## Accumulated Context
-- App Expo SDK 54 refatorado para estetica iOS na milestone v5, mantendo 100% da funcionalidade v1-v4.
-- Design system iOS em `src/theme.ts` (colors, typography, radii, spacing, shadows).
-- Primitivos iOS em `src/ui/` (IOSButton, IOSCard, IOSSectionHeader, IOSListSection, IOSListRow, IOSBottomSheet com BlurView).
-- `expo-haptics` e `expo-blur` integrados; haptics em 7 pontos-chave.
-- 4 modais migrados para IOSBottomSheet com grabber e blur backdrop.
-- Config com section headers UPPERCASE, Switch nativo para toggles binarios.
-- Tela principal toda em estetica iOS (header, categorias, search, grid, composer).
-- Regressao: `npm run lint` limpo; `npm run test` 22/26 (4 pre-existentes herdados no arasaacService).
+- App Expo SDK 54 com vocabulario core, frases prontas + historico, simbolos pessoais, voz gravada, rotina visual, categorias customizadas (v1-v4) + refatoracao completa para estetica iOS (v5).
+- Design system iOS em `src/theme.ts`; primitivos em `src/ui/`; haptics em `src/services/hapticsService.ts`.
+- `expo-haptics` e `expo-blur` integrados com plugins em `app.json`.
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
-## Milestone v5 - Phase Summary
-- [x] Phase 17: Design System iOS (Tokens e Primitivos) - COMPLETE
-- [x] Phase 18: Tela Principal estilo iOS - COMPLETE
-- [x] Phase 19: Sheets e Modais iOS - COMPLETE
-- [x] Phase 20: Config Ajustes iOS + Haptic Feedback - COMPLETE
-- [x] Phase 21: Regressao, Polimento e Release - COMPLETE
-
 ## Proximo Comando Recomendado
-- `/gsd-audit-milestone` (audit da milestone antes de arquivar)
-- Apos audit: `/gsd-complete-milestone 5` + `/gsd-cleanup`
+- Validacao manual em device do checklist em `.planning/RELEASE-CHECKLIST.md` antes do release.
+- Para iniciar proxima milestone: `/gsd-new-milestone`.
 
 ## Ultima Atualizacao
-- 2026-04-21: Milestone v5 (Refatoracao de Design no Estilo iOS) concluida. 5/5 phases completas. 16/16 requisitos entregues. Regressao automatizada OK. Pronta para audit/archive.
+- 2026-04-21: Milestone v5 arquivada (`.planning/milestones/v5-ROADMAP.md`, `.planning/milestones/v5-REQUIREMENTS.md`, `.planning/phases/archive-v5/`). ROADMAP.md e STATE.md atualizados.
