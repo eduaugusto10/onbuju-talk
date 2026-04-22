@@ -48,3 +48,6 @@ export const DEFAULT_SAVED_PHRASES: string[] = [
 
 export const SAVED_PHRASES_MAX = 30;
 export const PHRASE_HISTORY_MAX = 20;
+
+export const PERSONAL_SYMBOLS_MAX = 100;
+export const CUSTOM_CATEGORIES_MAX = 20;

@@ -1,10 +1,10 @@
 # STATE
 
 ## Current Position
-- Phase: Phase 14 - Simbolos Pessoais (Camera, Galeria) e Categorias Customizadas (aguardando planejamento)
+- Phase: Phase 15 - Voz Gravada do Cuidador (aguardando planejamento)
 - Plan: -
-- Status: Phase 13 concluida, pronto para planejar Phase 14
-- Last activity: 2026-04-21 - Phase 13 (Frases Prontas e Historico) concluida
+- Status: Phase 14 concluida, pronto para planejar Phase 15
+- Last activity: 2026-04-21 - Phase 14 (Simbolos Pessoais e Categorias Customizadas) concluida
 
 ## Status
 - Projeto inicializado no fluxo GSD.
@@ -16,7 +16,8 @@
 - ROADMAP.md da v4 definido com 5 fases (Phase 12-16), 100% de cobertura.
 - Phase 12 (Vocabulario Core e Motor Planning) concluida: 2/12 requisitos entregues (COMM-01, COMM-02).
 - Phase 13 (Frases Prontas e Historico) concluida: 5/12 requisitos entregues (+COMM-03, COMM-04, COMM-05).
-- Fase atual: Phase 14 (aguardando `/gsd-plan-phase 14`).
+- Phase 14 (Simbolos Pessoais e Categorias Customizadas) concluida: 8/12 requisitos entregues (+CONT-01, CONT-02, ORG-03).
+- Fase atual: Phase 15 (aguardando `/gsd-plan-phase 15`).
 
 ## Accumulated Context
 - App Expo SDK 54 estabilizado com cache de imagem local e base de testes automatizados.
@@ -31,7 +32,7 @@
   - Phase 16 (rotina visual + polimento) consome simbolos pessoais, categorias e voz gravada, e fecha a milestone com regressao.
 
 ## Proximo Comando Recomendado
-- `/gsd-plan-phase 14`
+- `/gsd-plan-phase 15`
 
 ## Ultima Atualizacao
-- Phase 13 (Frases Prontas e Historico) concluida em 2026-04-21. Requisitos COMM-03, COMM-04, COMM-05 entregues. Proximo passo: `/gsd-plan-phase 14` (Simbolos Pessoais - Camera/Galeria e Categorias Customizadas).
+- Phase 14 (Simbolos Pessoais e Categorias Customizadas) concluida em 2026-04-21. Requisitos CONT-01, CONT-02, ORG-03 entregues. Proximo passo: `/gsd-plan-phase 15` (Voz Gravada do Cuidador).

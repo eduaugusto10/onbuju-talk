@@ -116,6 +116,7 @@ async function cleanupCacheIfNeeded() {
 
 export async function getCachedImageUri(remoteUri: string) {
   if (!remoteUri) return remoteUri;
+  if (!/^https?:\/\//i.test(remoteUri)) return remoteUri;
   const fromMap = uriMap.get(remoteUri);
   if (fromMap) {
     metrics.cacheHit += 1;

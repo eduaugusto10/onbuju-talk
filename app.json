@@ -18,7 +18,21 @@
     "updates": {
       "url": "https://u.expo.dev/5f12ea26-156a-4789-ae97-a1e5e3d44a32"
     },
-    "android": {},
-    "ios": {}
+    "android": {
+      "package": "com.eduaugusto10.falamobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.eduaugusto10.falamobile"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Fala usa suas fotos para criar simbolos pessoais.",
+          "cameraPermission": "O Fala usa a camera para criar simbolos pessoais.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

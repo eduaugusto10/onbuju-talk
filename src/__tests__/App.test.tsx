@@ -39,6 +39,19 @@ jest.mock('../services/aiService', () => ({
   saveAiApiKey: jest.fn(async () => undefined)
 }));
 
+jest.mock('../services/personalSymbolsService', () => ({
+  savePersonalSymbolImage: jest.fn(async (uri: string) => `file:///doc-dir/personal-symbols/copy-${uri.split('/').pop()}`),
+  deletePersonalSymbolImage: jest.fn(async () => undefined)
+}));
+
+jest.mock('expo-image-picker', () => ({
+  requestCameraPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted' })),
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted' })),
+  launchCameraAsync: jest.fn(async () => ({ canceled: false, assets: [{ uri: 'file:///tmp/fake-camera.jpg' }] })),
+  launchImageLibraryAsync: jest.fn(async () => ({ canceled: false, assets: [{ uri: 'file:///tmp/fake-gallery.jpg' }] })),
+  MediaTypeOptions: { Images: 'Images', Videos: 'Videos' }
+}));
+
 describe('App', () => {
   const asyncStorageMock = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
@@ -225,6 +238,80 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText('Falar frase bom dia')).toBeTruthy();
+    });
+  });
+
+  it('restaura simbolos pessoais salvos no boot e mostra na categoria custom', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_custom_categories')
+        return JSON.stringify([{ id: 'cat-1', name: 'Casa', createdAt: new Date().toISOString() }]);
+      if (key === 'arasaac_personal_symbols')
+        return JSON.stringify([
+          {
+            id: 'personal-1',
+            label: 'vovo',
+            categoryId: 'cat-1',
+            imageUri: 'file:///doc-dir/personal-symbols/vovo.jpg',
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      return null;
+    });
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeTruthy());
+    fireEvent.press(screen.getByText('Casa'));
+
+    await waitFor(() => {
+      expect(screen.getByText('vovo')).toBeTruthy();
+    });
+  });
+
+  it('simbolos pessoais sem categoria nao aparecem em categorias custom', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_custom_categories')
+        return JSON.stringify([{ id: 'cat-3', name: 'Familia', createdAt: new Date().toISOString() }]);
+      if (key === 'arasaac_personal_symbols')
+        return JSON.stringify([
+          {
+            id: 'p-orphan',
+            label: 'sem-cat',
+            categoryId: null,
+            imageUri: 'file:///doc-dir/personal-symbols/o.jpg',
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      return null;
+    });
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Familia')).toBeTruthy());
+    fireEvent.press(screen.getByText('Familia'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Nenhum simbolo nesta categoria.')).toBeTruthy();
+      expect(screen.queryByText('sem-cat')).toBeNull();
+    });
+  });
+
+  it('hydrata e persiste categorias customizadas', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_custom_categories')
+        return JSON.stringify([{ id: 'cat-4', name: 'Escola', createdAt: new Date().toISOString() }]);
+      return null;
+    });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Escola')).toBeTruthy();
+      expect(
+        asyncStorageMock.setItem.mock.calls.some(
+          ([key, value]) => key === 'arasaac_custom_categories' && (value as string).includes('Escola')
+        )
+      ).toBe(true);
     });
   });
 });

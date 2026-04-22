@@ -25,3 +25,17 @@ export interface HistoryPhrase {
   text: string;
   spokenAt: string;
 }
+
+export interface PersonalSymbol {
+  id: string;
+  label: string;
+  categoryId: string | null;
+  imageUri: string;
+  createdAt: string;
+}
+
+export interface CustomCategory {
+  id: string;
+  name: string;
+  createdAt: string;
+}

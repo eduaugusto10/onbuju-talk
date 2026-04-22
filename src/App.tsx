@@ -22,20 +22,24 @@ import * as Speech from 'expo-speech';
 import { arasaacService } from './services/arasaacService';
 import { getCachedImageUri, getImageCacheMetrics, warmImageCache } from './services/imageCacheService';
 import { generateNormalizedPhrase, saveAiApiKey } from './services/aiService';
-import { CustomSymbol, HistoryPhrase, SavedPhrase, SymbolItem } from './types';
+import * as ImagePicker from 'expo-image-picker';
+import { CustomCategory, CustomSymbol, HistoryPhrase, PersonalSymbol, SavedPhrase, SymbolItem } from './types';
 import { CHILD_GRID_COLUMNS } from './theme';
 import {
   CORE_VOCABULARY_MAX,
+  CUSTOM_CATEGORIES_MAX,
   DEFAULT_CORE_VOCABULARY,
   DEFAULT_SAVED_PHRASES,
+  PERSONAL_SYMBOLS_MAX,
   PHRASE_HISTORY_MAX,
   SAVED_PHRASES_MAX
 } from './constants';
+import { deletePersonalSymbolImage, savePersonalSymbolImage } from './services/personalSymbolsService';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
 type ContrastMode = 'padrao' | 'alto';
-type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases';
+type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias';
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
@@ -57,7 +61,9 @@ const STORAGE_KEYS = {
   gridColumns: 'grid_columns',
   coreVocabulary: 'core_vocabulary',
   savedPhrases: 'arasaac_saved_phrases',
-  phraseHistory: 'arasaac_phrase_history'
+  phraseHistory: 'arasaac_phrase_history',
+  personalSymbols: 'arasaac_personal_symbols',
+  customCategories: 'arasaac_custom_categories'
 };
 
 const normalizeCoreWord = (word: string) => word.trim().toLowerCase();
@@ -103,6 +109,44 @@ function sanitizeSavedPhrases(raw: unknown): SavedPhrase[] {
     const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
     result.push({ id, text, createdAt });
     if (result.length >= SAVED_PHRASES_MAX) break;
+  }
+  return result;
+}
+
+function sanitizePersonalSymbols(raw: unknown): PersonalSymbol[] {
+  if (!Array.isArray(raw)) return [];
+  const result: PersonalSymbol[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const candidate = entry as Partial<PersonalSymbol>;
+    const label = typeof candidate.label === 'string' ? candidate.label.trim() : '';
+    const imageUri = typeof candidate.imageUri === 'string' ? candidate.imageUri.trim() : '';
+    if (!label || !imageUri) continue;
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `personal-${Date.now()}-${result.length}`;
+    const categoryId = typeof candidate.categoryId === 'string' && candidate.categoryId ? candidate.categoryId : null;
+    const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
+    result.push({ id, label, categoryId, imageUri, createdAt });
+    if (result.length >= PERSONAL_SYMBOLS_MAX) break;
+  }
+  return result;
+}
+
+function sanitizeCustomCategories(raw: unknown): CustomCategory[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const result: CustomCategory[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const candidate = entry as Partial<CustomCategory>;
+    const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `cat-${Date.now()}-${result.length}`;
+    const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
+    result.push({ id, name, createdAt });
+    if (result.length >= CUSTOM_CATEGORIES_MAX) break;
   }
   return result;
 }
@@ -187,6 +231,16 @@ export default function App() {
   const [newPhraseInput, setNewPhraseInput] = useState('');
   const [editingPhraseId, setEditingPhraseId] = useState<string | null>(null);
   const [editingPhraseText, setEditingPhraseText] = useState('');
+  const [personalSymbols, setPersonalSymbols] = useState<PersonalSymbol[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+  const [pickerBusy, setPickerBusy] = useState(false);
+  const [pendingSymbolImage, setPendingSymbolImage] = useState<string | null>(null);
+  const [pendingSymbolLabel, setPendingSymbolLabel] = useState('');
+  const [pendingSymbolCategoryId, setPendingSymbolCategoryId] = useState<string | null>(null);
+  const [isSymbolDraftOpen, setIsSymbolDraftOpen] = useState(false);
+  const [newCustomCategoryName, setNewCustomCategoryName] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
   const [isBootHydrating, setIsBootHydrating] = useState(true);
   const [showIntroScreen, setShowIntroScreen] = useState(false);
   const [skipIntroNextOpen, setSkipIntroNextOpen] = useState(false);
@@ -332,7 +386,9 @@ export default function App() {
           savedGridColumns,
           savedCoreVocabulary,
           savedPhrasesRaw,
-          savedPhraseHistory
+          savedPhraseHistory,
+          savedPersonalSymbols,
+          savedCustomCategories
         ] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.favorites),
           AsyncStorage.getItem(STORAGE_KEYS.customSymbols),
@@ -346,7 +402,9 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
           AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary),
           AsyncStorage.getItem(STORAGE_KEYS.savedPhrases),
-          AsyncStorage.getItem(STORAGE_KEYS.phraseHistory)
+          AsyncStorage.getItem(STORAGE_KEYS.phraseHistory),
+          AsyncStorage.getItem(STORAGE_KEYS.personalSymbols),
+          AsyncStorage.getItem(STORAGE_KEYS.customCategories)
         ]);
 
         if (savedFavorites) {
@@ -407,6 +465,22 @@ export default function App() {
           try {
             const parsed = JSON.parse(savedPhraseHistory);
             setPhraseHistory(sanitizePhraseHistory(parsed));
+          } catch {
+            /* keep empty */
+          }
+        }
+
+        if (savedPersonalSymbols) {
+          try {
+            setPersonalSymbols(sanitizePersonalSymbols(JSON.parse(savedPersonalSymbols)));
+          } catch {
+            /* keep empty */
+          }
+        }
+
+        if (savedCustomCategories) {
+          try {
+            setCustomCategories(sanitizeCustomCategories(JSON.parse(savedCustomCategories)));
           } catch {
             /* keep empty */
           }
@@ -481,6 +555,14 @@ export default function App() {
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.phraseHistory, JSON.stringify(phraseHistory));
   }, [phraseHistory]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.personalSymbols, JSON.stringify(personalSymbols));
+  }, [personalSymbols]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.customCategories, JSON.stringify(customCategories));
+  }, [customCategories]);
 
   const toggleFavorite = useCallback((symbol: SymbolItem) => {
     if (!isAdmin) {
@@ -656,6 +738,196 @@ export default function App() {
     showToast('Historico de frases limpo.', 'success');
   }, [showToast]);
 
+  const closeSymbolDraft = useCallback(
+    async (shouldDeleteImage: boolean) => {
+      const imageToDelete = shouldDeleteImage ? pendingSymbolImage : null;
+      setIsSymbolDraftOpen(false);
+      setPendingSymbolImage(null);
+      setPendingSymbolLabel('');
+      setPendingSymbolCategoryId(null);
+      if (imageToDelete) {
+        await deletePersonalSymbolImage(imageToDelete);
+      }
+    },
+    [pendingSymbolImage]
+  );
+
+  const handlePickImageResult = useCallback(
+    async (result: ImagePicker.ImagePickerResult) => {
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      if (personalSymbols.length >= PERSONAL_SYMBOLS_MAX) {
+        showToast(`Maximo de ${PERSONAL_SYMBOLS_MAX} simbolos pessoais.`, 'error');
+        return;
+      }
+      try {
+        const storedUri = await savePersonalSymbolImage(asset.uri);
+        setPendingSymbolImage(storedUri);
+        setPendingSymbolLabel('');
+        setPendingSymbolCategoryId(null);
+        setIsSymbolDraftOpen(true);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Erro ao salvar imagem pessoal:', error);
+        }
+        showToast('Nao foi possivel preparar a imagem.', 'error');
+      }
+    },
+    [personalSymbols.length, showToast]
+  );
+
+  const pickFromCamera = useCallback(async () => {
+    if (pickerBusy) return;
+    setPickerBusy(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso a camera para continuar.', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images
+      });
+      await handlePickImageResult(result);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Erro ao abrir camera:', error);
+      }
+      showToast('Nao foi possivel abrir a camera.', 'error');
+    } finally {
+      setPickerBusy(false);
+    }
+  }, [handlePickImageResult, pickerBusy, showToast]);
+
+  const pickFromGallery = useCallback(async () => {
+    if (pickerBusy) return;
+    setPickerBusy(true);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso as fotos para continuar.', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images
+      });
+      await handlePickImageResult(result);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Erro ao abrir galeria:', error);
+      }
+      showToast('Nao foi possivel abrir a galeria.', 'error');
+    } finally {
+      setPickerBusy(false);
+    }
+  }, [handlePickImageResult, pickerBusy, showToast]);
+
+  const savePendingSymbol = useCallback(async () => {
+    if (!pendingSymbolImage) return;
+    const label = pendingSymbolLabel.trim();
+    if (!label) {
+      showToast('Digite um rotulo para o simbolo.', 'error');
+      return;
+    }
+    if (label.length > 40) {
+      showToast('Rotulo muito longo (max 40 caracteres).', 'error');
+      return;
+    }
+    const entry: PersonalSymbol = {
+      id: `personal-${Date.now()}`,
+      label,
+      categoryId: pendingSymbolCategoryId,
+      imageUri: pendingSymbolImage,
+      createdAt: new Date().toISOString()
+    };
+    setPersonalSymbols(prev => [entry, ...prev]);
+    await closeSymbolDraft(false);
+    showToast('Simbolo pessoal adicionado.', 'success');
+  }, [closeSymbolDraft, pendingSymbolCategoryId, pendingSymbolImage, pendingSymbolLabel, showToast]);
+
+  const cancelPendingSymbol = useCallback(() => {
+    void closeSymbolDraft(true);
+  }, [closeSymbolDraft]);
+
+  const removePersonalSymbol = useCallback(
+    async (id: string) => {
+      const target = personalSymbols.find(item => item.id === id);
+      setPersonalSymbols(prev => prev.filter(item => item.id !== id));
+      if (target) {
+        await deletePersonalSymbolImage(target.imageUri);
+      }
+    },
+    [personalSymbols]
+  );
+
+  const addCustomCategory = useCallback(() => {
+    const name = newCustomCategoryName.trim();
+    if (!name) {
+      showToast('Digite um nome para a categoria.', 'error');
+      return;
+    }
+    if (customCategories.length >= CUSTOM_CATEGORIES_MAX) {
+      showToast(`Maximo de ${CUSTOM_CATEGORIES_MAX} categorias.`, 'error');
+      return;
+    }
+    if (customCategories.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+      showToast('Ja existe uma categoria com esse nome.', 'error');
+      return;
+    }
+    const entry: CustomCategory = {
+      id: `cat-${Date.now()}`,
+      name,
+      createdAt: new Date().toISOString()
+    };
+    setCustomCategories(prev => [...prev, entry]);
+    setNewCustomCategoryName('');
+  }, [customCategories, newCustomCategoryName, showToast]);
+
+  const removeCustomCategory = useCallback((id: string) => {
+    setPersonalSymbols(prev => prev.map(ps => (ps.categoryId === id ? { ...ps, categoryId: null } : ps)));
+    setCustomCategories(prev => prev.filter(item => item.id !== id));
+    setEditingCategoryId(current => (current === id ? null : current));
+    setActiveCategory(current => (current === id ? CATEGORIES.all : current));
+  }, []);
+
+  const startEditCategory = useCallback((category: CustomCategory) => {
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(category.name);
+  }, []);
+
+  const cancelEditCategory = useCallback(() => {
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+  }, []);
+
+  const commitEditCategory = useCallback(() => {
+    if (!editingCategoryId) return;
+    const name = editingCategoryName.trim();
+    if (!name) {
+      showToast('Nome da categoria vazio.', 'error');
+      return;
+    }
+    setCustomCategories(prev => {
+      const duplicated = prev.some(
+        item => item.id !== editingCategoryId && item.name.toLowerCase() === name.toLowerCase()
+      );
+      if (duplicated) {
+        showToast('Ja existe uma categoria com esse nome.', 'error');
+        return prev;
+      }
+      return prev.map(item => (item.id === editingCategoryId ? { ...item, name } : item));
+    });
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+  }, [editingCategoryId, editingCategoryName, showToast]);
+
   const clearSymbols = useCallback(() => {
     setSelectedSymbols([]);
     setNormalizedPhrase('');
@@ -757,7 +1029,8 @@ export default function App() {
         category === CATEGORIES.favorites ||
         category === CATEGORIES.custom ||
         category === CATEGORIES.savedPhrases ||
-        category === CATEGORIES.history
+        category === CATEGORIES.history ||
+        category.startsWith('cat-')
       ) {
         return;
       }
@@ -990,6 +1263,15 @@ export default function App() {
                 onPress={() => void handleCategoryClick(CATEGORIES.custom)}
               />
             )}
+            {customCategories.map(category => (
+              <CategoryButton
+                key={`custom-cat-${category.id}`}
+                label={category.name}
+                active={activeCategory === category.id}
+                highContrast={isHighContrast}
+                onPress={() => void handleCategoryClick(category.id)}
+              />
+            ))}
             {categories.map(category => (
               <CategoryButton
                 key={category}
@@ -1094,6 +1376,56 @@ export default function App() {
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
                     Nenhuma frase no historico ainda.
+                  </Text>
+                </View>
+              }
+            />
+          ) : customCategories.some(c => c.id === activeCategory) ? (
+            <FlatList
+              data={personalSymbols.filter(ps => ps.categoryId === activeCategory)}
+              keyExtractor={item => item.id}
+              key={`personal-${activeCategory}-${effectiveGridColumns}`}
+              numColumns={effectiveGridColumns}
+              accessibilityLabel={`Grade de simbolos pessoais ${effectiveGridColumns} colunas`}
+              contentContainerStyle={styles.grid}
+              renderItem={({ item }) => (
+                <SymbolCard
+                  item={{
+                    id: item.id,
+                    label: item.label,
+                    imageUrl: item.imageUri,
+                    category: 'personal'
+                  }}
+                  columns={effectiveGridColumns}
+                  favorite={isFavorite({
+                    id: item.id,
+                    label: item.label,
+                    imageUrl: item.imageUri,
+                    category: 'personal'
+                  })}
+                  onPress={() =>
+                    addSymbol({
+                      id: item.id,
+                      label: item.label,
+                      imageUrl: item.imageUri,
+                      category: 'personal'
+                    })
+                  }
+                  onFavoritePress={() =>
+                    toggleFavorite({
+                      id: item.id,
+                      label: item.label,
+                      imageUrl: item.imageUri,
+                      category: 'personal'
+                    })
+                  }
+                  isAdmin={isAdmin}
+                />
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
+                    Nenhum simbolo nesta categoria.
                   </Text>
                 </View>
               }
@@ -1250,6 +1582,68 @@ export default function App() {
         </View>
       </Modal>
 
+      <Modal visible={isSymbolDraftOpen} transparent animationType="fade" onRequestClose={cancelPendingSymbol}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.symbolDraftCard]}>
+            <Text style={styles.modalTitle}>Novo simbolo pessoal</Text>
+            {pendingSymbolImage && (
+              <Image
+                source={{ uri: pendingSymbolImage }}
+                style={styles.symbolDraftPreview}
+                resizeMode="cover"
+                accessibilityLabel="Previsualizacao da imagem do simbolo"
+              />
+            )}
+            <TextInput
+              value={pendingSymbolLabel}
+              onChangeText={setPendingSymbolLabel}
+              placeholder="Rotulo (ex: vovo)"
+              placeholderTextColor="#94a3b8"
+              style={styles.modalInput}
+              autoFocus
+              maxLength={40}
+            />
+            <Text style={styles.modalHint}>Categoria (opcional):</Text>
+            <View style={styles.symbolDraftCategoryRow}>
+              <Pressable
+                onPress={() => setPendingSymbolCategoryId(null)}
+                style={[styles.symbolDraftCategoryChip, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipActive]}
+                accessibilityRole="button"
+                accessibilityLabel="Sem categoria"
+              >
+                <Text style={[styles.symbolDraftCategoryChipText, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipTextActive]}>
+                  Sem categoria
+                </Text>
+              </Pressable>
+              {customCategories.map(cat => {
+                const selected = pendingSymbolCategoryId === cat.id;
+                return (
+                  <Pressable
+                    key={`draft-cat-${cat.id}`}
+                    onPress={() => setPendingSymbolCategoryId(cat.id)}
+                    style={[styles.symbolDraftCategoryChip, selected && styles.symbolDraftCategoryChipActive]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Categoria ${cat.name}`}
+                  >
+                    <Text style={[styles.symbolDraftCategoryChipText, selected && styles.symbolDraftCategoryChipTextActive]}>
+                      {cat.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalButtonLight} onPress={cancelPendingSymbol}>
+                <Text>Cancelar</Text>
+              </Pressable>
+              <Pressable style={styles.modalButtonPrimary} onPress={() => void savePendingSymbol()}>
+                <Text style={styles.modalButtonPrimaryText}>Salvar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal
         visible={isConfigModalOpen}
         transparent
@@ -1322,6 +1716,18 @@ export default function App() {
                 icon="💬"
                 active={configSection === 'frases'}
                 onPress={() => setConfigSection('frases')}
+              />
+              <ConfigNavItem
+                label="Simbolos"
+                icon="📷"
+                active={configSection === 'simbolos'}
+                onPress={() => setConfigSection('simbolos')}
+              />
+              <ConfigNavItem
+                label="Categorias"
+                icon="🗂"
+                active={configSection === 'categorias'}
+                onPress={() => setConfigSection('categorias')}
               />
             </View>
 
@@ -1537,6 +1943,202 @@ export default function App() {
 
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
                       Maximo de {SAVED_PHRASES_MAX} frases. Historico guarda as ultimas {PHRASE_HISTORY_MAX} frases faladas.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+
+            {configSection === 'simbolos' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Simbolos pessoais</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                  Adicione fotos familiares como simbolos. Escolha da camera ou da galeria.
+                </Text>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador em "Cuidador" para adicionar simbolos pessoais.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.personalSymbolAddRow}>
+                      <Pressable
+                        onPress={() => void pickFromCamera()}
+                        disabled={pickerBusy}
+                        style={[styles.modalButtonPrimary, styles.personalSymbolAddButton, pickerBusy && styles.personalSymbolAddButtonBusy]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Tirar foto para novo simbolo"
+                      >
+                        <Text style={styles.modalButtonPrimaryText}>📷 Tirar foto</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => void pickFromGallery()}
+                        disabled={pickerBusy}
+                        style={[styles.modalButtonPrimary, styles.personalSymbolAddButton, pickerBusy && styles.personalSymbolAddButtonBusy]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Escolher imagem da galeria"
+                      >
+                        <Text style={styles.modalButtonPrimaryText}>🖼 Galeria</Text>
+                      </Pressable>
+                    </View>
+
+                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                      Maximo de {PERSONAL_SYMBOLS_MAX} simbolos pessoais.
+                    </Text>
+
+                    <View style={styles.personalSymbolList}>
+                      {personalSymbols.length === 0 && (
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Nenhum simbolo pessoal ainda.
+                        </Text>
+                      )}
+                      {personalSymbols.map(symbol => {
+                        const category = customCategories.find(c => c.id === symbol.categoryId);
+                        return (
+                          <View
+                            key={`personal-row-${symbol.id}`}
+                            style={[styles.personalSymbolRow, isHighContrast && styles.personalSymbolRowHighContrast]}
+                          >
+                            <Image source={{ uri: symbol.imageUri }} style={styles.personalSymbolThumb} resizeMode="cover" />
+                            <View style={styles.personalSymbolInfo}>
+                              <Text
+                                style={[styles.personalSymbolLabel, isHighContrast && styles.textHighContrast]}
+                                numberOfLines={1}
+                              >
+                                {symbol.label}
+                              </Text>
+                              <Text style={[styles.personalSymbolCategory, isHighContrast && styles.textMutedHighContrast]} numberOfLines={1}>
+                                {category ? category.name : 'Sem categoria'}
+                              </Text>
+                            </View>
+                            <Pressable
+                              onPress={() => void removePersonalSymbol(symbol.id)}
+                              style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Remover simbolo ${symbol.label}`}
+                            >
+                              <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                            </Pressable>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
+
+            {configSection === 'categorias' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Categorias customizadas</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                  Organize seus simbolos pessoais em categorias proprias.
+                </Text>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador em "Cuidador" para gerenciar categorias.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.phraseEditorList}>
+                      {customCategories.length === 0 && (
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Nenhuma categoria customizada ainda.
+                        </Text>
+                      )}
+                      {customCategories.map(cat => {
+                        const count = personalSymbols.filter(ps => ps.categoryId === cat.id).length;
+                        const isEditing = editingCategoryId === cat.id;
+                        return (
+                          <View
+                            key={`cat-edit-${cat.id}`}
+                            style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+                          >
+                            {isEditing ? (
+                              <TextInput
+                                value={editingCategoryName}
+                                onChangeText={setEditingCategoryName}
+                                style={[styles.phraseEditorInput, isHighContrast && styles.inputHighContrast]}
+                                autoFocus
+                                onSubmitEditing={commitEditCategory}
+                                placeholder="Nome da categoria"
+                                placeholderTextColor="#94a3b8"
+                              />
+                            ) : (
+                              <View style={{ flex: 1 }}>
+                                <Text style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]} numberOfLines={1}>
+                                  {cat.name}
+                                </Text>
+                                <Text style={[styles.personalSymbolCategory, isHighContrast && styles.textMutedHighContrast]}>
+                                  {count} simbolo{count === 1 ? '' : 's'}
+                                </Text>
+                              </View>
+                            )}
+                            {isEditing ? (
+                              <>
+                                <Pressable
+                                  onPress={commitEditCategory}
+                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonPrimary]}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Salvar categoria"
+                                >
+                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextPrimary]}>OK</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={cancelEditCategory}
+                                  style={styles.phraseEditorButton}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Cancelar edicao"
+                                >
+                                  <Text style={styles.phraseEditorButtonText}>✕</Text>
+                                </Pressable>
+                              </>
+                            ) : (
+                              <>
+                                <Pressable
+                                  onPress={() => startEditCategory(cat)}
+                                  style={styles.phraseEditorButton}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Renomear ${cat.name}`}
+                                >
+                                  <Text style={styles.phraseEditorButtonText}>✎</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => removeCustomCategory(cat.id)}
+                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Remover ${cat.name}`}
+                                >
+                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                                </Pressable>
+                              </>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+
+                    <View style={styles.phraseEditorAddRow}>
+                      <TextInput
+                        value={newCustomCategoryName}
+                        onChangeText={setNewCustomCategoryName}
+                        placeholder="Nova categoria (ex: Casa)"
+                        placeholderTextColor="#94a3b8"
+                        style={[styles.modalInput, styles.phraseEditorAddInput, isHighContrast && styles.inputHighContrast]}
+                        onSubmitEditing={addCustomCategory}
+                      />
+                      <Pressable
+                        onPress={addCustomCategory}
+                        style={styles.modalButtonPrimary}
+                        accessibilityRole="button"
+                        accessibilityLabel="Adicionar categoria"
+                      >
+                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                      </Pressable>
+                    </View>
+
+                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                      Remover uma categoria nao apaga os simbolos — eles ficam como "Sem categoria".
                     </Text>
                   </>
                 )}
@@ -2662,6 +3264,85 @@ const styles = StyleSheet.create({
   phraseEditorAddInput: {
     flex: 1,
     marginBottom: 0
+  },
+  personalSymbolAddRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8
+  },
+  personalSymbolAddButton: {
+    flex: 1
+  },
+  personalSymbolAddButtonBusy: {
+    opacity: 0.6
+  },
+  personalSymbolList: {
+    gap: 8,
+    marginTop: 8
+  },
+  personalSymbolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#F6F7F3',
+    borderWidth: 1,
+    borderColor: '#E2E6D7'
+  },
+  personalSymbolRowHighContrast: {
+    backgroundColor: '#0b1220',
+    borderColor: '#facc15'
+  },
+  personalSymbolThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#e5e7eb'
+  },
+  personalSymbolInfo: {
+    flex: 1,
+    gap: 2
+  },
+  personalSymbolLabel: {
+    color: '#0f172a',
+    fontWeight: '700'
+  },
+  personalSymbolCategory: {
+    color: '#64748b',
+    fontSize: 12
+  },
+  symbolDraftCard: {
+    gap: 10
+  },
+  symbolDraftPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    backgroundColor: '#e5e7eb'
+  },
+  symbolDraftCategoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6
+  },
+  symbolDraftCategoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#e2e8f0'
+  },
+  symbolDraftCategoryChipActive: {
+    backgroundColor: '#5B8C7A'
+  },
+  symbolDraftCategoryChipText: {
+    color: '#1f2937',
+    fontWeight: '600'
+  },
+  symbolDraftCategoryChipTextActive: {
+    color: '#ffffff'
   },
   phraseText: {
     minHeight: 30,
