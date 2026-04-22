@@ -52,6 +52,28 @@ jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: { Images: 'Images', Videos: 'Videos' }
 }));
 
+jest.mock('../services/personalAudioService', () => ({
+  savePersonalAudioFile: jest.fn(async (uri: string) => `file:///doc-dir/personal-audio/copy-${uri.split('/').pop()}`),
+  deletePersonalAudioFile: jest.fn(async () => undefined)
+}));
+
+jest.mock('expo-audio', () => {
+  const player = { play: jest.fn(), pause: jest.fn(), remove: jest.fn() };
+  return {
+    createAudioPlayer: jest.fn(() => player),
+    requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted' })),
+    useAudioRecorder: jest.fn(() => ({
+      uri: 'file:///tmp/fake-recording.m4a',
+      prepareToRecordAsync: jest.fn(async () => undefined),
+      record: jest.fn(),
+      stop: jest.fn(async () => undefined)
+    })),
+    useAudioRecorderState: jest.fn(() => ({ isRecording: false, durationMillis: 0 })),
+    RecordingPresets: { HIGH_QUALITY: {}, LOW_QUALITY: {} },
+    __playerMock: player
+  };
+});
+
 describe('App', () => {
   const asyncStorageMock = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
@@ -312,6 +334,70 @@ describe('App', () => {
           ([key, value]) => key === 'arasaac_custom_categories' && (value as string).includes('Escola')
         )
       ).toBe(true);
+    });
+  });
+
+  it('preserva audioUri ao hidratar simbolos pessoais', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_custom_categories')
+        return JSON.stringify([{ id: 'cat-voz', name: 'Familia', createdAt: new Date().toISOString() }]);
+      if (key === 'arasaac_personal_symbols')
+        return JSON.stringify([
+          {
+            id: 'p-voz',
+            label: 'mamae',
+            categoryId: 'cat-voz',
+            imageUri: 'file:///doc-dir/personal-symbols/mamae.jpg',
+            audioUri: 'file:///doc-dir/personal-audio/mamae.m4a',
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      return null;
+    });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(
+        asyncStorageMock.setItem.mock.calls.some(
+          ([key, value]) =>
+            key === 'arasaac_personal_symbols' && (value as string).includes('personal-audio')
+        )
+      ).toBe(true);
+    });
+  });
+
+  it('long press em simbolo com audio aciona createAudioPlayer', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_custom_categories')
+        return JSON.stringify([{ id: 'cat-lp', name: 'Casa', createdAt: new Date().toISOString() }]);
+      if (key === 'arasaac_personal_symbols')
+        return JSON.stringify([
+          {
+            id: 'p-lp',
+            label: 'papai',
+            categoryId: 'cat-lp',
+            imageUri: 'file:///doc-dir/personal-symbols/p.jpg',
+            audioUri: 'file:///doc-dir/personal-audio/p.m4a',
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      return null;
+    });
+    const expoAudioMock = jest.requireMock('expo-audio');
+    expoAudioMock.createAudioPlayer.mockClear();
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Casa')).toBeTruthy());
+    fireEvent.press(screen.getByText('Casa'));
+
+    const card = await screen.findByText('papai');
+    fireEvent(card, 'longPress');
+
+    await waitFor(() => {
+      expect(expoAudioMock.createAudioPlayer).toHaveBeenCalledWith('file:///doc-dir/personal-audio/p.m4a');
     });
   });
 });

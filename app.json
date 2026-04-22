@@ -32,6 +32,12 @@
           "cameraPermission": "O Fala usa a camera para criar simbolos pessoais.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "O Fala usa o microfone para gravar a voz do cuidador e associa-la a simbolos."
+        }
       ]
     ]
   }

@@ -23,6 +23,13 @@ import { arasaacService } from './services/arasaacService';
 import { getCachedImageUri, getImageCacheMetrics, warmImageCache } from './services/imageCacheService';
 import { generateNormalizedPhrase, saveAiApiKey } from './services/aiService';
 import * as ImagePicker from 'expo-image-picker';
+import {
+  createAudioPlayer,
+  requestRecordingPermissionsAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+  RecordingPresets
+} from 'expo-audio';
 import { CustomCategory, CustomSymbol, HistoryPhrase, PersonalSymbol, SavedPhrase, SymbolItem } from './types';
 import { CHILD_GRID_COLUMNS } from './theme';
 import {
@@ -35,6 +42,7 @@ import {
   SAVED_PHRASES_MAX
 } from './constants';
 import { deletePersonalSymbolImage, savePersonalSymbolImage } from './services/personalSymbolsService';
+import { deletePersonalAudioFile, savePersonalAudioFile } from './services/personalAudioService';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
@@ -124,8 +132,9 @@ function sanitizePersonalSymbols(raw: unknown): PersonalSymbol[] {
     if (!label || !imageUri) continue;
     const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `personal-${Date.now()}-${result.length}`;
     const categoryId = typeof candidate.categoryId === 'string' && candidate.categoryId ? candidate.categoryId : null;
+    const audioUri = typeof candidate.audioUri === 'string' && candidate.audioUri ? candidate.audioUri : null;
     const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
-    result.push({ id, label, categoryId, imageUri, createdAt });
+    result.push({ id, label, categoryId, imageUri, audioUri, createdAt });
     if (result.length >= PERSONAL_SYMBOLS_MAX) break;
   }
   return result;
@@ -241,6 +250,11 @@ export default function App() {
   const [newCustomCategoryName, setNewCustomCategoryName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [draftAudioUri, setDraftAudioUri] = useState<string | null>(null);
+  const [audioSymbolId, setAudioSymbolId] = useState<string | null>(null);
+  const audioPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder, 200);
   const [isBootHydrating, setIsBootHydrating] = useState(true);
   const [showIntroScreen, setShowIntroScreen] = useState(false);
   const [skipIntroNextOpen, setSkipIntroNextOpen] = useState(false);
@@ -741,15 +755,20 @@ export default function App() {
   const closeSymbolDraft = useCallback(
     async (shouldDeleteImage: boolean) => {
       const imageToDelete = shouldDeleteImage ? pendingSymbolImage : null;
+      const audioToDelete = shouldDeleteImage ? draftAudioUri : null;
       setIsSymbolDraftOpen(false);
       setPendingSymbolImage(null);
       setPendingSymbolLabel('');
       setPendingSymbolCategoryId(null);
+      if (shouldDeleteImage) setDraftAudioUri(null);
       if (imageToDelete) {
         await deletePersonalSymbolImage(imageToDelete);
       }
+      if (audioToDelete) {
+        await deletePersonalAudioFile(audioToDelete);
+      }
     },
-    [pendingSymbolImage]
+    [draftAudioUri, pendingSymbolImage]
   );
 
   const handlePickImageResult = useCallback(
@@ -845,12 +864,14 @@ export default function App() {
       label,
       categoryId: pendingSymbolCategoryId,
       imageUri: pendingSymbolImage,
+      audioUri: draftAudioUri ?? null,
       createdAt: new Date().toISOString()
     };
     setPersonalSymbols(prev => [entry, ...prev]);
+    setDraftAudioUri(null);
     await closeSymbolDraft(false);
     showToast('Simbolo pessoal adicionado.', 'success');
-  }, [closeSymbolDraft, pendingSymbolCategoryId, pendingSymbolImage, pendingSymbolLabel, showToast]);
+  }, [closeSymbolDraft, draftAudioUri, pendingSymbolCategoryId, pendingSymbolImage, pendingSymbolLabel, showToast]);
 
   const cancelPendingSymbol = useCallback(() => {
     void closeSymbolDraft(true);
@@ -862,6 +883,9 @@ export default function App() {
       setPersonalSymbols(prev => prev.filter(item => item.id !== id));
       if (target) {
         await deletePersonalSymbolImage(target.imageUri);
+        if (target.audioUri) {
+          await deletePersonalAudioFile(target.audioUri);
+        }
       }
     },
     [personalSymbols]
@@ -927,6 +951,154 @@ export default function App() {
     setEditingCategoryId(null);
     setEditingCategoryName('');
   }, [editingCategoryId, editingCategoryName, showToast]);
+
+  const teardownAudioPlayer = useCallback(() => {
+    const player = audioPlayerRef.current;
+    audioPlayerRef.current = null;
+    if (!player) return;
+    try {
+      player.pause();
+    } catch {
+      /* ignore */
+    }
+    try {
+      player.remove();
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      teardownAudioPlayer();
+    };
+  }, [teardownAudioPlayer]);
+
+  const playAudioFromUri = useCallback(
+    (uri: string) => {
+      if (!uri) return;
+      teardownAudioPlayer();
+      try {
+        const player = createAudioPlayer(uri);
+        audioPlayerRef.current = player;
+        player.play();
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Erro ao reproduzir audio:', error);
+        }
+        showToast('Nao foi possivel reproduzir o audio.', 'error');
+      }
+    },
+    [showToast, teardownAudioPlayer]
+  );
+
+  const startDraftRecording = useCallback(async () => {
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso ao microfone para continuar.', 'error');
+        return;
+      }
+      if (draftAudioUri) {
+        await deletePersonalAudioFile(draftAudioUri);
+        setDraftAudioUri(null);
+      }
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Erro ao iniciar gravacao:', error);
+      }
+      showToast('Nao foi possivel iniciar a gravacao.', 'error');
+    }
+  }, [audioRecorder, draftAudioUri, showToast]);
+
+  const stopDraftRecording = useCallback(async () => {
+    try {
+      await audioRecorder.stop();
+      const tempUri = audioRecorder.uri;
+      if (!tempUri) {
+        showToast('Gravacao vazia.', 'error');
+        return;
+      }
+      const storedUri = await savePersonalAudioFile(tempUri);
+      setDraftAudioUri(storedUri);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Erro ao finalizar gravacao:', error);
+      }
+      showToast('Nao foi possivel salvar a gravacao.', 'error');
+    }
+  }, [audioRecorder, showToast]);
+
+  const playDraftAudio = useCallback(() => {
+    if (!draftAudioUri) return;
+    playAudioFromUri(draftAudioUri);
+  }, [draftAudioUri, playAudioFromUri]);
+
+  const discardDraftAudio = useCallback(async () => {
+    if (!draftAudioUri) return;
+    await deletePersonalAudioFile(draftAudioUri);
+    setDraftAudioUri(null);
+  }, [draftAudioUri]);
+
+  const attachRecordedAudioToSymbol = useCallback(
+    async (symbolId: string) => {
+      if (!draftAudioUri) return;
+      const target = personalSymbols.find(item => item.id === symbolId);
+      const previousAudio = target?.audioUri ?? null;
+      setPersonalSymbols(prev =>
+        prev.map(item => (item.id === symbolId ? { ...item, audioUri: draftAudioUri } : item))
+      );
+      setDraftAudioUri(null);
+      setAudioSymbolId(null);
+      if (previousAudio && previousAudio !== draftAudioUri) {
+        await deletePersonalAudioFile(previousAudio);
+      }
+      showToast('Voz gravada salva.', 'success');
+    },
+    [draftAudioUri, personalSymbols, showToast]
+  );
+
+  const openAudioRecorderFor = useCallback(
+    async (symbolId: string) => {
+      if (draftAudioUri) {
+        await deletePersonalAudioFile(draftAudioUri);
+        setDraftAudioUri(null);
+      }
+      setAudioSymbolId(symbolId);
+    },
+    [draftAudioUri]
+  );
+
+  const closeAudioRecorder = useCallback(async () => {
+    if (recorderState.isRecording) {
+      try {
+        await audioRecorder.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (draftAudioUri) {
+      await deletePersonalAudioFile(draftAudioUri);
+      setDraftAudioUri(null);
+    }
+    setAudioSymbolId(null);
+  }, [audioRecorder, draftAudioUri, recorderState.isRecording]);
+
+  const clearSymbolAudio = useCallback(
+    async (symbolId: string) => {
+      const target = personalSymbols.find(item => item.id === symbolId);
+      if (!target?.audioUri) return;
+      const uriToDelete = target.audioUri;
+      setPersonalSymbols(prev =>
+        prev.map(item => (item.id === symbolId ? { ...item, audioUri: null } : item))
+      );
+      await deletePersonalAudioFile(uriToDelete);
+      showToast('Voz removida.', 'success');
+    },
+    [personalSymbols, showToast]
+  );
 
   const clearSymbols = useCallback(() => {
     setSelectedSymbols([]);
@@ -1388,40 +1560,26 @@ export default function App() {
               numColumns={effectiveGridColumns}
               accessibilityLabel={`Grade de simbolos pessoais ${effectiveGridColumns} colunas`}
               contentContainerStyle={styles.grid}
-              renderItem={({ item }) => (
-                <SymbolCard
-                  item={{
-                    id: item.id,
-                    label: item.label,
-                    imageUrl: item.imageUri,
-                    category: 'personal'
-                  }}
-                  columns={effectiveGridColumns}
-                  favorite={isFavorite({
-                    id: item.id,
-                    label: item.label,
-                    imageUrl: item.imageUri,
-                    category: 'personal'
-                  })}
-                  onPress={() =>
-                    addSymbol({
-                      id: item.id,
-                      label: item.label,
-                      imageUrl: item.imageUri,
-                      category: 'personal'
-                    })
-                  }
-                  onFavoritePress={() =>
-                    toggleFavorite({
-                      id: item.id,
-                      label: item.label,
-                      imageUrl: item.imageUri,
-                      category: 'personal'
-                    })
-                  }
-                  isAdmin={isAdmin}
-                />
-              )}
+              renderItem={({ item }) => {
+                const symbolItem: SymbolItem = {
+                  id: item.id,
+                  label: item.label,
+                  imageUrl: item.imageUri,
+                  category: 'personal'
+                };
+                return (
+                  <SymbolCard
+                    item={symbolItem}
+                    columns={effectiveGridColumns}
+                    favorite={isFavorite(symbolItem)}
+                    onPress={() => addSymbol(symbolItem)}
+                    onFavoritePress={() => toggleFavorite(symbolItem)}
+                    onLongPress={item.audioUri ? () => playAudioFromUri(item.audioUri!) : undefined}
+                    hasAudio={!!item.audioUri}
+                    isAdmin={isAdmin}
+                  />
+                );
+              }}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
@@ -1582,6 +1740,41 @@ export default function App() {
         </View>
       </Modal>
 
+      <Modal
+        visible={audioSymbolId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => void closeAudioRecorder()}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.symbolDraftCard]}>
+            <Text style={styles.modalTitle}>Gravar voz do cuidador</Text>
+            <Text style={styles.modalHint}>Essa gravacao vai tocar no lugar do TTS quando o simbolo for usado.</Text>
+            <AudioRecorderControls
+              isRecording={recorderState.isRecording}
+              durationMillis={recorderState.durationMillis}
+              hasRecording={!!draftAudioUri}
+              onStart={() => void startDraftRecording()}
+              onStop={() => void stopDraftRecording()}
+              onPlay={playDraftAudio}
+              onDiscard={() => void discardDraftAudio()}
+            />
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalButtonLight} onPress={() => void closeAudioRecorder()}>
+                <Text>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButtonPrimary, !draftAudioUri && styles.personalSymbolAddButtonBusy]}
+                onPress={() => audioSymbolId && void attachRecordedAudioToSymbol(audioSymbolId)}
+                disabled={!draftAudioUri}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Salvar voz</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={isSymbolDraftOpen} transparent animationType="fade" onRequestClose={cancelPendingSymbol}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, styles.symbolDraftCard]}>
@@ -1602,6 +1795,16 @@ export default function App() {
               style={styles.modalInput}
               autoFocus
               maxLength={40}
+            />
+            <Text style={styles.modalHint}>Voz gravada (opcional):</Text>
+            <AudioRecorderControls
+              isRecording={recorderState.isRecording}
+              durationMillis={recorderState.durationMillis}
+              hasRecording={!!draftAudioUri}
+              onStart={() => void startDraftRecording()}
+              onStop={() => void stopDraftRecording()}
+              onPlay={playDraftAudio}
+              onDiscard={() => void discardDraftAudio()}
             />
             <Text style={styles.modalHint}>Categoria (opcional):</Text>
             <View style={styles.symbolDraftCategoryRow}>
@@ -1994,6 +2197,7 @@ export default function App() {
                       )}
                       {personalSymbols.map(symbol => {
                         const category = customCategories.find(c => c.id === symbol.categoryId);
+                        const hasAudio = !!symbol.audioUri;
                         return (
                           <View
                             key={`personal-row-${symbol.id}`}
@@ -2006,11 +2210,30 @@ export default function App() {
                                 numberOfLines={1}
                               >
                                 {symbol.label}
+                                {hasAudio ? ' 🔊' : ''}
                               </Text>
                               <Text style={[styles.personalSymbolCategory, isHighContrast && styles.textMutedHighContrast]} numberOfLines={1}>
                                 {category ? category.name : 'Sem categoria'}
                               </Text>
                             </View>
+                            <Pressable
+                              onPress={() => void openAudioRecorderFor(symbol.id)}
+                              style={styles.phraseEditorButton}
+                              accessibilityRole="button"
+                              accessibilityLabel={hasAudio ? `Regravar voz do simbolo ${symbol.label}` : `Gravar voz para ${symbol.label}`}
+                            >
+                              <Text style={styles.phraseEditorButtonText}>🎙</Text>
+                            </Pressable>
+                            {hasAudio && (
+                              <Pressable
+                                onPress={() => void clearSymbolAudio(symbol.id)}
+                                style={styles.phraseEditorButton}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Remover voz do simbolo ${symbol.label}`}
+                              >
+                                <Text style={styles.phraseEditorButtonText}>🔇</Text>
+                              </Pressable>
+                            )}
                             <Pressable
                               onPress={() => void removePersonalSymbol(symbol.id)}
                               style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
@@ -2464,6 +2687,8 @@ function SymbolCard({
   favorite,
   onPress,
   onFavoritePress,
+  onLongPress,
+  hasAudio = false,
   isAdmin
 }: {
   item: SymbolItem;
@@ -2471,6 +2696,8 @@ function SymbolCard({
   favorite: boolean;
   onPress: () => void;
   onFavoritePress: () => void;
+  onLongPress?: () => void;
+  hasAudio?: boolean;
   isAdmin: boolean;
 }) {
   const isDense = columns >= 4;
@@ -2479,7 +2706,14 @@ function SymbolCard({
     <Pressable
       style={[styles.symbolCard, isDense && styles.symbolCardDense, isUltraDense && styles.symbolCardUltraDense]}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={300}
     >
+      {hasAudio && (
+        <View style={styles.audioBadge} accessibilityLabel="Simbolo com voz gravada">
+          <Text style={styles.audioBadgeText}>🔊</Text>
+        </View>
+      )}
       {isAdmin && (
         <Pressable onPress={onFavoritePress} style={[styles.favoriteButton, favorite && styles.favoriteButtonActive]}>
           <Text style={styles.favoriteButtonText}>{favorite ? '★' : '☆'}</Text>
@@ -2490,6 +2724,55 @@ function SymbolCard({
         {item.label}
       </Text>
     </Pressable>
+  );
+}
+
+function AudioRecorderControls({
+  isRecording,
+  durationMillis,
+  hasRecording,
+  onStart,
+  onStop,
+  onPlay,
+  onDiscard
+}: {
+  isRecording: boolean;
+  durationMillis: number;
+  hasRecording: boolean;
+  onStart: () => void;
+  onStop: () => void;
+  onPlay: () => void;
+  onDiscard: () => void;
+}) {
+  const totalSeconds = Math.floor(Math.max(0, durationMillis) / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const timerLabel = `${minutes.toString().padStart(1, '0')}:${seconds.toString().padStart(2, '0')}`;
+  return (
+    <View style={styles.audioControlsRow}>
+      {isRecording ? (
+        <Pressable onPress={onStop} style={[styles.audioButton, styles.audioButtonStop]} accessibilityRole="button" accessibilityLabel="Parar gravacao">
+          <Text style={styles.audioButtonText}>◼ Parar</Text>
+        </Pressable>
+      ) : (
+        <Pressable onPress={onStart} style={[styles.audioButton, styles.audioButtonRecord]} accessibilityRole="button" accessibilityLabel={hasRecording ? 'Regravar voz' : 'Iniciar gravacao'}>
+          <Text style={styles.audioButtonText}>● {hasRecording ? 'Regravar' : 'Gravar'}</Text>
+        </Pressable>
+      )}
+      {hasRecording && !isRecording && (
+        <Pressable onPress={onPlay} style={[styles.audioButton, styles.audioButtonPlay]} accessibilityRole="button" accessibilityLabel="Reouvir gravacao">
+          <Text style={styles.audioButtonText}>▶ Reouvir</Text>
+        </Pressable>
+      )}
+      {hasRecording && !isRecording && (
+        <Pressable onPress={onDiscard} style={[styles.audioButton, styles.audioButtonDiscard]} accessibilityRole="button" accessibilityLabel="Descartar gravacao">
+          <Text style={[styles.audioButtonText, styles.audioButtonTextDiscard]}>✕</Text>
+        </Pressable>
+      )}
+      <View style={styles.audioTimerBox}>
+        <Text style={[styles.audioTimerText, isRecording && styles.audioTimerTextRecording]}>{timerLabel}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -3343,6 +3626,70 @@ const styles = StyleSheet.create({
   },
   symbolDraftCategoryChipTextActive: {
     color: '#ffffff'
+  },
+  audioBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(91, 140, 122, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2
+  },
+  audioBadgeText: {
+    fontSize: 12
+  },
+  audioControlsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center'
+  },
+  audioButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  audioButtonRecord: {
+    backgroundColor: '#ef4444'
+  },
+  audioButtonStop: {
+    backgroundColor: '#0f172a'
+  },
+  audioButtonPlay: {
+    backgroundColor: '#5B8C7A'
+  },
+  audioButtonDiscard: {
+    backgroundColor: '#E2E8F0'
+  },
+  audioButtonText: {
+    color: '#ffffff',
+    fontWeight: '700'
+  },
+  audioButtonTextDiscard: {
+    color: '#0f172a'
+  },
+  audioTimerBox: {
+    marginLeft: 'auto',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    minWidth: 60,
+    alignItems: 'center'
+  },
+  audioTimerText: {
+    color: '#0f172a',
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700'
+  },
+  audioTimerTextRecording: {
+    color: '#ef4444'
   },
   phraseText: {
     minHeight: 30,

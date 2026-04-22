@@ -31,6 +31,7 @@ export interface PersonalSymbol {
   label: string;
   categoryId: string | null;
   imageUri: string;
+  audioUri?: string | null;
   createdAt: string;
 }
 
