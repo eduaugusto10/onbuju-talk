@@ -242,7 +242,7 @@ Goal: Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone),
 ## Phase Summary (Milestone 5)
 
 - [x] **Phase 17: Design System iOS (Tokens e Primitivos)** - Tokens de cor/tipografia/espacamento iOS e componentes primitivos. ✓
-- [ ] **Phase 18: Tela Principal estilo iOS** - Header, categorias, busca, grid e composer em estetica iOS.
+- [x] **Phase 18: Tela Principal estilo iOS** - Header, categorias, busca, grid e composer em estetica iOS. ✓
 - [ ] **Phase 19: Sheets e Modais iOS** - Bottom sheets com grabber e blur backdrop.
 - [ ] **Phase 20: Config "Ajustes" iOS + Haptic Feedback** - Inset grouped list, switches nativos, haptics.
 - [ ] **Phase 21: Regressao, Polimento e Release** - Regressao completa e preparacao de entrega.
@@ -252,7 +252,7 @@ Goal: Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone),
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 17. Design System iOS (Tokens e Primitivos) | 1/1 | Complete | 2026-04-21 |
-| 18. Tela Principal estilo iOS | 0/0 | Not started | - |
+| 18. Tela Principal estilo iOS | 1/1 | Complete | 2026-04-21 |
 | 19. Sheets e Modais iOS | 0/0 | Not started | - |
 | 20. Config "Ajustes" iOS + Haptic Feedback | 0/0 | Not started | - |
 | 21. Regressao, Polimento e Release | 0/0 | Not started | - |

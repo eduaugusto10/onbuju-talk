@@ -40,7 +40,7 @@ import {
   SavedPhrase,
   SymbolItem
 } from './types';
-import { CHILD_GRID_COLUMNS, colors, spacing, typography } from './theme';
+import { CHILD_GRID_COLUMNS, colors, shadows, spacing, typography } from './theme';
 import {
   CORE_VOCABULARY_MAX,
   CUSTOM_CATEGORIES_MAX,
@@ -3332,12 +3332,11 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     backgroundColor: colors.systemBackground,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E8E1D2',
-    paddingHorizontal: spacing.md - 1,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm - 1
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.separator,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.xs
   },
   cardHighContrast: {
     backgroundColor: '#0f172a',
@@ -3395,20 +3394,21 @@ const styles = StyleSheet.create({
     color: '#3F6656'
   },
   adminBadge: {
-    borderRadius: 10,
-    paddingHorizontal: 8,
+    borderRadius: 999,
+    paddingHorizontal: 10,
     paddingVertical: 3
   },
   adminBadgeOn: {
-    backgroundColor: '#D9E7E0'
+    backgroundColor: colors.fill
   },
   adminBadgeOff: {
-    backgroundColor: '#64748b'
+    backgroundColor: colors.secondaryFill
   },
   adminBadgeText: {
-    color: '#1e3a8a',
-    fontWeight: '700',
-    fontSize: 11
+    color: colors.systemBlue,
+    fontWeight: '600',
+    fontSize: 11,
+    letterSpacing: 0.3
   },
   searchToggleButton: {
     width: 34,
@@ -3445,10 +3445,10 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
+    backgroundColor: colors.systemGray6,
+    borderRadius: 10,
+    borderWidth: 0,
+    color: colors.label,
     paddingHorizontal: 12,
     height: 36
   },
@@ -3458,31 +3458,30 @@ const styles = StyleSheet.create({
     color: '#f8fafc'
   },
   searchButton: {
-    backgroundColor: '#5B8C7A',
+    backgroundColor: colors.systemBlue,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     height: 36,
     minWidth: 78
   },
   searchClearButton: {
     width: 34,
     height: 34,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#f8fafc',
+    borderRadius: 17,
+    borderWidth: 0,
+    backgroundColor: colors.systemGray4,
     alignItems: 'center',
     justifyContent: 'center'
   },
   searchClearButtonText: {
-    color: '#475569',
+    color: '#FFFFFF',
     fontWeight: '700'
   },
   searchButtonText: {
-    color: '#ffffff',
-    fontWeight: '700'
+    color: '#FFFFFF',
+    fontWeight: '600'
   },
   sectionTitle: {
     fontSize: 13,
@@ -3504,11 +3503,11 @@ const styles = StyleSheet.create({
     paddingLeft: 2
   },
   categoryButton: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: colors.secondaryFill,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    minHeight: 38,
+    paddingVertical: 7,
+    minHeight: 32,
     justifyContent: 'center',
     alignSelf: 'flex-start'
   },
@@ -3516,15 +3515,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e293b'
   },
   categoryButtonActive: {
-    backgroundColor: '#5B8C7A'
+    backgroundColor: colors.systemBlue
   },
   categoryButtonText: {
-    color: '#334155',
-    fontWeight: '600',
-    fontSize: 13
+    color: colors.label,
+    fontWeight: '500',
+    fontSize: 14
   },
   categoryButtonTextActive: {
-    color: '#ffffff'
+    color: '#FFFFFF',
+    fontWeight: '600'
   },
   loadingState: {
     flex: 1,
@@ -3533,10 +3533,9 @@ const styles = StyleSheet.create({
   },
   listCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E8E1D2',
+    backgroundColor: colors.secondarySystemBackground,
+    borderRadius: 16,
+    borderWidth: 0,
     overflow: 'hidden'
   },
   grid: {
@@ -3556,14 +3555,14 @@ const styles = StyleSheet.create({
   symbolCard: {
     flex: 1,
     margin: 6,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#E8E1D2',
+    backgroundColor: colors.systemBackground,
+    borderRadius: 14,
+    borderWidth: 0,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 160
+    minHeight: 160,
+    ...shadows.sm
   },
   symbolCardDense: {
     minHeight: 120,
@@ -3575,17 +3574,20 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     alignSelf: 'flex-end',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    backgroundColor: '#e2e8f0'
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.systemBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm
   },
   favoriteButtonActive: {
-    backgroundColor: '#D9E7E0'
+    backgroundColor: colors.systemBackground
   },
   favoriteButtonText: {
-    color: '#1e3a8a',
-    fontSize: 14
+    color: colors.warning,
+    fontSize: 16
   },
   symbolImage: {
     width: 96,
@@ -3645,13 +3647,13 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   composerCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E8E1D2',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 5
+    backgroundColor: colors.secondarySystemGroupedBackground,
+    borderRadius: 16,
+    borderWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
+    ...shadows.sm
   },
   selectedList: {
     gap: 4,
@@ -3695,10 +3697,9 @@ const styles = StyleSheet.create({
     color: '#fde68a'
   },
   coreVocabBar: {
-    backgroundColor: '#EEF4F0',
+    backgroundColor: colors.secondaryFill,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#CFE1D6',
+    borderWidth: 0,
     paddingVertical: 8,
     paddingHorizontal: 8
   },
@@ -3713,9 +3714,9 @@ const styles = StyleSheet.create({
   },
   coreVocabButton: {
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#5B8C7A',
+    backgroundColor: colors.systemBlue,
     minWidth: 64,
     alignItems: 'center',
     justifyContent: 'center'
@@ -3724,9 +3725,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#facc15'
   },
   coreVocabButtonText: {
-    color: '#ffffff',
-    fontWeight: '800',
-    letterSpacing: 0.6
+    color: '#FFFFFF',
+    fontWeight: '600',
+    letterSpacing: 0.3
   },
   coreVocabButtonTextHighContrast: {
     color: '#020617'
@@ -4186,8 +4187,8 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     flex: 1,
-    backgroundColor: '#F5E0DB',
-    borderRadius: 14,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -4196,16 +4197,15 @@ const styles = StyleSheet.create({
     gap: 2
   },
   clearButtonLabel: {
-    color: '#8B3A2F',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase'
+    color: colors.destructive,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2
   },
   generateButton: {
     flex: 1,
-    backgroundColor: '#E8B86E',
-    borderRadius: 14,
+    backgroundColor: colors.systemBlue,
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -4214,21 +4214,19 @@ const styles = StyleSheet.create({
     gap: 2
   },
   generateButtonLabel: {
-    color: '#6B3F0F',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase'
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2
   },
   generateButtonBusy: {
     opacity: 0.6
   },
   saveGroupButton: {
     flex: 1,
-    backgroundColor: '#EFEAE0',
-    borderWidth: 1.5,
-    borderColor: '#E8E1D2',
-    borderRadius: 14,
+    backgroundColor: colors.fill,
+    borderWidth: 0,
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -4237,16 +4235,15 @@ const styles = StyleSheet.create({
     gap: 2
   },
   saveGroupButtonLabel: {
-    color: '#5C4A2A',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase'
+    color: colors.systemBlue,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2
   },
   playButton: {
     flex: 1,
-    backgroundColor: '#5B8C7A',
-    borderRadius: 14,
+    backgroundColor: colors.systemBlue,
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -4256,10 +4253,9 @@ const styles = StyleSheet.create({
   },
   playButtonLabel: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase'
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2
   },
   actionPrimary: {
     backgroundColor: '#5B8C7A'
