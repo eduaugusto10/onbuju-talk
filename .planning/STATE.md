@@ -1,10 +1,10 @@
 # STATE
 
 ## Current Position
-- Phase: 17 - Design System iOS (Tokens e Primitivos) - COMPLETA
-- Plan: 17-design-system-ios/PLAN.md (1/1 plans complete)
-- Status: Phase 17 concluida; pronta para Phase 18
-- Last activity: 2026-04-21 - Phase 17 concluida (tokens + primitivos + deps nativas instaladas)
+- Milestone: v5 - Refatoracao de Design no Estilo iOS - COMPLETA
+- Phase: 21 - Regressao, Polimento e Release - COMPLETA
+- Status: Milestone v5 concluida (Phases 17-21 todas completas); pronta para audit/archive/cleanup.
+- Last activity: 2026-04-21 - Milestone v5 fechada (regressao OK, release checklist atualizado).
 
 ## Status
 - Projeto inicializado no fluxo GSD.
@@ -12,30 +12,30 @@
 - Milestone 1 - Estabilizacao Mobile arquivada (v1).
 - Milestone 3 - Experiencia de Abertura (Tela Inicial) arquivada (v3).
 - Milestone v4 - Comunicacao Pessoal e Rotina Visual concluida 2026-04-21 (12/12 requisitos; aguardando arquivamento).
-- Milestone ativa: v5 - Refatoracao de Design no Estilo iOS.
-- REQUIREMENTS.md da v5 definida (16 requisitos, 6 categorias: DS, MAIN, SHEET, CFG, FDB, REG).
-- ROADMAP.md da v5 definido com 5 fases (Phase 17-21), 100% de cobertura.
-- Phase 17 COMPLETA: tokens centralizados (`src/theme.ts`), 6 primitivos iOS (`src/ui/`), `expo-haptics`/`expo-blur` instalados + plugins, header refatorado como POC. `npm run lint` limpo, test suite sem novos failures (22/26 passing; 4 falhas herdadas pre-existentes no arasaacService).
-- Proxima fase: Phase 18 (Tela Principal estilo iOS).
+- Milestone v5 - Refatoracao iOS concluida 2026-04-21 (16/16 requisitos; Phases 17-21 completas).
+- Aguardando: audit/complete/cleanup da milestone v5.
 
 ## Accumulated Context
-- App Expo SDK 54 com vocabulario core, frases prontas + historico, simbolos pessoais (camera/galeria), voz gravada do cuidador, rotina visual e categorias customizadas (milestones v1-v4).
-- Tela inicial (splash/intro) entregue na v3.
-- v5 foco: refatoracao visual para iOS (iPhone design language); sem mudanca de funcionalidade.
-- Numeracao de fases continua a partir da Phase 17 (v4 terminou em Phase 16).
-- Restricao dura: simplicidade acima de riqueza de features (publico autista).
-- Deps nativas Phase 17: expo-haptics ^15.0.7, expo-blur ^15.0.7 — instaladas e plugins registrados em `app.json`.
-- Tokens disponiveis: `colors`, `typography`, `radii`, `spacing`, `shadows` em `src/theme.ts`.
-- Primitivos disponiveis em `src/ui/`: IOSButton, IOSCard, IOSSectionHeader, IOSListSection, IOSListRow, IOSBottomSheet.
-- Sequenciamento das fases da v5:
-  - Phase 17 (design system + tokens + primitivos) COMPLETA.
-  - Phase 18 (tela principal) consome os tokens.
-  - Phase 19 (sheets) consome tokens e primitivo `IOSBottomSheet` da Phase 17; aplica BlurView no backdrop.
-  - Phase 20 (config Ajustes + haptics) consome todos os anteriores; pode rodar apos Phase 19.
-  - Phase 21 (regressao e release) fecha a milestone.
+- App Expo SDK 54 refatorado para estetica iOS na milestone v5, mantendo 100% da funcionalidade v1-v4.
+- Design system iOS em `src/theme.ts` (colors, typography, radii, spacing, shadows).
+- Primitivos iOS em `src/ui/` (IOSButton, IOSCard, IOSSectionHeader, IOSListSection, IOSListRow, IOSBottomSheet com BlurView).
+- `expo-haptics` e `expo-blur` integrados; haptics em 7 pontos-chave.
+- 4 modais migrados para IOSBottomSheet com grabber e blur backdrop.
+- Config com section headers UPPERCASE, Switch nativo para toggles binarios.
+- Tela principal toda em estetica iOS (header, categorias, search, grid, composer).
+- Regressao: `npm run lint` limpo; `npm run test` 22/26 (4 pre-existentes herdados no arasaacService).
+- Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
+
+## Milestone v5 - Phase Summary
+- [x] Phase 17: Design System iOS (Tokens e Primitivos) - COMPLETE
+- [x] Phase 18: Tela Principal estilo iOS - COMPLETE
+- [x] Phase 19: Sheets e Modais iOS - COMPLETE
+- [x] Phase 20: Config Ajustes iOS + Haptic Feedback - COMPLETE
+- [x] Phase 21: Regressao, Polimento e Release - COMPLETE
 
 ## Proximo Comando Recomendado
-- `/gsd-discuss-phase 18` (gather context) ou `/gsd-plan-phase 18` (planejar direto)
+- `/gsd-audit-milestone` (audit da milestone antes de arquivar)
+- Apos audit: `/gsd-complete-milestone 5` + `/gsd-cleanup`
 
 ## Ultima Atualizacao
-- 2026-04-21: Phase 17 concluida. Design system iOS estabelecido. Pronto para Phase 18 (Tela Principal estilo iOS).
+- 2026-04-21: Milestone v5 (Refatoracao de Design no Estilo iOS) concluida. 5/5 phases completas. 16/16 requisitos entregues. Regressao automatizada OK. Pronta para audit/archive.
