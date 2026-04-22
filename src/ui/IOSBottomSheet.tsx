@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import React, { memo, ReactNode } from 'react';
 import {
   Modal,
@@ -51,10 +52,11 @@ function IOSBottomSheetBase({
       animationType="slide"
       onRequestClose={onRequestClose}
     >
+      <BlurView intensity={70} tint="default" style={styles.backdrop} />
       <Pressable
         testID={testID ? `${testID}-backdrop` : undefined}
         onPress={onRequestClose}
-        style={styles.backdrop}
+        style={styles.backdropTap}
       />
       <View pointerEvents="box-none" style={styles.container}>
         <SafeAreaView
@@ -128,8 +130,11 @@ function ActionButton({
 
 const styles = StyleSheet.create({
   backdrop: {
+    ...StyleSheet.absoluteFillObject
+  },
+  backdropTap: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)'
+    backgroundColor: 'rgba(0, 0, 0, 0.15)'
   },
   container: {
     flex: 1,

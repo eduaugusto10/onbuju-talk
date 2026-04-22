@@ -41,6 +41,7 @@ import {
   SymbolItem
 } from './types';
 import { CHILD_GRID_COLUMNS, colors, shadows, spacing, typography } from './theme';
+import { IOSBottomSheet } from './ui';
 import {
   CORE_VOCABULARY_MAX,
   CUSTOM_CATEGORIES_MAX,
@@ -1927,165 +1928,137 @@ export default function App() {
         </View>
       </View>
 
-      <Modal visible={isNamingModalOpen} transparent animationType="fade" onRequestClose={() => setIsNamingModalOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Salvar grupo</Text>
-            <TextInput
-              value={newGroupName}
-              onChangeText={setNewGroupName}
-              placeholder="Nome do grupo"
-              style={styles.modalInput}
-              autoFocus
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.modalButtonLight} onPress={() => setIsNamingModalOpen(false)}>
-                <Text>Cancelar</Text>
-              </Pressable>
-              <Pressable style={styles.modalButtonPrimary} onPress={confirmSaveCustomSymbol}>
-                <Text style={styles.modalButtonPrimaryText}>Salvar</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={audioSymbolId !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => void closeAudioRecorder()}
+      <IOSBottomSheet
+        visible={isNamingModalOpen}
+        onRequestClose={() => setIsNamingModalOpen(false)}
+        title="Salvar grupo"
+        leftAction={{ label: 'Cancelar', onPress: () => setIsNamingModalOpen(false) }}
+        rightAction={{ label: 'Salvar', onPress: confirmSaveCustomSymbol, bold: true }}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.symbolDraftCard]}>
-            <Text style={styles.modalTitle}>Gravar voz do cuidador</Text>
-            <Text style={styles.modalHint}>Essa gravacao vai tocar no lugar do TTS quando o simbolo for usado.</Text>
-            <AudioRecorderControls
-              isRecording={recorderState.isRecording}
-              durationMillis={recorderState.durationMillis}
-              hasRecording={!!draftAudioUri}
-              onStart={() => void startDraftRecording()}
-              onStop={() => void stopDraftRecording()}
-              onPlay={playDraftAudio}
-              onDiscard={() => void discardDraftAudio()}
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.modalButtonLight} onPress={() => void closeAudioRecorder()}>
-                <Text>Cancelar</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalButtonPrimary, !draftAudioUri && styles.personalSymbolAddButtonBusy]}
-                onPress={() => audioSymbolId && void attachRecordedAudioToSymbol(audioSymbolId)}
-                disabled={!draftAudioUri}
-              >
-                <Text style={styles.modalButtonPrimaryText}>Salvar voz</Text>
-              </Pressable>
-            </View>
-          </View>
+        <View style={styles.sheetContent}>
+          <TextInput
+            value={newGroupName}
+            onChangeText={setNewGroupName}
+            placeholder="Nome do grupo"
+            style={styles.modalInput}
+            autoFocus
+          />
         </View>
-      </Modal>
+      </IOSBottomSheet>
 
-      <Modal visible={isSymbolDraftOpen} transparent animationType="fade" onRequestClose={cancelPendingSymbol}>
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.symbolDraftCard]}>
-            <Text style={styles.modalTitle}>Novo simbolo pessoal</Text>
-            {pendingSymbolImage && (
-              <Image
-                source={{ uri: pendingSymbolImage }}
-                style={styles.symbolDraftPreview}
-                resizeMode="cover"
-                accessibilityLabel="Previsualizacao da imagem do simbolo"
-              />
-            )}
-            <TextInput
-              value={pendingSymbolLabel}
-              onChangeText={setPendingSymbolLabel}
-              placeholder="Rotulo (ex: vovo)"
-              placeholderTextColor="#94a3b8"
-              style={styles.modalInput}
-              autoFocus
-              maxLength={40}
-            />
-            <Text style={styles.modalHint}>Voz gravada (opcional):</Text>
-            <AudioRecorderControls
-              isRecording={recorderState.isRecording}
-              durationMillis={recorderState.durationMillis}
-              hasRecording={!!draftAudioUri}
-              onStart={() => void startDraftRecording()}
-              onStop={() => void stopDraftRecording()}
-              onPlay={playDraftAudio}
-              onDiscard={() => void discardDraftAudio()}
-            />
-            <Text style={styles.modalHint}>Categoria (opcional):</Text>
-            <View style={styles.symbolDraftCategoryRow}>
-              <Pressable
-                onPress={() => setPendingSymbolCategoryId(null)}
-                style={[styles.symbolDraftCategoryChip, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipActive]}
-                accessibilityRole="button"
-                accessibilityLabel="Sem categoria"
-              >
-                <Text style={[styles.symbolDraftCategoryChipText, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipTextActive]}>
-                  Sem categoria
-                </Text>
-              </Pressable>
-              {customCategories.map(cat => {
-                const selected = pendingSymbolCategoryId === cat.id;
-                return (
-                  <Pressable
-                    key={`draft-cat-${cat.id}`}
-                    onPress={() => setPendingSymbolCategoryId(cat.id)}
-                    style={[styles.symbolDraftCategoryChip, selected && styles.symbolDraftCategoryChipActive]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Categoria ${cat.name}`}
-                  >
-                    <Text style={[styles.symbolDraftCategoryChipText, selected && styles.symbolDraftCategoryChipTextActive]}>
-                      {cat.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={styles.modalActions}>
-              <Pressable style={styles.modalButtonLight} onPress={cancelPendingSymbol}>
-                <Text>Cancelar</Text>
-              </Pressable>
-              <Pressable style={styles.modalButtonPrimary} onPress={() => void savePendingSymbol()}>
-                <Text style={styles.modalButtonPrimaryText}>Salvar</Text>
-              </Pressable>
-            </View>
-          </View>
+      <IOSBottomSheet
+        visible={audioSymbolId !== null}
+        onRequestClose={() => void closeAudioRecorder()}
+        title="Gravar voz"
+        leftAction={{ label: 'Cancelar', onPress: () => void closeAudioRecorder() }}
+        rightAction={{
+          label: 'Salvar voz',
+          onPress: () => audioSymbolId && void attachRecordedAudioToSymbol(audioSymbolId),
+          bold: true,
+          disabled: !draftAudioUri
+        }}
+      >
+        <View style={styles.sheetContent}>
+          <Text style={styles.modalHint}>Essa gravacao vai tocar no lugar do TTS quando o simbolo for usado.</Text>
+          <AudioRecorderControls
+            isRecording={recorderState.isRecording}
+            durationMillis={recorderState.durationMillis}
+            hasRecording={!!draftAudioUri}
+            onStart={() => void startDraftRecording()}
+            onStop={() => void stopDraftRecording()}
+            onPlay={playDraftAudio}
+            onDiscard={() => void discardDraftAudio()}
+          />
         </View>
-      </Modal>
+      </IOSBottomSheet>
 
-      <Modal
+      <IOSBottomSheet
+        visible={isSymbolDraftOpen}
+        onRequestClose={cancelPendingSymbol}
+        title="Novo simbolo"
+        leftAction={{ label: 'Cancelar', onPress: cancelPendingSymbol }}
+        rightAction={{ label: 'Salvar', onPress: () => void savePendingSymbol(), bold: true }}
+      >
+        <ScrollView style={styles.sheetScrollContent} contentContainerStyle={styles.sheetContent}>
+          {pendingSymbolImage && (
+            <Image
+              source={{ uri: pendingSymbolImage }}
+              style={styles.symbolDraftPreview}
+              resizeMode="cover"
+              accessibilityLabel="Previsualizacao da imagem do simbolo"
+            />
+          )}
+          <TextInput
+            value={pendingSymbolLabel}
+            onChangeText={setPendingSymbolLabel}
+            placeholder="Rotulo (ex: vovo)"
+            placeholderTextColor={colors.tertiaryLabel}
+            style={styles.modalInput}
+            autoFocus
+            maxLength={40}
+          />
+          <Text style={styles.modalHint}>Voz gravada (opcional):</Text>
+          <AudioRecorderControls
+            isRecording={recorderState.isRecording}
+            durationMillis={recorderState.durationMillis}
+            hasRecording={!!draftAudioUri}
+            onStart={() => void startDraftRecording()}
+            onStop={() => void stopDraftRecording()}
+            onPlay={playDraftAudio}
+            onDiscard={() => void discardDraftAudio()}
+          />
+          <Text style={styles.modalHint}>Categoria (opcional):</Text>
+          <View style={styles.symbolDraftCategoryRow}>
+            <Pressable
+              onPress={() => setPendingSymbolCategoryId(null)}
+              style={[styles.symbolDraftCategoryChip, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipActive]}
+              accessibilityRole="button"
+              accessibilityLabel="Sem categoria"
+            >
+              <Text style={[styles.symbolDraftCategoryChipText, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipTextActive]}>
+                Sem categoria
+              </Text>
+            </Pressable>
+            {customCategories.map(cat => {
+              const selected = pendingSymbolCategoryId === cat.id;
+              return (
+                <Pressable
+                  key={`draft-cat-${cat.id}`}
+                  onPress={() => setPendingSymbolCategoryId(cat.id)}
+                  style={[styles.symbolDraftCategoryChip, selected && styles.symbolDraftCategoryChipActive]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Categoria ${cat.name}`}
+                >
+                  <Text style={[styles.symbolDraftCategoryChipText, selected && styles.symbolDraftCategoryChipTextActive]}>
+                    {cat.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </IOSBottomSheet>
+
+      <IOSBottomSheet
         visible={isConfigModalOpen}
-        transparent
-        animationType="fade"
         onRequestClose={() => {
           setIsConfigModalOpen(false);
           resetConfigFields();
         }}
+        title="Ajustes"
+        leftAction={{
+          label: 'Fechar',
+          onPress: () => {
+            setIsConfigModalOpen(false);
+            resetConfigFields();
+          }
+        }}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.configSheet, isHighContrast && styles.modalCardHighContrast]}>
-            <View style={styles.configHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.configHeaderTitle, isHighContrast && styles.textHighContrast]}>Configurações do cuidador</Text>
-                <Text style={[styles.configHeaderSubtitle, isHighContrast && styles.textMutedHighContrast]}>
-                  {isAdmin ? 'Você está no modo cuidador.' : 'Área protegida por senha.'}
-                </Text>
-              </View>
-              <Pressable
-                style={styles.configCloseButton}
-                onPress={() => {
-                  setIsConfigModalOpen(false);
-                  resetConfigFields();
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Fechar configurações"
-              >
-                <Text style={styles.configCloseIcon}>✕</Text>
-              </Pressable>
+        <View style={[styles.configSheet, isHighContrast && styles.modalCardHighContrast]}>
+            <View style={styles.configSubheader}>
+              <Text style={[styles.configHeaderSubtitle, isHighContrast && styles.textMutedHighContrast]}>
+                {isAdmin ? 'Você está no modo cuidador.' : 'Área protegida por senha.'}
+              </Text>
             </View>
 
             <ScrollView
@@ -2867,9 +2840,8 @@ export default function App() {
               </View>
             )}
             </ScrollView>
-          </View>
         </View>
-      </Modal>
+      </IOSBottomSheet>
 
       {toast && (
         <View style={[styles.toast, toast.type === 'success' ? styles.toastSuccess : styles.toastError]}>
@@ -4325,6 +4297,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12
+  },
+  configSubheader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs
+  },
+  sheetContent: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.md
+  },
+  sheetScrollContent: {
+    flexGrow: 1,
+    flexShrink: 1
   },
   configHeaderTitle: {
     fontSize: 20,
