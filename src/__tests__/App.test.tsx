@@ -400,4 +400,80 @@ describe('App', () => {
       expect(expoAudioMock.createAudioPlayer).toHaveBeenCalledWith('file:///doc-dir/personal-audio/p.m4a');
     });
   });
+
+  it('mostra rotina do dia com passos e progresso hidratado', async () => {
+    const today = (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    })();
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_routine_steps')
+        return JSON.stringify([
+          { id: 'step-a', label: 'Acordar', createdAt: new Date().toISOString() },
+          { id: 'step-b', label: 'Escovar dentes', createdAt: new Date().toISOString() }
+        ]);
+      if (key === 'arasaac_routine_progress')
+        return JSON.stringify({ date: today, completedStepIds: ['step-a'] });
+      return null;
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Rotina')).toBeTruthy());
+    fireEvent.press(screen.getByText('Rotina'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Acordar')).toBeTruthy();
+      expect(screen.getByText('Escovar dentes')).toBeTruthy();
+      expect(screen.getByLabelText('Desmarcar passo Acordar')).toBeTruthy();
+      expect(screen.getByLabelText('Marcar passo Escovar dentes')).toBeTruthy();
+    });
+  });
+
+  it('tap em passo da rotina marca como concluido e persiste', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_routine_steps')
+        return JSON.stringify([{ id: 'step-x', label: 'Tomar cafe', createdAt: new Date().toISOString() }]);
+      return null;
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Rotina')).toBeTruthy());
+    fireEvent.press(screen.getByText('Rotina'));
+
+    const stepBtn = await screen.findByLabelText('Marcar passo Tomar cafe');
+    fireEvent.press(stepBtn);
+
+    await waitFor(() => {
+      expect(
+        asyncStorageMock.setItem.mock.calls.some(
+          ([key, value]) => key === 'arasaac_routine_progress' && (value as string).includes('step-x')
+        )
+      ).toBe(true);
+    });
+  });
+
+  it('progresso de rotina de dia antigo e resetado no boot', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'arasaac_routine_steps')
+        return JSON.stringify([{ id: 'step-old', label: 'Passo antigo', createdAt: new Date().toISOString() }]);
+      if (key === 'arasaac_routine_progress')
+        return JSON.stringify({ date: '2020-01-01', completedStepIds: ['step-old'] });
+      return null;
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText('Rotina')).toBeTruthy());
+    fireEvent.press(screen.getByText('Rotina'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Marcar passo Passo antigo')).toBeTruthy();
+      expect(screen.queryByLabelText('Desmarcar passo Passo antigo')).toBeNull();
+    });
+  });
 });

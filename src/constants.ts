@@ -51,3 +51,4 @@ export const PHRASE_HISTORY_MAX = 20;
 
 export const PERSONAL_SYMBOLS_MAX = 100;
 export const CUSTOM_CATEGORIES_MAX = 20;
+export const ROUTINE_STEPS_MAX = 30;

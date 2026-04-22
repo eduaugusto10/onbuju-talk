@@ -40,3 +40,15 @@ export interface CustomCategory {
   name: string;
   createdAt: string;
 }
+
+export interface RoutineStep {
+  id: string;
+  label: string;
+  imageUri?: string | null;
+  createdAt: string;
+}
+
+export interface RoutineProgress {
+  date: string;
+  completedStepIds: string[];
+}

@@ -1,10 +1,10 @@
 # STATE
 
 ## Current Position
-- Phase: Phase 16 - Rotina Visual e Polimento da Milestone (aguardando planejamento)
+- Phase: Milestone v4 COMPLETA (todas as fases 12-16)
 - Plan: -
-- Status: Phase 15 concluida, pronto para planejar Phase 16
-- Last activity: 2026-04-21 - Phase 15 (Voz Gravada do Cuidador) concluida
+- Status: Milestone v4 pronta para audit/arquivamento
+- Last activity: 2026-04-21 - Phase 16 (Rotina Visual e Polimento) concluida
 
 ## Status
 - Projeto inicializado no fluxo GSD.
@@ -18,7 +18,7 @@
 - Phase 13 (Frases Prontas e Historico) concluida: 5/12 requisitos entregues (+COMM-03, COMM-04, COMM-05).
 - Phase 14 (Simbolos Pessoais e Categorias Customizadas) concluida: 8/12 requisitos entregues (+CONT-01, CONT-02, ORG-03).
 - Phase 15 (Voz Gravada do Cuidador) concluida: 10/12 requisitos entregues (+CONT-03, CONT-04).
-- Fase atual: Phase 16 (aguardando `/gsd-plan-phase 16`).
+- Phase 16 (Rotina Visual e Polimento) concluida: 12/12 requisitos entregues (+ORG-01, ORG-02). Milestone v4 completa.
 
 ## Accumulated Context
 - App Expo SDK 54 estabilizado com cache de imagem local e base de testes automatizados.
@@ -33,7 +33,7 @@
   - Phase 16 (rotina visual + polimento) consome simbolos pessoais, categorias e voz gravada, e fecha a milestone com regressao.
 
 ## Proximo Comando Recomendado
-- `/gsd-plan-phase 16`
+- `/gsd-audit-milestone` seguido de `/gsd-complete-milestone v4`
 
 ## Ultima Atualizacao
-- Phase 15 (Voz Gravada do Cuidador) concluida em 2026-04-21. Requisitos CONT-03 e CONT-04 entregues. Proximo passo: `/gsd-plan-phase 16` (Rotina Visual e Polimento).
+- Phase 16 (Rotina Visual e Polimento) concluida em 2026-04-21. Requisitos ORG-01 e ORG-02 entregues. Milestone v4 completa com 12/12 requisitos. Proximo passo: auditar e arquivar a milestone.

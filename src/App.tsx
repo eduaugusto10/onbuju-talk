@@ -30,7 +30,16 @@ import {
   useAudioRecorderState,
   RecordingPresets
 } from 'expo-audio';
-import { CustomCategory, CustomSymbol, HistoryPhrase, PersonalSymbol, SavedPhrase, SymbolItem } from './types';
+import {
+  CustomCategory,
+  CustomSymbol,
+  HistoryPhrase,
+  PersonalSymbol,
+  RoutineProgress,
+  RoutineStep,
+  SavedPhrase,
+  SymbolItem
+} from './types';
 import { CHILD_GRID_COLUMNS } from './theme';
 import {
   CORE_VOCABULARY_MAX,
@@ -39,6 +48,7 @@ import {
   DEFAULT_SAVED_PHRASES,
   PERSONAL_SYMBOLS_MAX,
   PHRASE_HISTORY_MAX,
+  ROUTINE_STEPS_MAX,
   SAVED_PHRASES_MAX
 } from './constants';
 import { deletePersonalSymbolImage, savePersonalSymbolImage } from './services/personalSymbolsService';
@@ -47,7 +57,7 @@ import { deletePersonalAudioFile, savePersonalAudioFile } from './services/perso
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
 type ContrastMode = 'padrao' | 'alto';
-type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias';
+type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina';
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
@@ -71,7 +81,9 @@ const STORAGE_KEYS = {
   savedPhrases: 'arasaac_saved_phrases',
   phraseHistory: 'arasaac_phrase_history',
   personalSymbols: 'arasaac_personal_symbols',
-  customCategories: 'arasaac_custom_categories'
+  customCategories: 'arasaac_custom_categories',
+  routineSteps: 'arasaac_routine_steps',
+  routineProgress: 'arasaac_routine_progress'
 };
 
 const normalizeCoreWord = (word: string) => word.trim().toLowerCase();
@@ -160,6 +172,37 @@ function sanitizeCustomCategories(raw: unknown): CustomCategory[] {
   return result;
 }
 
+function sanitizeRoutineSteps(raw: unknown): RoutineStep[] {
+  if (!Array.isArray(raw)) return [];
+  const result: RoutineStep[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const candidate = entry as Partial<RoutineStep>;
+    const label = typeof candidate.label === 'string' ? candidate.label.trim() : '';
+    if (!label) continue;
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `step-${Date.now()}-${result.length}`;
+    const imageUri = typeof candidate.imageUri === 'string' && candidate.imageUri ? candidate.imageUri : null;
+    const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
+    result.push({ id, label, imageUri, createdAt });
+    if (result.length >= ROUTINE_STEPS_MAX) break;
+  }
+  return result;
+}
+
+function sanitizeRoutineProgress(raw: unknown): RoutineProgress {
+  const today = getTodayIso();
+  if (!raw || typeof raw !== 'object') return { date: today, completedStepIds: [] };
+  const candidate = raw as Partial<RoutineProgress>;
+  const date = typeof candidate.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(candidate.date) ? candidate.date : today;
+  if (date !== today) {
+    return { date: today, completedStepIds: [] };
+  }
+  const ids = Array.isArray(candidate.completedStepIds)
+    ? candidate.completedStepIds.filter((item): item is string => typeof item === 'string' && item.length > 0)
+    : [];
+  return { date, completedStepIds: ids };
+}
+
 function sanitizePhraseHistory(raw: unknown): HistoryPhrase[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
@@ -185,8 +228,41 @@ const CATEGORIES = {
   all: 'Tudo',
   custom: 'Customizados',
   savedPhrases: 'Frases',
-  history: 'Historico'
+  history: 'Historico',
+  routine: 'Rotina'
 };
+
+const getTodayIso = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const MONTH_NAMES_PT = [
+  'janeiro',
+  'fevereiro',
+  'marco',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro'
+];
+
+function formatTodayLabelPt(iso: string) {
+  const parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  const day = parseInt(parts[2], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  if (Number.isNaN(day) || Number.isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) return iso;
+  return `Hoje, ${day} de ${MONTH_NAMES_PT[monthIdx]}`;
+}
 
 const normalizePhrase = (symbols: SymbolItem[]) => {
   const raw = symbols.map(item => item.label.trim().toLowerCase()).filter(Boolean).join(' ');
@@ -252,6 +328,9 @@ export default function App() {
   const [editingCategoryName, setEditingCategoryName] = useState('');
   const [draftAudioUri, setDraftAudioUri] = useState<string | null>(null);
   const [audioSymbolId, setAudioSymbolId] = useState<string | null>(null);
+  const [routineSteps, setRoutineSteps] = useState<RoutineStep[]>([]);
+  const [routineProgress, setRoutineProgress] = useState<RoutineProgress>(() => ({ date: getTodayIso(), completedStepIds: [] }));
+  const [newRoutineLabel, setNewRoutineLabel] = useState('');
   const audioPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
@@ -402,7 +481,9 @@ export default function App() {
           savedPhrasesRaw,
           savedPhraseHistory,
           savedPersonalSymbols,
-          savedCustomCategories
+          savedCustomCategories,
+          savedRoutineSteps,
+          savedRoutineProgress
         ] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.favorites),
           AsyncStorage.getItem(STORAGE_KEYS.customSymbols),
@@ -418,7 +499,9 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.savedPhrases),
           AsyncStorage.getItem(STORAGE_KEYS.phraseHistory),
           AsyncStorage.getItem(STORAGE_KEYS.personalSymbols),
-          AsyncStorage.getItem(STORAGE_KEYS.customCategories)
+          AsyncStorage.getItem(STORAGE_KEYS.customCategories),
+          AsyncStorage.getItem(STORAGE_KEYS.routineSteps),
+          AsyncStorage.getItem(STORAGE_KEYS.routineProgress)
         ]);
 
         if (savedFavorites) {
@@ -500,6 +583,24 @@ export default function App() {
           }
         }
 
+        if (savedRoutineSteps) {
+          try {
+            setRoutineSteps(sanitizeRoutineSteps(JSON.parse(savedRoutineSteps)));
+          } catch {
+            /* keep empty */
+          }
+        }
+
+        if (savedRoutineProgress) {
+          try {
+            setRoutineProgress(sanitizeRoutineProgress(JSON.parse(savedRoutineProgress)));
+          } catch {
+            setRoutineProgress({ date: getTodayIso(), completedStepIds: [] });
+          }
+        } else {
+          setRoutineProgress({ date: getTodayIso(), completedStepIds: [] });
+        }
+
         const introShouldBeSkipped = savedIntroSkipEnabled === '1';
         setSkipIntroNextOpen(introShouldBeSkipped);
         setShowIntroScreen(!introShouldBeSkipped);
@@ -577,6 +678,14 @@ export default function App() {
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.customCategories, JSON.stringify(customCategories));
   }, [customCategories]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.routineSteps, JSON.stringify(routineSteps));
+  }, [routineSteps]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.routineProgress, JSON.stringify(routineProgress));
+  }, [routineProgress]);
 
   const toggleFavorite = useCallback((symbol: SymbolItem) => {
     if (!isAdmin) {
@@ -1100,6 +1209,69 @@ export default function App() {
     [personalSymbols, showToast]
   );
 
+  const addRoutineStep = useCallback(() => {
+    const label = newRoutineLabel.trim();
+    if (!label) {
+      showToast('Digite o passo da rotina.', 'error');
+      return;
+    }
+    if (routineSteps.length >= ROUTINE_STEPS_MAX) {
+      showToast(`Maximo de ${ROUTINE_STEPS_MAX} passos na rotina.`, 'error');
+      return;
+    }
+    if (routineSteps.some(item => item.label.toLowerCase() === label.toLowerCase())) {
+      showToast('Esse passo ja esta na rotina.', 'error');
+      return;
+    }
+    const personal = personalSymbols.find(ps => ps.label.toLowerCase() === label.toLowerCase());
+    const favorite = favorites.find(fav => fav.label.toLowerCase() === label.toLowerCase());
+    const known = symbols.find(sym => sym.label.toLowerCase() === label.toLowerCase());
+    const imageUri = personal?.imageUri ?? favorite?.imageUrl ?? known?.imageUrl ?? null;
+    const entry: RoutineStep = {
+      id: `step-${Date.now()}`,
+      label,
+      imageUri,
+      createdAt: new Date().toISOString()
+    };
+    setRoutineSteps(prev => [...prev, entry]);
+    setNewRoutineLabel('');
+  }, [favorites, newRoutineLabel, personalSymbols, routineSteps, showToast, symbols]);
+
+  const removeRoutineStep = useCallback((id: string) => {
+    setRoutineSteps(prev => prev.filter(item => item.id !== id));
+    setRoutineProgress(prev => ({ ...prev, completedStepIds: prev.completedStepIds.filter(sid => sid !== id) }));
+  }, []);
+
+  const moveRoutineStep = useCallback((id: string, direction: -1 | 1) => {
+    setRoutineSteps(prev => {
+      const index = prev.findIndex(item => item.id === id);
+      if (index === -1) return prev;
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      return next;
+    });
+  }, []);
+
+  const toggleRoutineStep = useCallback((id: string) => {
+    setRoutineProgress(prev => {
+      const today = getTodayIso();
+      const base = prev.date === today ? prev : { date: today, completedStepIds: [] };
+      const already = base.completedStepIds.includes(id);
+      const nextIds = already
+        ? base.completedStepIds.filter(sid => sid !== id)
+        : [...base.completedStepIds, id];
+      return { date: today, completedStepIds: nextIds };
+    });
+  }, []);
+
+  const resetTodayRoutineProgress = useCallback(() => {
+    setRoutineProgress({ date: getTodayIso(), completedStepIds: [] });
+    showToast('Progresso do dia zerado.', 'success');
+  }, [showToast]);
+
   const clearSymbols = useCallback(() => {
     setSelectedSymbols([]);
     setNormalizedPhrase('');
@@ -1202,6 +1374,7 @@ export default function App() {
         category === CATEGORIES.custom ||
         category === CATEGORIES.savedPhrases ||
         category === CATEGORIES.history ||
+        category === CATEGORIES.routine ||
         category.startsWith('cat-')
       ) {
         return;
@@ -1427,6 +1600,12 @@ export default function App() {
               highContrast={isHighContrast}
               onPress={() => void handleCategoryClick(CATEGORIES.history)}
             />
+            <CategoryButton
+              label={CATEGORIES.routine}
+              active={activeCategory === CATEGORIES.routine}
+              highContrast={isHighContrast}
+              onPress={() => void handleCategoryClick(CATEGORIES.routine)}
+            />
             {customSymbols.length > 0 && (
               <CategoryButton
                 label={CATEGORIES.custom}
@@ -1552,6 +1731,37 @@ export default function App() {
                 </View>
               }
             />
+          ) : activeCategory === CATEGORIES.routine ? (
+            <View style={styles.routineContainer}>
+              <View style={styles.routineHeader}>
+                <Text style={[styles.routineHeaderTitle, isHighContrast && styles.textHighContrast]}>Rotina do dia</Text>
+                <Text style={[styles.routineHeaderDate, isHighContrast && styles.textMutedHighContrast]}>
+                  {formatTodayLabelPt(routineProgress.date)}
+                </Text>
+              </View>
+              <FlatList
+                data={routineSteps}
+                keyExtractor={item => item.id}
+                key="routine-steps"
+                contentContainerStyle={styles.routineList}
+                renderItem={({ item }) => (
+                  <RoutineStepCard
+                    step={item}
+                    completed={routineProgress.completedStepIds.includes(item.id)}
+                    onToggle={() => toggleRoutineStep(item.id)}
+                    highContrast={isHighContrast}
+                    uiScaleFactor={uiScaleFactor}
+                  />
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
+                      Ainda nao ha rotina configurada. Peca ao cuidador para adicionar passos.
+                    </Text>
+                  </View>
+                }
+              />
+            </View>
           ) : customCategories.some(c => c.id === activeCategory) ? (
             <FlatList
               data={personalSymbols.filter(ps => ps.categoryId === activeCategory)}
@@ -1931,6 +2141,12 @@ export default function App() {
                 icon="🗂"
                 active={configSection === 'categorias'}
                 onPress={() => setConfigSection('categorias')}
+              />
+              <ConfigNavItem
+                label="Rotina"
+                icon="📅"
+                active={configSection === 'rotina'}
+                onPress={() => setConfigSection('rotina')}
               />
             </View>
 
@@ -2368,6 +2584,104 @@ export default function App() {
               </View>
             )}
 
+            {configSection === 'rotina' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Rotina do dia</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                  Monte a sequencia de passos do dia. Use rotulos curtos; se bater com um simbolo existente, a imagem aparece automaticamente.
+                </Text>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador em "Cuidador" para editar a rotina.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.phraseEditorList}>
+                      {routineSteps.length === 0 && (
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Nenhum passo na rotina ainda.
+                        </Text>
+                      )}
+                      {routineSteps.map((step, index) => (
+                        <View
+                          key={`routine-edit-${step.id}`}
+                          style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+                        >
+                          <Text
+                            style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]}
+                            numberOfLines={1}
+                          >
+                            {index + 1}. {step.label}
+                          </Text>
+                          <Pressable
+                            onPress={() => moveRoutineStep(step.id, -1)}
+                            disabled={index === 0}
+                            style={[styles.phraseEditorButton, index === 0 && styles.coreVocabEditorButtonDisabled]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Mover ${step.label} para cima`}
+                          >
+                            <Text style={styles.phraseEditorButtonText}>↑</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => moveRoutineStep(step.id, 1)}
+                            disabled={index === routineSteps.length - 1}
+                            style={[
+                              styles.phraseEditorButton,
+                              index === routineSteps.length - 1 && styles.coreVocabEditorButtonDisabled
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Mover ${step.label} para baixo`}
+                          >
+                            <Text style={styles.phraseEditorButtonText}>↓</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => removeRoutineStep(step.id)}
+                            style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remover passo ${step.label}`}
+                          >
+                            <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+
+                    <View style={styles.phraseEditorAddRow}>
+                      <TextInput
+                        value={newRoutineLabel}
+                        onChangeText={setNewRoutineLabel}
+                        placeholder="Novo passo (ex: escovar dentes)"
+                        placeholderTextColor="#94a3b8"
+                        style={[styles.modalInput, styles.phraseEditorAddInput, isHighContrast && styles.inputHighContrast]}
+                        onSubmitEditing={addRoutineStep}
+                      />
+                      <Pressable
+                        onPress={addRoutineStep}
+                        style={styles.modalButtonPrimary}
+                        accessibilityRole="button"
+                        accessibilityLabel="Adicionar passo a rotina"
+                      >
+                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                      </Pressable>
+                    </View>
+
+                    <Pressable
+                      onPress={resetTodayRoutineProgress}
+                      style={styles.modalButtonLight}
+                      accessibilityRole="button"
+                      accessibilityLabel="Zerar progresso do dia"
+                    >
+                      <Text>Zerar progresso do dia ({routineProgress.completedStepIds.length}/{routineSteps.length})</Text>
+                    </Pressable>
+
+                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                      Maximo de {ROUTINE_STEPS_MAX} passos. O progresso reinicia automaticamente no proximo dia.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+
             {configSection === 'perfil' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Perfil de uso</Text>
@@ -2723,6 +3037,58 @@ function SymbolCard({
       <Text style={[styles.symbolLabel, isDense && styles.symbolLabelDense]} numberOfLines={1}>
         {item.label}
       </Text>
+    </Pressable>
+  );
+}
+
+function RoutineStepCard({
+  step,
+  completed,
+  onToggle,
+  highContrast,
+  uiScaleFactor
+}: {
+  step: RoutineStep;
+  completed: boolean;
+  onToggle: () => void;
+  highContrast: boolean;
+  uiScaleFactor: number;
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={[
+        styles.routineStepCard,
+        completed && styles.routineStepCardDone,
+        highContrast && styles.routineStepCardHighContrast
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${completed ? 'Desmarcar' : 'Marcar'} passo ${step.label}`}
+      accessibilityState={{ checked: completed }}
+    >
+      {step.imageUri ? (
+        <Image source={{ uri: step.imageUri }} style={styles.routineStepThumb} resizeMode="cover" />
+      ) : (
+        <View style={[styles.routineStepThumb, styles.routineStepThumbTextOnly]}>
+          <Text style={styles.routineStepThumbLetter}>{step.label.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
+      <Text
+        style={[
+          styles.routineStepLabel,
+          { fontSize: 18 * uiScaleFactor },
+          completed && styles.routineStepLabelDone,
+          highContrast && styles.textHighContrast
+        ]}
+        numberOfLines={2}
+      >
+        {step.label}
+      </Text>
+      <View style={[styles.routineStepCheck, completed && styles.routineStepCheckDone]}>
+        <Text style={[styles.routineStepCheckIcon, completed && styles.routineStepCheckIconDone]}>
+          {completed ? '✓' : ''}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -3690,6 +4056,96 @@ const styles = StyleSheet.create({
   },
   audioTimerTextRecording: {
     color: '#ef4444'
+  },
+  routineContainer: {
+    flex: 1,
+    paddingTop: 10,
+    paddingHorizontal: 6
+  },
+  routineHeader: {
+    paddingHorizontal: 6,
+    paddingBottom: 8,
+    gap: 2
+  },
+  routineHeaderTitle: {
+    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  routineHeaderDate: {
+    color: '#64748b',
+    fontSize: 13
+  },
+  routineList: {
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    gap: 8
+  },
+  routineStepCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+    marginBottom: 6,
+    minHeight: 72
+  },
+  routineStepCardDone: {
+    backgroundColor: '#E6F4EA',
+    borderColor: '#5B8C7A'
+  },
+  routineStepCardHighContrast: {
+    backgroundColor: '#0b1220',
+    borderColor: '#facc15'
+  },
+  routineStepThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0'
+  },
+  routineStepThumbTextOnly: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  routineStepThumbLetter: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a'
+  },
+  routineStepLabel: {
+    flex: 1,
+    color: '#0f172a',
+    fontWeight: '700'
+  },
+  routineStepLabelDone: {
+    color: '#475569',
+    textDecorationLine: 'line-through'
+  },
+  routineStepCheck: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  routineStepCheckDone: {
+    backgroundColor: '#5B8C7A',
+    borderColor: '#5B8C7A'
+  },
+  routineStepCheckIcon: {
+    color: '#cbd5e1',
+    fontSize: 18,
+    fontWeight: '800'
+  },
+  routineStepCheckIconDone: {
+    color: '#ffffff'
   },
   phraseText: {
     minHeight: 30,

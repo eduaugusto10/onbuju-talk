@@ -134,7 +134,7 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 - [x] **Phase 13: Frases Prontas e Historico** - Banco de frases e reuso de frases recentes em um toque. ✓
 - [x] **Phase 14: Simbolos Pessoais e Categorias Customizadas** - Camera, galeria e categorias do cuidador. ✓
 - [x] **Phase 15: Voz Gravada do Cuidador** - Audio familiar sobrepondo TTS com fallback transparente. ✓
-- [ ] **Phase 16: Rotina Visual e Polimento da Milestone** - Rotina do dia e regressao final sem quebras.
+- [x] **Phase 16: Rotina Visual e Polimento da Milestone** - Rotina do dia e regressao final sem quebras. ✓
 
 ## Progress Table (Milestone 4)
 
@@ -144,4 +144,4 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 | 13. Frases Prontas e Historico | 1/1 | Complete | 2026-04-21 |
 | 14. Simbolos Pessoais e Categorias Customizadas | 1/1 | Complete | 2026-04-21 |
 | 15. Voz Gravada do Cuidador | 1/1 | Complete | 2026-04-21 |
-| 16. Rotina Visual e Polimento da Milestone | 0/0 | Not started | - |
+| 16. Rotina Visual e Polimento da Milestone | 1/1 | Complete | 2026-04-21 |
