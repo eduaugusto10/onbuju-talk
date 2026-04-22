@@ -1,76 +1,94 @@
-# REQUIREMENTS - Milestone v4
+# REQUIREMENTS - Milestone v5
 
-**Milestone:** v4 - Comunicacao Pessoal e Rotina Visual
-**Goal:** Evoluir o Fala Mobile de um montador de frases para uma ferramenta de comunicacao diaria personalizada, com vocabulario estavel, conteudo familiar (fotos e voz do cuidador) e rotinas visuais.
+**Milestone:** v5 - Refatoracao de Design no Estilo iOS
+**Goal:** Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone), preservando a funcionalidade completa entregue nas milestones v1-v4 e a restricao dura de simplicidade para o publico autista.
 **Publico-alvo:** criancas autistas; restricao dura de simplicidade sobre riqueza de features.
+**Escopo:** exclusivamente visual/UX — nenhum requisito funcional novo.
 
 ---
 
-## v4 Requirements
+## v5 Requirements
 
-### Comunicacao e Vocabulario (COMM)
+### Design System (DS)
 
-- [ ] **COMM-01**: Usuario acessa um conjunto fixo de palavras-nucleo (quero, nao, sim, mais, parar, ajuda, mae, pai) sempre na mesma posicao da tela, independente de navegacao entre categorias.
-- [ ] **COMM-02**: Cuidador configura quais palavras compoem o vocabulario core e em qual ordem, com um conjunto padrao pre-instalado em pt-BR.
-- [ ] **COMM-03**: Usuario acessa um banco de frases prontas (ex.: "quero banheiro", "estou com fome", "me ajuda") e reproduz a frase com um unico toque.
-- [ ] **COMM-04**: Cuidador adiciona, edita e remove frases no banco de frases prontas.
-- [ ] **COMM-05**: Usuario ve o historico das ultimas frases faladas e reutiliza qualquer uma com um toque.
+- [ ] **DS-01**: App usa paleta de cores iOS (system blue `#007AFF`, system grays, grouped backgrounds) como tokens centralizados em `src/theme.ts`.
+- [ ] **DS-02**: App usa escala tipografica iOS (largeTitle 34pt, title1 28pt, title2 22pt, body 17pt, footnote 13pt, caption 11pt) como tokens; nenhum `fontSize` hardcoded fora dos tokens.
+- [ ] **DS-03**: App usa raios de canto (8/12/16px), sombras sutis iOS-like e escala de espacamento 4/8/12/16/20/24 consistentes em todos os componentes.
 
-### Conteudo Pessoal (CONT)
+### Tela Principal (MAIN)
 
-- [ ] **CONT-01**: Cuidador tira uma foto com a camera do dispositivo e cria um simbolo personalizado a partir dela, com rotulo e categoria opcionais.
-- [ ] **CONT-02**: Cuidador importa uma imagem da galeria do dispositivo e cria um simbolo personalizado a partir dela.
-- [ ] **CONT-03**: Cuidador grava um trecho de audio (voz) e associa ao simbolo para reproducao no lugar do TTS.
-- [ ] **CONT-04**: Usuario escuta a voz gravada do cuidador ao selecionar o simbolo, com fallback para TTS quando nao houver gravacao.
+- [ ] **MAIN-01**: Header exibe titulo em estilo Navigation Bar iOS (titulo grande ou centralizado conforme padrao iOS), com acoes alinhadas a direita.
+- [ ] **MAIN-02**: Barra de categorias usa estilo Segmented Control / pills iOS com selecionado em destaque e nao-selecionado em tom neutro.
+- [ ] **MAIN-03**: Campo de busca (quando visivel) usa estilo iOS search field — background secundario, cantos arredondados, placeholder pt-BR e icone de lupa.
+- [ ] **MAIN-04**: Cards da grade de simbolos seguem estilo iOS — raio 12-16px, sombra sutil, tap feedback (opacidade ou escala leve).
+- [ ] **MAIN-05**: Composer (selecao + frase + acoes) usa botoes em variantes iOS (Filled/Tinted/Plain), com icones e espacamento caracteristico.
 
-### Organizacao Visual (ORG)
+### Sheets e Modais (SHEET)
 
-- [ ] **ORG-01**: Cuidador monta uma rotina visual como sequencia ordenada de simbolos (ex.: acordar, escovar dentes, tomar cafe, ir para escola).
-- [ ] **ORG-02**: Usuario visualiza a rotina do dia em tela dedicada e marca cada passo como concluido conforme avanca.
-- [ ] **ORG-03**: Cuidador cria, renomeia e remove categorias customizadas, e associa simbolos a essas categorias.
+- [ ] **SHEET-01**: Modais principais (config, draft de simbolo, gravacao de voz, naming de grupo, regravar voz) abrem como bottom sheets com grabber visivel e ancorados no safe-area bottom.
+- [ ] **SHEET-02**: Backdrop dos sheets usa blur / material translucido (via `expo-blur`) em vez de overlay solido.
+- [ ] **SHEET-03**: Sheets possuem header com "Cancelar" a esquerda e "Pronto"/"Salvar" a direita, estilo iOS.
+
+### Config "Ajustes" (CFG)
+
+- [ ] **CFG-01**: Config apresenta secoes agrupadas estilo iOS (inset grouped list), com labels de secao em caixa pequena (UPPERCASE ou small-caps) acima de cada grupo.
+- [ ] **CFG-02**: Rows de config usam layout de linha iOS — texto/label a esquerda, valor ou accessory a direita, chevron `>` quando navegavel.
+- [ ] **CFG-03**: Toggles binarios (feedback visual, contraste, ...) usam componente `Switch` nativo estilo iOS em vez de `OptionChip`.
+
+### Feedback Tatil (FDB)
+
+- [ ] **FDB-01**: App aciona haptic feedback via `expo-haptics` em toques principais (falar frase, marcar passo de rotina, adicionar simbolo ao composer, salvar).
+
+### Regressao (REG)
+
+- [ ] **REG-01**: Todos os fluxos das milestones v1-v4 continuam funcionando sem regressao apos a refatoracao visual (composer, gerar IA, voz TTS, favoritos, vocabulario core, frases prontas, historico, simbolos pessoais via camera/galeria, voz gravada, rotina visual, categorias customizadas, admin).
 
 ---
 
 ## Future Requirements (Deferred)
 
-Features avaliadas para v4 mas adiadas para milestones futuras:
+Features avaliadas para v5 mas adiadas para milestones futuras:
 
-- **Predicao contextual por IA de proximo simbolo** - ROI incerto para o publico-alvo; historico de frases (COMM-05) entrega boa parte do valor.
-- **Visual scene display** - cena fotografica com regioes tocaveis; avaliar apos validacao de simbolos pessoais.
-- **Historias sociais** - narrativas ilustradas sequenciais; rotinas (ORG-01/02) cobrem caso de uso principal primeiro.
-- **Boards contextuais por horario/local** - complexidade alta para beneficio incremental.
-- **Niveis progressivos de vocabulario** - camada de complexidade que conflita com restricao de simplicidade.
+- **Dark mode iOS completo** — o modo high-contrast atual ja cobre parte do caso; migrar para semantic colors iOS (system*) em milestone futura.
+- **SF Symbols via expo-symbols** — usar glifos iOS nativos em vez de emojis; exige native module adicional.
+- **Large title com collapse animado** — `Header` animado que encolhe ao rolar. Complexidade alta para beneficio incremental.
+- **Animacoes de transicao iOS (spring)** — `react-native-reanimated` com springs padrao iOS.
+- **Context menus (long press menu iOS)** — menu de acoes estilo iOS ao long-press em simbolos/frases.
+- **Swipe actions em rows** — gesto de deslizar para revelar acoes (editar/remover).
 
 ## Out of Scope
 
 Features explicitamente fora do escopo com justificativa:
 
-- **Tamanhos de grade alem de 2-5 colunas** - ja cobertos pela funcionalidade atual; ampliar nao agrega.
-- **Multiplos perfis de usuario no mesmo dispositivo** - fora do escopo da v4; considerar se houver demanda validada.
-- **Backup/sincronizacao em nuvem** - fora do escopo; app permanece local-first por ora.
-- **Dashboard de terapeuta / relatorios de uso** - fora do escopo da v4.
-- **Switch access / varredura por 1 botao** - fora do escopo; considerar em milestone futura de acessibilidade.
-- **Integracoes externas (WhatsApp, Wear OS, widget)** - fora do escopo.
+- **Reescrita de funcionalidade** — v5 e visual apenas; nenhum comportamento muda.
+- **Redesign do splash/intro screen** — intro da v3 ja e recente e esta funcionando bem; foco da v5 e a tela principal.
+- **Redesign para Android Material** — app e mobile cross-plataforma, mas a diretriz do usuario e iPhone. Android recebe o mesmo visual iOS-style (consistencia single-design).
+- **Navegacao multi-screen (React Navigation)** — app permanece single-screen.
+- **Novos fluxos ou features funcionais** — fora do escopo desta milestone.
 
 ---
 
 ## Traceability
 
-| REQ-ID   | Category                     | Phase    | Notes                                         |
-|----------|------------------------------|----------|-----------------------------------------------|
-| COMM-01  | Comunicacao e Vocabulario    | Phase 12 | Faixa fixa de vocabulario core                |
-| COMM-02  | Comunicacao e Vocabulario    | Phase 12 | Editor de vocabulario core + padrao pt-BR     |
-| COMM-03  | Comunicacao e Vocabulario    | Phase 13 | Banco de frases prontas, reproducao 1 toque   |
-| COMM-04  | Comunicacao e Vocabulario    | Phase 13 | Editor de frases prontas no modo admin        |
-| COMM-05  | Comunicacao e Vocabulario    | Phase 13 | Historico de frases recentes                  |
-| CONT-01  | Conteudo Pessoal             | Phase 14 | Criacao de simbolo via camera                 |
-| CONT-02  | Conteudo Pessoal             | Phase 14 | Criacao de simbolo via galeria                |
-| CONT-03  | Conteudo Pessoal             | Phase 15 | Gravacao de audio do cuidador                 |
-| CONT-04  | Conteudo Pessoal             | Phase 15 | Reproducao da voz gravada com fallback TTS    |
-| ORG-01   | Organizacao Visual           | Phase 16 | Editor de rotina visual                       |
-| ORG-02   | Organizacao Visual           | Phase 16 | Tela de rotina do dia com marcacao de passos  |
-| ORG-03   | Organizacao Visual           | Phase 14 | Categorias customizadas (partilha picker infra)|
+| REQ-ID  | Category                     | Phase    | Notes                                         |
+|---------|------------------------------|----------|-----------------------------------------------|
+| DS-01   | Design System                | Phase 17 | Tokens de cor em theme.ts                     |
+| DS-02   | Design System                | Phase 17 | Tokens de tipografia                          |
+| DS-03   | Design System                | Phase 17 | Raios, sombras, espacamento                   |
+| MAIN-01 | Tela Principal               | Phase 18 | Nav bar iOS                                   |
+| MAIN-02 | Tela Principal               | Phase 18 | Segmented control / pills                     |
+| MAIN-03 | Tela Principal               | Phase 18 | Search field iOS                              |
+| MAIN-04 | Tela Principal               | Phase 18 | Cards iOS                                     |
+| MAIN-05 | Tela Principal               | Phase 18 | Composer iOS                                  |
+| SHEET-01| Sheets e Modais              | Phase 19 | Bottom sheet com grabber                      |
+| SHEET-02| Sheets e Modais              | Phase 19 | Blur backdrop                                 |
+| SHEET-03| Sheets e Modais              | Phase 19 | Header Cancelar/Pronto                        |
+| CFG-01  | Config Ajustes               | Phase 20 | Inset grouped list                            |
+| CFG-02  | Config Ajustes               | Phase 20 | List rows com chevron                         |
+| CFG-03  | Config Ajustes               | Phase 20 | Switch iOS                                    |
+| FDB-01  | Feedback Tatil               | Phase 20 | Haptic feedback                               |
+| REG-01  | Regressao                    | Phase 21 | Regressao de todos os fluxos anteriores       |
 
 ---
 
-**Total:** 12 requirements | **Categorias:** 3 | **Status:** roadmap criado, aguardando planejamento da Phase 12
+**Total:** 16 requirements | **Categorias:** 6 | **Status:** roadmap criado, aguardando planejamento da Phase 17

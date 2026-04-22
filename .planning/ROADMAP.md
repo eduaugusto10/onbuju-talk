@@ -145,3 +145,114 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 | 14. Simbolos Pessoais e Categorias Customizadas | 1/1 | Complete | 2026-04-21 |
 | 15. Voz Gravada do Cuidador | 1/1 | Complete | 2026-04-21 |
 | 16. Rotina Visual e Polimento da Milestone | 1/1 | Complete | 2026-04-21 |
+
+## Milestone 5 - Refatoracao de Design no Estilo iOS
+
+Goal: Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone), preservando 100% da funcionalidade entregue nas milestones v1-v4. Escopo exclusivamente visual/UX. Numeracao continua a partir da Phase 17.
+
+### Phase 17 - Design System iOS (Tokens e Primitivos)
+- Objetivo: estabelecer o design system iOS do projeto — tokens de cor, tipografia, espacamento, raios e sombras — e componentes primitivos reutilizaveis.
+- Entregas:
+  - `src/theme.ts` expandido com tokens iOS: `colors` (systemBlue, labels, fills, groupedBackground, systemGrays), `typography` (largeTitle, title1-3, body, callout, footnote, caption com pesos), `radii` (8/12/16), `spacing` (4/8/12/16/20/24), `shadows` (iOS-like sutil).
+  - Novo modulo `src/ui/` ou estilos inline compartilhados com primitivos: `IOSButton` (filled/tinted/plain), `IOSCard`, `IOSListSection`, `IOSListRow`, `IOSSectionHeader`, `IOSBottomSheet` base.
+  - Instalar `expo-haptics` e `expo-blur` via `npx expo install`; adicionar plugins ao `app.json`.
+  - Documentar uso dos tokens no topo do `theme.ts` com exemplos pt-BR.
+- Requisitos mapeados: DS-01, DS-02, DS-03
+- Criterios de Sucesso:
+  1. `src/theme.ts` exporta objetos `colors`, `typography`, `radii`, `spacing`, `shadows` com valores iOS-aligned.
+  2. Pelo menos um componente existente (ex.: header) adota os novos tokens como prova de conceito.
+  3. `expo-haptics` e `expo-blur` instalados e com plugins registrados em `app.json`.
+  4. `npm run lint` e `npm run test` sem novos erros.
+- **UI hint**: yes
+
+### Phase 18 - Tela Principal estilo iOS
+- Objetivo: migrar header, categorias, busca, grid de simbolos e composer para a estetica iOS usando os tokens da Phase 17.
+- Entregas:
+  - Header como nav bar iOS (titulo grande ou centralizado; botoes com estetica iOS; admin badge com pill style).
+  - Barra de categorias como Segmented Control / pills iOS (active = preenchido com `systemBlue` / tinted; inactive = `secondarySystemFill`).
+  - Search field em estilo iOS (background `systemGray6`, cantos 10px, icone de lupa dentro do campo, botao clear com `xmark.circle.fill`-like).
+  - `SymbolCard` refatorado com raio 14px, `shadow.sm`, tap opacity (`pressable opacity 0.7`), favorite star como overlay circular iOS.
+  - Core vocab bar com chips iOS tinted.
+  - Composer card com fundo `systemGroupedBackgroundSecondary`, botoes em variantes (Filled = Gerar/Ouvir, Plain = Deletar).
+- Depends on: Phase 17
+- Requisitos mapeados: MAIN-01, MAIN-02, MAIN-03, MAIN-04, MAIN-05
+- Criterios de Sucesso:
+  1. Header, categorias, busca, grid e composer renderizam visualmente no estilo iOS em iPhone size (iOS simulator ou Android small screen).
+  2. Tap em card produz feedback visual coerente com iOS (opacidade).
+  3. Segmented control distingue selecionado com clareza.
+  4. Paleta respeita alto contraste quando `contrastMode === 'alto'`.
+  5. Fluxo principal (selecionar, gerar, ouvir, deletar) continua funcionando.
+- **UI hint**: yes
+
+### Phase 19 - Sheets e Modais iOS
+- Objetivo: substituir os `Modal` tradicionais por bottom sheets estilo iOS com grabber e backdrop desfocado.
+- Entregas:
+  - Componente `IOSBottomSheet` reutilizavel com: container ancorado no bottom, safe-area inset, grabber (`<View />` 36x5px com cantos arredondados no topo), padding interno, max-height ~85%, header com botoes "Cancelar"/"Pronto" (ou "Salvar" quando aplicavel).
+  - Backdrop usando `BlurView` (expo-blur) com intensity 60-80 + overlay semi-transparente; tap no backdrop fecha (dismissivel pelo grabber tambem).
+  - Aplicar `IOSBottomSheet` em: config modal, symbol draft modal, audio recorder modal, naming group modal.
+  - Header dos sheets consistente: "Cancelar" a esquerda, titulo centralizado, "Pronto"/"Salvar" a direita (cor `systemBlue`, bold no primary).
+- Depends on: Phase 17
+- Requisitos mapeados: SHEET-01, SHEET-02, SHEET-03
+- Criterios de Sucesso:
+  1. Todos os modais abrem ancorados no bottom com grabber visivel.
+  2. Backdrop desfocado aparece em vez de overlay solido.
+  3. Tap em "Cancelar" fecha o sheet descartando edicoes; "Pronto"/"Salvar" persiste.
+  4. Sheets respeitam safe-area bottom (nenhum conteudo atras do home indicator).
+  5. Fluxos dos modais continuam funcionais (admin login, criar simbolo, gravar voz, salvar grupo).
+- **UI hint**: yes
+
+### Phase 20 - Config "Ajustes" iOS + Haptic Feedback
+- Objetivo: transformar o modal de configuracao em uma lista agrupada estilo iOS Ajustes, com switches nativos e feedback tatil nos toques principais.
+- Entregas:
+  - Reformular config modal para layout "inset grouped list": secoes agrupadas com header pequeno em caixa alta (ex.: "VOZ", "ACESSIBILIDADE", "CUIDADOR", "FRASES", "SIMBOLOS", "CATEGORIAS", "VOCABULARIO", "ROTINA"), cards agrupados com rows separados por hairlines (`StyleSheet.hairlineWidth`).
+  - `IOSListRow` com layout padrao: texto a esquerda, valor/accessory (Switch/chevron/count) a direita.
+  - Substituir `OptionChip` binarios (feedback visual, contraste) por `Switch` nativo (cor `systemBlue`).
+  - Adicionar chevron `>` em rows que levam a subsecoes (editores de frases/simbolos/categorias/rotina) — manter conteudo inline no mesmo sheet, apenas sinal visual de affordance.
+  - Integrar `expo-haptics`: `Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)` em: adicionar simbolo ao composer, tap em frase pronta/historico, toggle passo de rotina, tap em "Ouvir"/"Gerar"/"Salvar".
+  - Fallback para no-op em plataformas/ambientes sem haptics.
+- Depends on: Phase 17, Phase 19
+- Requisitos mapeados: CFG-01, CFG-02, CFG-03, FDB-01
+- Criterios de Sucesso:
+  1. Config exibe secoes agrupadas com headers em UPPERCASE pt-BR.
+  2. Toggles binarios usam `Switch` nativo.
+  3. Rows tem hairlines internas e cantos arredondados no primeiro/ultimo item da secao.
+  4. Toques principais disparam haptic feedback em iOS; nao quebra em Android.
+  5. Preferencias continuam persistindo.
+- **UI hint**: yes
+
+### Phase 21 - Regressao, Polimento e Release
+- Objetivo: regressao completa dos fluxos v1-v4, corrigir bugs visuais detectados e preparar release.
+- Entregas:
+  - Regressao manual e automatizada de todos os fluxos v1-v4 (checklist em `RELEASE-CHECKLIST.md`).
+  - Correcoes de bugs visuais ou de layout detectados durante regressao.
+  - Consistencia final em alto contraste.
+  - Atualizacao de testes se UI mudou ids/labels (ex.: switches alteram labels acessiveis).
+  - `npm run lint` e `npm run test -- --runInBand` sem novas falhas.
+  - `RELEASE-CHECKLIST.md` atualizado com secao v5 e regressao completa.
+- Depends on: Phase 18, Phase 19, Phase 20
+- Requisitos mapeados: REG-01
+- Criterios de Sucesso:
+  1. Todos os fluxos v1-v4 passam regressao manual sem bugs visuais ou funcionais.
+  2. Test suite passa (com os 4 pre-existentes herdados ou corrigidos se escopo permitir).
+  3. `npm run lint` limpo.
+  4. Release checklist marcado para v5.
+  5. Sem regressao em acessibilidade (labels, contrast mode, ui scale).
+- **UI hint**: yes
+
+## Phase Summary (Milestone 5)
+
+- [ ] **Phase 17: Design System iOS (Tokens e Primitivos)** - Tokens de cor/tipografia/espacamento iOS e componentes primitivos.
+- [ ] **Phase 18: Tela Principal estilo iOS** - Header, categorias, busca, grid e composer em estetica iOS.
+- [ ] **Phase 19: Sheets e Modais iOS** - Bottom sheets com grabber e blur backdrop.
+- [ ] **Phase 20: Config "Ajustes" iOS + Haptic Feedback** - Inset grouped list, switches nativos, haptics.
+- [ ] **Phase 21: Regressao, Polimento e Release** - Regressao completa e preparacao de entrega.
+
+## Progress Table (Milestone 5)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 17. Design System iOS (Tokens e Primitivos) | 0/0 | Not started | - |
+| 18. Tela Principal estilo iOS | 0/0 | Not started | - |
+| 19. Sheets e Modais iOS | 0/0 | Not started | - |
+| 20. Config "Ajustes" iOS + Haptic Feedback | 0/0 | Not started | - |
+| 21. Regressao, Polimento e Release | 0/0 | Not started | - |

@@ -1,39 +1,38 @@
 # STATE
 
 ## Current Position
-- Phase: Milestone v4 COMPLETA (todas as fases 12-16)
+- Phase: Nao iniciada (aguardando planejamento da Phase 17)
 - Plan: -
-- Status: Milestone v4 pronta para audit/arquivamento
-- Last activity: 2026-04-21 - Phase 16 (Rotina Visual e Polimento) concluida
+- Status: Milestone v5 iniciada — definicao concluida, pronta para planejar Phase 17
+- Last activity: 2026-04-21 - Milestone v5 (Refatoracao de Design no Estilo iOS) iniciada
 
 ## Status
 - Projeto inicializado no fluxo GSD.
 - Codebase map ja criado em `.planning/codebase/`.
 - Milestone 1 - Estabilizacao Mobile arquivada (v1).
 - Milestone 3 - Experiencia de Abertura (Tela Inicial) arquivada (v3).
-- Milestone ativa: v4 - Comunicacao Pessoal e Rotina Visual.
-- REQUIREMENTS.md da v4 definida (12 requisitos, 3 categorias: COMM, CONT, ORG).
-- ROADMAP.md da v4 definido com 5 fases (Phase 12-16), 100% de cobertura.
-- Phase 12 (Vocabulario Core e Motor Planning) concluida: 2/12 requisitos entregues (COMM-01, COMM-02).
-- Phase 13 (Frases Prontas e Historico) concluida: 5/12 requisitos entregues (+COMM-03, COMM-04, COMM-05).
-- Phase 14 (Simbolos Pessoais e Categorias Customizadas) concluida: 8/12 requisitos entregues (+CONT-01, CONT-02, ORG-03).
-- Phase 15 (Voz Gravada do Cuidador) concluida: 10/12 requisitos entregues (+CONT-03, CONT-04).
-- Phase 16 (Rotina Visual e Polimento) concluida: 12/12 requisitos entregues (+ORG-01, ORG-02). Milestone v4 completa.
+- Milestone v4 - Comunicacao Pessoal e Rotina Visual concluida 2026-04-21 (12/12 requisitos; aguardando arquivamento).
+- Milestone ativa: v5 - Refatoracao de Design no Estilo iOS.
+- REQUIREMENTS.md da v5 definida (16 requisitos, 6 categorias: DS, MAIN, SHEET, CFG, FDB, REG).
+- ROADMAP.md da v5 definido com 5 fases (Phase 17-21), 100% de cobertura.
+- Fase atual: Phase 17 (aguardando `/gsd-plan-phase 17`).
 
 ## Accumulated Context
-- App Expo SDK 54 estabilizado com cache de imagem local e base de testes automatizados.
-- Tela inicial (splash/intro) entregue na v3 e arquivada.
-- v4 foco: vocabulario core/motor planning, frases prontas e historico, camera/galeria/voz do cuidador, rotinas visuais, categorias customizaveis.
-- Numeracao de fases continua a partir da Phase 12 (v3 terminou em Phase 11).
+- App Expo SDK 54 com vocabulario core, frases prontas + historico, simbolos pessoais (camera/galeria), voz gravada do cuidador, rotina visual e categorias customizadas (milestones v1-v4).
+- Tela inicial (splash/intro) entregue na v3.
+- v5 foco: refatoracao visual para iOS (iPhone design language); sem mudanca de funcionalidade.
+- Numeracao de fases continua a partir da Phase 17 (v4 terminou em Phase 16).
 - Restricao dura: simplicidade acima de riqueza de features (publico autista).
-- Sequenciamento das fases:
-  - Phase 12 (vocabulario core) e fundamento para Phase 13 (frases prontas se apoiam no vocabulario estavel).
-  - Phase 14 (simbolos pessoais + categorias) partilha infra de picker camera/galeria; ORG-03 agrupado aqui por afinidade.
-  - Phase 15 (voz gravada) depende do editor de simbolo da Phase 14.
-  - Phase 16 (rotina visual + polimento) consome simbolos pessoais, categorias e voz gravada, e fecha a milestone com regressao.
+- Novas deps nativas previstas em Phase 17: expo-haptics, expo-blur.
+- Sequenciamento das fases da v5:
+  - Phase 17 (design system + tokens + primitivos) e fundamento para todas as demais.
+  - Phase 18 (tela principal) consome os tokens.
+  - Phase 19 (sheets) consome tokens e primitivo `IOSBottomSheet` da Phase 17.
+  - Phase 20 (config Ajustes + haptics) consome todos os anteriores; pode rodar apos Phase 19.
+  - Phase 21 (regressao e release) fecha a milestone.
 
 ## Proximo Comando Recomendado
-- `/gsd-audit-milestone` seguido de `/gsd-complete-milestone v4`
+- `/gsd-discuss-phase 17` (gather context) ou `/gsd-plan-phase 17` (planejar direto)
 
 ## Ultima Atualizacao
-- Phase 16 (Rotina Visual e Polimento) concluida em 2026-04-21. Requisitos ORG-01 e ORG-02 entregues. Milestone v4 completa com 12/12 requisitos. Proximo passo: auditar e arquivar a milestone.
+- Milestone v5 (Refatoracao de Design no Estilo iOS) iniciada em 2026-04-21. REQUIREMENTS.md e ROADMAP.md definidos com 5 fases (17-21) e 16 requisitos. Proximo passo: `/gsd-plan-phase 17` (Design System iOS - Tokens e Primitivos).
