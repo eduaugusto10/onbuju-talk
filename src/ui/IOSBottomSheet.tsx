@@ -28,6 +28,7 @@ export interface IOSBottomSheetProps {
   rightAction?: IOSBottomSheetAction;
   children: ReactNode;
   maxHeightPct?: number;
+  closeOnBackdropPress?: boolean;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
@@ -40,6 +41,7 @@ function IOSBottomSheetBase({
   rightAction,
   children,
   maxHeightPct = 0.85,
+  closeOnBackdropPress = true,
   style,
   testID
 }: IOSBottomSheetProps) {
@@ -55,7 +57,7 @@ function IOSBottomSheetBase({
       <BlurView intensity={70} tint="default" style={styles.backdrop} />
       <Pressable
         testID={testID ? `${testID}-backdrop` : undefined}
-        onPress={onRequestClose}
+        onPress={closeOnBackdropPress ? onRequestClose : undefined}
         style={styles.backdropTap}
       />
       <View pointerEvents="box-none" style={styles.container}>

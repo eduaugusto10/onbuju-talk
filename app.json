@@ -38,9 +38,7 @@
         {
           "microphonePermission": "O Fala usa o microfone para gravar a voz do cuidador e associa-la a simbolos."
         }
-      ],
-      "expo-haptics",
-      "expo-blur"
+      ]
     ]
   }
 }

@@ -36,10 +36,13 @@ import {
   CustomSymbol,
   HistoryPhrase,
   PersonalSymbol,
+  RoutineDay,
   RoutineProgress,
   RoutineStep,
   SavedPhrase,
-  SymbolItem
+  SymbolItem,
+  VisualScene,
+  VisualSceneHotspot
 } from './types';
 import { CHILD_GRID_COLUMNS, colors, shadows, spacing, typography } from './theme';
 import { IOSBottomSheet } from './ui';
@@ -60,7 +63,7 @@ import { deletePersonalAudioFile, savePersonalAudioFile } from './services/perso
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
 type ContrastMode = 'padrao' | 'alto';
-type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina';
+type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina' | 'cenas';
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
@@ -86,8 +89,29 @@ const STORAGE_KEYS = {
   personalSymbols: 'arasaac_personal_symbols',
   customCategories: 'arasaac_custom_categories',
   routineSteps: 'arasaac_routine_steps',
-  routineProgress: 'arasaac_routine_progress'
+  routineProgress: 'arasaac_routine_progress',
+  visualScenes: 'arasaac_visual_scenes'
 };
+
+const VISUAL_SCENES_MAX = 20;
+const HOTSPOTS_PER_SCENE_MAX = 12;
+const HOTSPOT_DEFAULT_RADIUS = 0.08;
+
+const ROUTINE_DAYS: RoutineDay[] = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+const ROUTINE_DAY_LABELS: Record<RoutineDay, string> = {
+  seg: 'Seg',
+  ter: 'Ter',
+  qua: 'Qua',
+  qui: 'Qui',
+  sex: 'Sex',
+  sab: 'Sáb',
+  dom: 'Dom'
+};
+function getTodayRoutineDay(): RoutineDay {
+  // Date.getDay(): 0 = domingo, 1 = segunda, ..., 6 = sábado
+  const map: RoutineDay[] = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+  return map[new Date().getDay()];
+}
 
 const normalizeCoreWord = (word: string) => word.trim().toLowerCase();
 
@@ -185,9 +209,50 @@ function sanitizeRoutineSteps(raw: unknown): RoutineStep[] {
     if (!label) continue;
     const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `step-${Date.now()}-${result.length}`;
     const imageUri = typeof candidate.imageUri === 'string' && candidate.imageUri ? candidate.imageUri : null;
+    const audioUri = typeof candidate.audioUri === 'string' && candidate.audioUri ? candidate.audioUri : null;
     const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
-    result.push({ id, label, imageUri, createdAt });
+    let activeDays: RoutineDay[] | undefined;
+    if (Array.isArray(candidate.activeDays)) {
+      const filtered = candidate.activeDays.filter((d): d is RoutineDay => typeof d === 'string' && (ROUTINE_DAYS as string[]).includes(d));
+      activeDays = filtered.length > 0 ? filtered : undefined;
+    }
+    result.push({ id, label, imageUri, audioUri, activeDays, createdAt });
     if (result.length >= ROUTINE_STEPS_MAX) break;
+  }
+  return result;
+}
+
+function sanitizeVisualScenes(raw: unknown): VisualScene[] {
+  if (!Array.isArray(raw)) return [];
+  const result: VisualScene[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const candidate = entry as Partial<VisualScene>;
+    const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+    const photoUri = typeof candidate.photoUri === 'string' && candidate.photoUri ? candidate.photoUri : '';
+    if (!name || !photoUri) continue;
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `scene-${Date.now()}-${result.length}`;
+    const createdAt = typeof candidate.createdAt === 'string' && candidate.createdAt ? candidate.createdAt : new Date().toISOString();
+    const hotspots: VisualSceneHotspot[] = [];
+    if (Array.isArray(candidate.hotspots)) {
+      for (const h of candidate.hotspots) {
+        if (!h || typeof h !== 'object') continue;
+        const hc = h as Partial<VisualSceneHotspot>;
+        const hLabel = typeof hc.label === 'string' ? hc.label.trim() : '';
+        if (!hLabel) continue;
+        const x = typeof hc.x === 'number' && isFinite(hc.x) ? Math.min(1, Math.max(0, hc.x)) : 0.5;
+        const y = typeof hc.y === 'number' && isFinite(hc.y) ? Math.min(1, Math.max(0, hc.y)) : 0.5;
+        const radius = typeof hc.radius === 'number' && isFinite(hc.radius) && hc.radius > 0
+          ? Math.min(0.3, Math.max(0.03, hc.radius))
+          : HOTSPOT_DEFAULT_RADIUS;
+        const audioUri = typeof hc.audioUri === 'string' && hc.audioUri ? hc.audioUri : null;
+        const hId = typeof hc.id === 'string' && hc.id ? hc.id : `hs-${Date.now()}-${hotspots.length}`;
+        hotspots.push({ id: hId, label: hLabel, audioUri, x, y, radius });
+        if (hotspots.length >= HOTSPOTS_PER_SCENE_MAX) break;
+      }
+    }
+    result.push({ id, name, photoUri, hotspots, createdAt });
+    if (result.length >= VISUAL_SCENES_MAX) break;
   }
   return result;
 }
@@ -232,7 +297,8 @@ const CATEGORIES = {
   custom: 'Customizados',
   savedPhrases: 'Frases',
   history: 'Historico',
-  routine: 'Rotina'
+  routine: 'Rotina',
+  scenes: 'Cenas'
 };
 
 const getTodayIso = () => {
@@ -292,6 +358,7 @@ function normalizeGridColumns(value: string | null): GridColumns {
 export default function App() {
   const hasPrimedExtendedCache = useRef(false);
   const searchInputRef = useRef<TextInput>(null);
+  const configScrollRef = useRef<ScrollView>(null);
   const [selectedSymbols, setSelectedSymbols] = useState<SymbolItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>(CATEGORIES.favorites);
   const [categories, setCategories] = useState<string[]>([]);
@@ -333,7 +400,12 @@ export default function App() {
   const [audioSymbolId, setAudioSymbolId] = useState<string | null>(null);
   const [routineSteps, setRoutineSteps] = useState<RoutineStep[]>([]);
   const [routineProgress, setRoutineProgress] = useState<RoutineProgress>(() => ({ date: getTodayIso(), completedStepIds: [] }));
-  const [newRoutineLabel, setNewRoutineLabel] = useState('');
+  const [routineDraft, setRoutineDraft] = useState<{ imageUri: string; audioUri: string | null; label: string; activeDays: RoutineDay[] } | null>(null);
+  const [isRoutineSymbolPickerOpen, setIsRoutineSymbolPickerOpen] = useState(false);
+  const [visualScenes, setVisualScenes] = useState<VisualScene[]>([]);
+  const [editingScene, setEditingScene] = useState<VisualScene | null>(null);
+  const [viewerScene, setViewerScene] = useState<VisualScene | null>(null);
+  const [hotspotRecordingId, setHotspotRecordingId] = useState<string | null>(null);
   const audioPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
@@ -486,7 +558,8 @@ export default function App() {
           savedPersonalSymbols,
           savedCustomCategories,
           savedRoutineSteps,
-          savedRoutineProgress
+          savedRoutineProgress,
+          savedVisualScenes
         ] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.favorites),
           AsyncStorage.getItem(STORAGE_KEYS.customSymbols),
@@ -504,7 +577,8 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.personalSymbols),
           AsyncStorage.getItem(STORAGE_KEYS.customCategories),
           AsyncStorage.getItem(STORAGE_KEYS.routineSteps),
-          AsyncStorage.getItem(STORAGE_KEYS.routineProgress)
+          AsyncStorage.getItem(STORAGE_KEYS.routineProgress),
+          AsyncStorage.getItem(STORAGE_KEYS.visualScenes)
         ]);
 
         if (savedFavorites) {
@@ -604,6 +678,14 @@ export default function App() {
           setRoutineProgress({ date: getTodayIso(), completedStepIds: [] });
         }
 
+        if (savedVisualScenes) {
+          try {
+            setVisualScenes(sanitizeVisualScenes(JSON.parse(savedVisualScenes)));
+          } catch {
+            /* keep empty */
+          }
+        }
+
         const introShouldBeSkipped = savedIntroSkipEnabled === '1';
         setSkipIntroNextOpen(introShouldBeSkipped);
         setShowIntroScreen(!introShouldBeSkipped);
@@ -689,6 +771,10 @@ export default function App() {
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.routineProgress, JSON.stringify(routineProgress));
   }, [routineProgress]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.visualScenes, JSON.stringify(visualScenes));
+  }, [visualScenes]);
 
   const toggleFavorite = useCallback((symbol: SymbolItem) => {
     if (!isAdmin) {
@@ -898,7 +984,11 @@ export default function App() {
         setPendingSymbolImage(storedUri);
         setPendingSymbolLabel('');
         setPendingSymbolCategoryId(null);
-        setIsSymbolDraftOpen(true);
+        setConfigSection('simbolos');
+        setTimeout(() => {
+          configScrollRef.current?.scrollTo({ y: 0, animated: true });
+        }, 40);
+        showToast('Foto pronta. Preencha o nome e toque em Salvar simbolo.', 'success');
       } catch (error) {
         if (__DEV__) {
           console.error('Erro ao salvar imagem pessoal:', error);
@@ -1215,10 +1305,108 @@ export default function App() {
     [personalSymbols, showToast]
   );
 
-  const addRoutineStep = useCallback(() => {
-    const label = newRoutineLabel.trim();
+  const openRoutineDraftFromPersonalSymbol = useCallback((symbol: PersonalSymbol) => {
+    if (routineSteps.length >= ROUTINE_STEPS_MAX) {
+      showToast(`Maximo de ${ROUTINE_STEPS_MAX} passos na rotina.`, 'error');
+      return;
+    }
+    setRoutineDraft({ imageUri: symbol.imageUri, audioUri: symbol.audioUri ?? null, label: symbol.label, activeDays: [...ROUTINE_DAYS] });
+    setIsRoutineSymbolPickerOpen(false);
+  }, [routineSteps.length, showToast]);
+
+  const openRoutineDraftFromSymbol = useCallback((symbol: SymbolItem) => {
+    if (routineSteps.length >= ROUTINE_STEPS_MAX) {
+      showToast(`Maximo de ${ROUTINE_STEPS_MAX} passos na rotina.`, 'error');
+      return;
+    }
+    setRoutineDraft({ imageUri: symbol.imageUrl, audioUri: null, label: symbol.label, activeDays: [...ROUTINE_DAYS] });
+    setIsRoutineSymbolPickerOpen(false);
+  }, [routineSteps.length, showToast]);
+
+  const handleRoutinePickResult = useCallback(
+    async (result: ImagePicker.ImagePickerResult) => {
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      if (routineSteps.length >= ROUTINE_STEPS_MAX) {
+        showToast(`Maximo de ${ROUTINE_STEPS_MAX} passos na rotina.`, 'error');
+        return;
+      }
+      try {
+        const storedUri = await savePersonalSymbolImage(asset.uri);
+        setRoutineDraft({ imageUri: storedUri, audioUri: null, label: '', activeDays: [...ROUTINE_DAYS] });
+        setIsRoutineSymbolPickerOpen(false);
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Erro ao salvar imagem da rotina:', error);
+        }
+        showToast('Nao foi possivel preparar a imagem.', 'error');
+      }
+    },
+    [routineSteps.length, showToast]
+  );
+
+  const pickRoutineImageFromCamera = useCallback(async () => {
+    if (pickerBusy) return;
+    setPickerBusy(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso a camera para continuar.', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images
+      });
+      await handleRoutinePickResult(result);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Erro ao abrir camera (rotina):', error);
+      }
+      showToast('Nao foi possivel abrir a camera.', 'error');
+    } finally {
+      setPickerBusy(false);
+    }
+  }, [handleRoutinePickResult, pickerBusy, showToast]);
+
+  const pickRoutineImageFromGallery = useCallback(async () => {
+    if (pickerBusy) return;
+    setPickerBusy(true);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso as fotos para continuar.', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images
+      });
+      await handleRoutinePickResult(result);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Erro ao abrir galeria (rotina):', error);
+      }
+      showToast('Nao foi possivel abrir a galeria.', 'error');
+    } finally {
+      setPickerBusy(false);
+    }
+  }, [handleRoutinePickResult, pickerBusy, showToast]);
+
+  const cancelRoutineDraft = useCallback(() => {
+    setRoutineDraft(null);
+  }, []);
+
+  const saveRoutineDraft = useCallback(() => {
+    if (!routineDraft) return;
+    const label = routineDraft.label.trim();
     if (!label) {
-      showToast('Digite o passo da rotina.', 'error');
+      showToast('Dê um nome ao passo (ex: escovar dentes).', 'error');
       return;
     }
     if (routineSteps.length >= ROUTINE_STEPS_MAX) {
@@ -1226,22 +1414,300 @@ export default function App() {
       return;
     }
     if (routineSteps.some(item => item.label.toLowerCase() === label.toLowerCase())) {
-      showToast('Esse passo ja esta na rotina.', 'error');
+      showToast('Já existe um passo com esse nome.', 'error');
       return;
     }
-    const personal = personalSymbols.find(ps => ps.label.toLowerCase() === label.toLowerCase());
-    const favorite = favorites.find(fav => fav.label.toLowerCase() === label.toLowerCase());
-    const known = symbols.find(sym => sym.label.toLowerCase() === label.toLowerCase());
-    const imageUri = personal?.imageUri ?? favorite?.imageUrl ?? known?.imageUrl ?? null;
+    if (routineDraft.activeDays.length === 0) {
+      showToast('Selecione ao menos um dia da semana.', 'error');
+      return;
+    }
     const entry: RoutineStep = {
       id: `step-${Date.now()}`,
       label,
-      imageUri,
+      imageUri: routineDraft.imageUri,
+      audioUri: routineDraft.audioUri,
+      activeDays: [...routineDraft.activeDays],
       createdAt: new Date().toISOString()
     };
     setRoutineSteps(prev => [...prev, entry]);
-    setNewRoutineLabel('');
-  }, [favorites, newRoutineLabel, personalSymbols, routineSteps, showToast, symbols]);
+    setRoutineDraft(null);
+  }, [routineDraft, routineSteps, showToast]);
+
+  const toggleDraftDay = useCallback((day: RoutineDay) => {
+    setRoutineDraft(prev => {
+      if (!prev) return prev;
+      const has = prev.activeDays.includes(day);
+      const nextDays = has ? prev.activeDays.filter(d => d !== day) : [...prev.activeDays, day];
+      return { ...prev, activeDays: nextDays };
+    });
+  }, []);
+
+  const toggleStepDay = useCallback((stepId: string, day: RoutineDay) => {
+    setRoutineSteps(prev =>
+      prev.map(item => {
+        if (item.id !== stepId) return item;
+        const current = item.activeDays && item.activeDays.length > 0 ? item.activeDays : [...ROUTINE_DAYS];
+        const has = current.includes(day);
+        const nextDays = has ? current.filter(d => d !== day) : [...current, day];
+        // Salvaguarda: nunca deixar vazio (criança nunca veria o passo)
+        if (nextDays.length === 0) return item;
+        return { ...item, activeDays: nextDays };
+      })
+    );
+  }, []);
+
+  const speakRoutineStep = useCallback(
+    (step: RoutineStep) => {
+      if (step.audioUri) {
+        playAudioFromUri(step.audioUri);
+        return;
+      }
+      const text = step.label.trim();
+      if (!text) return;
+      Speech.stop();
+      Speech.speak(text, {
+        language: 'pt-BR',
+        rate,
+        pitch,
+        onError: () => {
+          /* silent — narração da rotina não deve mostrar toast a cada falha */
+        }
+      });
+    },
+    [pitch, playAudioFromUri, rate]
+  );
+
+  const speakHotspot = useCallback(
+    (hotspot: VisualSceneHotspot) => {
+      triggerHaptic('light');
+      if (hotspot.audioUri) {
+        playAudioFromUri(hotspot.audioUri);
+        return;
+      }
+      const text = hotspot.label.trim();
+      if (!text) return;
+      Speech.stop();
+      Speech.speak(text, { language: 'pt-BR', rate, pitch });
+    },
+    [pitch, playAudioFromUri, rate]
+  );
+
+  const startSceneEditorWithPhoto = useCallback((photoUri: string) => {
+    setEditingScene({
+      id: `scene-${Date.now()}`,
+      name: '',
+      photoUri,
+      hotspots: [],
+      createdAt: new Date().toISOString()
+    });
+  }, []);
+
+  const pickScenePhotoFromCamera = useCallback(async () => {
+    if (pickerBusy) return;
+    if (visualScenes.length >= VISUAL_SCENES_MAX) {
+      showToast(`Maximo de ${VISUAL_SCENES_MAX} cenas.`, 'error');
+      return;
+    }
+    setPickerBusy(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso a camera para continuar.', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 0.85,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      const storedUri = await savePersonalSymbolImage(asset.uri);
+      setIsConfigModalOpen(false);
+      setTimeout(() => startSceneEditorWithPhoto(storedUri), 450);
+    } catch (error) {
+      if (__DEV__) console.error('Erro ao abrir camera (cena):', error);
+      showToast('Nao foi possivel abrir a camera.', 'error');
+    } finally {
+      setPickerBusy(false);
+    }
+  }, [pickerBusy, showToast, startSceneEditorWithPhoto, visualScenes.length]);
+
+  const pickScenePhotoFromGallery = useCallback(async () => {
+    if (pickerBusy) return;
+    if (visualScenes.length >= VISUAL_SCENES_MAX) {
+      showToast(`Maximo de ${VISUAL_SCENES_MAX} cenas.`, 'error');
+      return;
+    }
+    setPickerBusy(true);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso as fotos para continuar.', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: false,
+        quality: 0.85,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      const storedUri = await savePersonalSymbolImage(asset.uri);
+      setIsConfigModalOpen(false);
+      setTimeout(() => startSceneEditorWithPhoto(storedUri), 450);
+    } catch (error) {
+      if (__DEV__) console.error('Erro ao abrir galeria (cena):', error);
+      showToast('Nao foi possivel abrir a galeria.', 'error');
+    } finally {
+      setPickerBusy(false);
+    }
+  }, [pickerBusy, showToast, startSceneEditorWithPhoto, visualScenes.length]);
+
+  const editExistingScene = useCallback((scene: VisualScene) => {
+    const sceneCopy: VisualScene = { ...scene, hotspots: scene.hotspots.map(h => ({ ...h })) };
+    setIsConfigModalOpen(false);
+    setTimeout(() => setEditingScene(sceneCopy), 450);
+  }, []);
+
+  const cancelSceneEditor = useCallback(() => {
+    setEditingScene(null);
+    setHotspotRecordingId(null);
+  }, []);
+
+  const addHotspotToDraft = useCallback((x: number, y: number) => {
+    setEditingScene(prev => {
+      if (!prev) return prev;
+      if (prev.hotspots.length >= HOTSPOTS_PER_SCENE_MAX) {
+        showToast(`Maximo de ${HOTSPOTS_PER_SCENE_MAX} marcadores por cena.`, 'error');
+        return prev;
+      }
+      const newHotspot: VisualSceneHotspot = {
+        id: `hs-${Date.now()}`,
+        label: '',
+        audioUri: null,
+        x: Math.min(1, Math.max(0, x)),
+        y: Math.min(1, Math.max(0, y)),
+        radius: HOTSPOT_DEFAULT_RADIUS
+      };
+      return { ...prev, hotspots: [...prev.hotspots, newHotspot] };
+    });
+    triggerHaptic('light');
+  }, [showToast]);
+
+  const updateHotspotLabel = useCallback((id: string, label: string) => {
+    setEditingScene(prev =>
+      prev ? { ...prev, hotspots: prev.hotspots.map(h => (h.id === id ? { ...h, label } : h)) } : prev
+    );
+  }, []);
+
+  const removeHotspot = useCallback(async (id: string) => {
+    let audioToDelete: string | null = null;
+    setEditingScene(prev => {
+      if (!prev) return prev;
+      const target = prev.hotspots.find(h => h.id === id);
+      audioToDelete = target?.audioUri ?? null;
+      return { ...prev, hotspots: prev.hotspots.filter(h => h.id !== id) };
+    });
+    if (audioToDelete) {
+      await deletePersonalAudioFile(audioToDelete);
+    }
+  }, []);
+
+  const startHotspotRecording = useCallback(async (id: string) => {
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        showToast('Permita o acesso ao microfone.', 'error');
+        return;
+      }
+      teardownAudioPlayer();
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+      setHotspotRecordingId(id);
+    } catch (error) {
+      if (__DEV__) console.error('Erro ao iniciar gravacao de hotspot:', error);
+      showToast('Nao foi possivel iniciar a gravacao.', 'error');
+    }
+  }, [audioRecorder, showToast, teardownAudioPlayer]);
+
+  const stopHotspotRecording = useCallback(async () => {
+    if (!hotspotRecordingId) return;
+    try {
+      await audioRecorder.stop();
+      const tempUri = audioRecorder.uri;
+      if (!tempUri) {
+        setHotspotRecordingId(null);
+        return;
+      }
+      const storedUri = await savePersonalAudioFile(tempUri);
+      const recordedId = hotspotRecordingId;
+      let previousAudio: string | null = null;
+      setEditingScene(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          hotspots: prev.hotspots.map(h => {
+            if (h.id !== recordedId) return h;
+            previousAudio = h.audioUri ?? null;
+            return { ...h, audioUri: storedUri };
+          })
+        };
+      });
+      if (previousAudio) await deletePersonalAudioFile(previousAudio);
+      setHotspotRecordingId(null);
+      triggerHaptic('success');
+    } catch (error) {
+      if (__DEV__) console.error('Erro ao parar gravacao de hotspot:', error);
+      showToast('Nao foi possivel salvar a gravacao.', 'error');
+      setHotspotRecordingId(null);
+    }
+  }, [audioRecorder, hotspotRecordingId, showToast]);
+
+  const saveSceneEditor = useCallback(async () => {
+    if (!editingScene) return;
+    const name = editingScene.name.trim();
+    if (!name) {
+      showToast('Dê um nome para a cena (ex: cozinha).', 'error');
+      return;
+    }
+    const cleanedHotspots: VisualSceneHotspot[] = [];
+    for (const h of editingScene.hotspots) {
+      const label = h.label.trim();
+      if (!label) {
+        showToast('Cada marcador precisa de um nome.', 'error');
+        return;
+      }
+      cleanedHotspots.push({ ...h, label });
+    }
+    const sceneToSave: VisualScene = { ...editingScene, name, hotspots: cleanedHotspots };
+    setVisualScenes(prev => {
+      const idx = prev.findIndex(s => s.id === sceneToSave.id);
+      if (idx === -1) return [...prev, sceneToSave];
+      const next = [...prev];
+      next[idx] = sceneToSave;
+      return next;
+    });
+    setEditingScene(null);
+    setHotspotRecordingId(null);
+    showToast('Cena salva.', 'success');
+  }, [editingScene, showToast]);
+
+  const deleteVisualScene = useCallback(async (sceneId: string) => {
+    let target: VisualScene | undefined;
+    setVisualScenes(prev => {
+      target = prev.find(s => s.id === sceneId);
+      return prev.filter(s => s.id !== sceneId);
+    });
+    if (target) {
+      await deletePersonalSymbolImage(target.photoUri);
+      for (const h of target.hotspots) {
+        if (h.audioUri) await deletePersonalAudioFile(h.audioUri);
+      }
+    }
+  }, []);
 
   const removeRoutineStep = useCallback((id: string) => {
     setRoutineSteps(prev => prev.filter(item => item.id !== id));
@@ -1263,16 +1729,22 @@ export default function App() {
 
   const toggleRoutineStep = useCallback((id: string) => {
     triggerHaptic('success');
+    let didCheck = false;
     setRoutineProgress(prev => {
       const today = getTodayIso();
       const base = prev.date === today ? prev : { date: today, completedStepIds: [] };
       const already = base.completedStepIds.includes(id);
+      didCheck = !already;
       const nextIds = already
         ? base.completedStepIds.filter(sid => sid !== id)
         : [...base.completedStepIds, id];
       return { date: today, completedStepIds: nextIds };
     });
-  }, []);
+    if (didCheck) {
+      const step = routineSteps.find(item => item.id === id);
+      if (step) speakRoutineStep(step);
+    }
+  }, [routineSteps, speakRoutineStep]);
 
   const resetTodayRoutineProgress = useCallback(() => {
     setRoutineProgress({ date: getTodayIso(), completedStepIds: [] });
@@ -1386,6 +1858,7 @@ export default function App() {
         category === CATEGORIES.savedPhrases ||
         category === CATEGORIES.history ||
         category === CATEGORIES.routine ||
+        category === CATEGORIES.scenes ||
         category.startsWith('cat-')
       ) {
         return;
@@ -1617,6 +2090,12 @@ export default function App() {
               highContrast={isHighContrast}
               onPress={() => void handleCategoryClick(CATEGORIES.routine)}
             />
+            <CategoryButton
+              label={CATEGORIES.scenes}
+              active={activeCategory === CATEGORIES.scenes}
+              highContrast={isHighContrast}
+              onPress={() => void handleCategoryClick(CATEGORIES.scenes)}
+            />
             {customSymbols.length > 0 && (
               <CategoryButton
                 label={CATEGORIES.custom}
@@ -1751,15 +2230,17 @@ export default function App() {
                 </Text>
               </View>
               <FlatList
-                data={routineSteps}
+                data={routineSteps.filter(s => !s.activeDays || s.activeDays.length === 0 || s.activeDays.includes(getTodayRoutineDay()))}
                 keyExtractor={item => item.id}
                 key="routine-steps"
                 contentContainerStyle={styles.routineList}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <RoutineStepCard
                     step={item}
+                    stepNumber={index + 1}
                     completed={routineProgress.completedStepIds.includes(item.id)}
                     onToggle={() => toggleRoutineStep(item.id)}
+                    onPreview={() => speakRoutineStep(item)}
                     highContrast={isHighContrast}
                     uiScaleFactor={uiScaleFactor}
                   />
@@ -1773,6 +2254,39 @@ export default function App() {
                 }
               />
             </View>
+          ) : activeCategory === CATEGORIES.scenes ? (
+            <FlatList
+              data={visualScenes}
+              keyExtractor={item => item.id}
+              key={`scenes-${effectiveGridColumns}`}
+              numColumns={2}
+              accessibilityLabel="Grade de cenas visuais"
+              contentContainerStyle={styles.grid}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    triggerHaptic('light');
+                    setViewerScene(item);
+                  }}
+                  style={styles.sceneTile}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Abrir cena ${item.name}`}
+                >
+                  <Image source={{ uri: item.photoUri }} style={styles.sceneTileImage} resizeMode="cover" />
+                  <View style={styles.sceneTileOverlay}>
+                    <Text style={styles.sceneTileLabel} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.sceneTileMeta}>{item.hotspots.length} {item.hotspots.length === 1 ? 'item' : 'itens'}</Text>
+                  </View>
+                </Pressable>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>
+                    Nenhuma cena ainda. Peça ao cuidador para tirar uma foto e marcar os itens.
+                  </Text>
+                </View>
+              }
+            />
           ) : customCategories.some(c => c.id === activeCategory) ? (
             <FlatList
               data={personalSymbols.filter(ps => ps.categoryId === activeCategory)}
@@ -1836,7 +2350,7 @@ export default function App() {
           )}
         </View>
 
-        {coreVocabulary.length > 0 && (
+        {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && coreVocabulary.length > 0 && (
           <View
             style={[styles.coreVocabBar, isHighContrast && styles.coreVocabBarHighContrast]}
             accessibilityLabel="Vocabulario essencial"
@@ -1869,6 +2383,7 @@ export default function App() {
           </View>
         )}
 
+        {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && (
         <View style={[styles.composerCard, isHighContrast && styles.cardHighContrast]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedList}>
             {selectedSymbols.length === 0 && visualFeedbackEnabled ? (
@@ -1936,6 +2451,7 @@ export default function App() {
             </Pressable>
           </View>
         </View>
+        )}
       </View>
 
       <IOSBottomSheet
@@ -1983,9 +2499,10 @@ export default function App() {
       </IOSBottomSheet>
 
       <IOSBottomSheet
-        visible={isSymbolDraftOpen}
+        visible={false}
         onRequestClose={cancelPendingSymbol}
         title="Novo simbolo"
+        closeOnBackdropPress={false}
         leftAction={{ label: 'Cancelar', onPress: cancelPendingSymbol }}
         rightAction={{ label: 'Salvar', onPress: () => void savePendingSymbol(), bold: true }}
       >
@@ -2071,7 +2588,8 @@ export default function App() {
               </Text>
             </View>
 
-            <ScrollView
+                    <ScrollView
+                      ref={configScrollRef}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.configModalContent}
@@ -2130,6 +2648,12 @@ export default function App() {
                 icon="📅"
                 active={configSection === 'rotina'}
                 onPress={() => setConfigSection('rotina')}
+              />
+              <ConfigNavItem
+                label="Cenas"
+                icon="🏠"
+                active={configSection === 'cenas'}
+                onPress={() => setConfigSection('cenas')}
               />
             </View>
 
@@ -2388,6 +2912,72 @@ export default function App() {
                       Maximo de {PERSONAL_SYMBOLS_MAX} simbolos pessoais.
                     </Text>
 
+                    {pendingSymbolImage && (
+                      <View style={[styles.symbolDraftCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                        <Image
+                          source={{ uri: pendingSymbolImage }}
+                          style={styles.symbolDraftPreview}
+                          resizeMode="cover"
+                          accessibilityLabel="Previsualizacao da imagem do simbolo"
+                        />
+                        <TextInput
+                          value={pendingSymbolLabel}
+                          onChangeText={setPendingSymbolLabel}
+                          placeholder="Rotulo (ex: vovo)"
+                          placeholderTextColor={colors.tertiaryLabel}
+                          style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
+                          maxLength={40}
+                        />
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>Categoria (opcional):</Text>
+                        <View style={styles.symbolDraftCategoryRow}>
+                          <Pressable
+                            onPress={() => setPendingSymbolCategoryId(null)}
+                            style={[styles.symbolDraftCategoryChip, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipActive]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Sem categoria"
+                          >
+                            <Text style={[styles.symbolDraftCategoryChipText, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipTextActive]}>
+                              Sem categoria
+                            </Text>
+                          </Pressable>
+                          {customCategories.map(cat => {
+                            const selected = pendingSymbolCategoryId === cat.id;
+                            return (
+                              <Pressable
+                                key={`draft-inline-cat-${cat.id}`}
+                                onPress={() => setPendingSymbolCategoryId(cat.id)}
+                                style={[styles.symbolDraftCategoryChip, selected && styles.symbolDraftCategoryChipActive]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Categoria ${cat.name}`}
+                              >
+                                <Text style={[styles.symbolDraftCategoryChipText, selected && styles.symbolDraftCategoryChipTextActive]}>
+                                  {cat.name}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                        <View style={styles.personalSymbolAddRow}>
+                          <Pressable
+                            onPress={() => void savePendingSymbol()}
+                            style={[styles.modalButtonPrimary, styles.personalSymbolAddButton]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Salvar novo simbolo"
+                          >
+                            <Text style={styles.modalButtonPrimaryText}>Salvar símbolo</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={cancelPendingSymbol}
+                            style={[styles.modalButtonLight, styles.personalSymbolAddButton]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Cancelar novo simbolo"
+                          >
+                            <Text>Cancelar</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
+
                     <View style={styles.personalSymbolList}>
                       {personalSymbols.length === 0 && (
                         <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -2571,7 +3161,7 @@ export default function App() {
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Rotina do dia</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Monte a sequencia de passos do dia. Use rotulos curtos; se bater com um simbolo existente, a imagem aparece automaticamente.
+                  Cada passo é uma imagem (símbolo, foto ou da galeria). A criança vê a imagem grande e ouve o passo ao tocar.
                 </Text>
                 {!isAdmin ? (
                   <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -2585,68 +3175,233 @@ export default function App() {
                           Nenhum passo na rotina ainda.
                         </Text>
                       )}
-                      {routineSteps.map((step, index) => (
-                        <View
-                          key={`routine-edit-${step.id}`}
-                          style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}
-                        >
-                          <Text
-                            style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]}
-                            numberOfLines={1}
+                      {routineSteps.map((step, index) => {
+                        const stepDays = step.activeDays && step.activeDays.length > 0 ? step.activeDays : ROUTINE_DAYS;
+                        return (
+                          <View
+                            key={`routine-edit-${step.id}`}
+                            style={styles.routineStepEditCard}
                           >
-                            {index + 1}. {step.label}
-                          </Text>
-                          <Pressable
-                            onPress={() => moveRoutineStep(step.id, -1)}
-                            disabled={index === 0}
-                            style={[styles.phraseEditorButton, index === 0 && styles.coreVocabEditorButtonDisabled]}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Mover ${step.label} para cima`}
-                          >
-                            <Text style={styles.phraseEditorButtonText}>↑</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={() => moveRoutineStep(step.id, 1)}
-                            disabled={index === routineSteps.length - 1}
-                            style={[
-                              styles.phraseEditorButton,
-                              index === routineSteps.length - 1 && styles.coreVocabEditorButtonDisabled
-                            ]}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Mover ${step.label} para baixo`}
-                          >
-                            <Text style={styles.phraseEditorButtonText}>↓</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={() => removeRoutineStep(step.id)}
-                            style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Remover passo ${step.label}`}
-                          >
-                            <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
-                          </Pressable>
-                        </View>
-                      ))}
+                            <View style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}>
+                              <Text
+                                style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]}
+                                numberOfLines={1}
+                              >
+                                {index + 1}. {step.label}
+                              </Text>
+                              <Pressable
+                                onPress={() => moveRoutineStep(step.id, -1)}
+                                disabled={index === 0}
+                                style={[styles.phraseEditorButton, index === 0 && styles.coreVocabEditorButtonDisabled]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Mover ${step.label} para cima`}
+                              >
+                                <Text style={styles.phraseEditorButtonText}>↑</Text>
+                              </Pressable>
+                              <Pressable
+                                onPress={() => moveRoutineStep(step.id, 1)}
+                                disabled={index === routineSteps.length - 1}
+                                style={[
+                                  styles.phraseEditorButton,
+                                  index === routineSteps.length - 1 && styles.coreVocabEditorButtonDisabled
+                                ]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Mover ${step.label} para baixo`}
+                              >
+                                <Text style={styles.phraseEditorButtonText}>↓</Text>
+                              </Pressable>
+                              <Pressable
+                                onPress={() => removeRoutineStep(step.id)}
+                                style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Remover passo ${step.label}`}
+                              >
+                                <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                              </Pressable>
+                            </View>
+                            <View style={styles.routineDayChipsRow}>
+                              {ROUTINE_DAYS.map(day => {
+                                const active = stepDays.includes(day);
+                                return (
+                                  <Pressable
+                                    key={`step-${step.id}-day-${day}`}
+                                    onPress={() => toggleStepDay(step.id, day)}
+                                    style={[styles.routineDayChip, active && styles.routineDayChipActive]}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`${active ? 'Desativar' : 'Ativar'} ${ROUTINE_DAY_LABELS[day]} para passo ${step.label}`}
+                                  >
+                                    <Text style={[styles.routineDayChipText, active && styles.routineDayChipTextActive]}>
+                                      {ROUTINE_DAY_LABELS[day]}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
+                          </View>
+                        );
+                      })}
                     </View>
 
-                    <View style={styles.phraseEditorAddRow}>
-                      <TextInput
-                        value={newRoutineLabel}
-                        onChangeText={setNewRoutineLabel}
-                        placeholder="Novo passo (ex: escovar dentes)"
-                        placeholderTextColor="#94a3b8"
-                        style={[styles.modalInput, styles.phraseEditorAddInput, isHighContrast && styles.inputHighContrast]}
-                        onSubmitEditing={addRoutineStep}
-                      />
-                      <Pressable
-                        onPress={addRoutineStep}
-                        style={styles.modalButtonPrimary}
-                        accessibilityRole="button"
-                        accessibilityLabel="Adicionar passo a rotina"
-                      >
-                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
-                      </Pressable>
-                    </View>
+                    {!routineDraft && (
+                      <>
+                        <Text style={[styles.routinePickerSectionTitle, isHighContrast && styles.textHighContrast]}>
+                          Adicionar passo
+                        </Text>
+                        <View style={styles.routinePickerSourceRow}>
+                          <Pressable
+                            onPress={() => {
+                              triggerHaptic('light');
+                              setIsRoutineSymbolPickerOpen(prev => !prev);
+                            }}
+                            style={[
+                              styles.routinePickerSourceButton,
+                              isRoutineSymbolPickerOpen && styles.routinePickerSourceButtonActive
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Escolher um símbolo"
+                          >
+                            <Text style={styles.routinePickerSourceIcon}>★</Text>
+                            <Text style={styles.routinePickerSourceLabel}>Símbolo</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => {
+                              triggerHaptic('light');
+                              setIsRoutineSymbolPickerOpen(false);
+                              void pickRoutineImageFromCamera();
+                            }}
+                            style={styles.routinePickerSourceButton}
+                            disabled={pickerBusy}
+                            accessibilityRole="button"
+                            accessibilityLabel="Tirar foto do passo"
+                          >
+                            <Text style={styles.routinePickerSourceIcon}>📷</Text>
+                            <Text style={styles.routinePickerSourceLabel}>Câmera</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => {
+                              triggerHaptic('light');
+                              setIsRoutineSymbolPickerOpen(false);
+                              void pickRoutineImageFromGallery();
+                            }}
+                            style={styles.routinePickerSourceButton}
+                            disabled={pickerBusy}
+                            accessibilityRole="button"
+                            accessibilityLabel="Escolher imagem da galeria"
+                          >
+                            <Text style={styles.routinePickerSourceIcon}>🖼</Text>
+                            <Text style={styles.routinePickerSourceLabel}>Galeria</Text>
+                          </Pressable>
+                        </View>
+
+                        {isRoutineSymbolPickerOpen && (
+                          <View style={[styles.routineSymbolPicker, isHighContrast && styles.routineSymbolPickerHighContrast]}>
+                            {personalSymbols.length === 0 && favorites.length === 0 ? (
+                              <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                                Nenhum símbolo pessoal ou favorito disponível. Use Câmera ou Galeria, ou crie símbolos pessoais primeiro.
+                              </Text>
+                            ) : (
+                              <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.routineSymbolPickerRow}
+                              >
+                                {personalSymbols.map(ps => (
+                                  <Pressable
+                                    key={`routine-pick-personal-${ps.id}`}
+                                    onPress={() => openRoutineDraftFromPersonalSymbol(ps)}
+                                    style={styles.routineSymbolPickerItem}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Usar símbolo ${ps.label}`}
+                                  >
+                                    <Image source={{ uri: ps.imageUri }} style={styles.routineSymbolPickerThumb} resizeMode="cover" />
+                                    <Text style={styles.routineSymbolPickerCaption} numberOfLines={1}>{ps.label}</Text>
+                                    {ps.audioUri ? <Text style={styles.routineSymbolPickerAudioBadge}>🔊</Text> : null}
+                                  </Pressable>
+                                ))}
+                                {favorites.map(fav => (
+                                  <Pressable
+                                    key={`routine-pick-fav-${fav.id}`}
+                                    onPress={() => openRoutineDraftFromSymbol(fav)}
+                                    style={styles.routineSymbolPickerItem}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Usar símbolo ${fav.label}`}
+                                  >
+                                    <CachedImage uri={fav.imageUrl} style={styles.routineSymbolPickerThumb} resizeMode="contain" />
+                                    <Text style={styles.routineSymbolPickerCaption} numberOfLines={1}>{fav.label}</Text>
+                                  </Pressable>
+                                ))}
+                              </ScrollView>
+                            )}
+                          </View>
+                        )}
+                      </>
+                    )}
+
+                    {routineDraft && (
+                      <View style={[styles.routineDraftCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                        <Image
+                          source={{ uri: routineDraft.imageUri }}
+                          style={styles.routineDraftPreview}
+                          resizeMode="cover"
+                          accessibilityLabel="Previsualização do passo"
+                        />
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Nome do passo (a criança vai ouvir esse texto):
+                        </Text>
+                        <TextInput
+                          value={routineDraft.label}
+                          onChangeText={text => setRoutineDraft(prev => (prev ? { ...prev, label: text } : prev))}
+                          placeholder="Ex: escovar dentes"
+                          placeholderTextColor={colors.tertiaryLabel}
+                          style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
+                          maxLength={40}
+                        />
+                        {routineDraft.audioUri && (
+                          <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                            🔊 Esse passo tem voz gravada do cuidador (será reproduzida no lugar do TTS).
+                          </Text>
+                        )}
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Dias da semana em que esse passo aparece:
+                        </Text>
+                        <View style={styles.routineDayChipsRow}>
+                          {ROUTINE_DAYS.map(day => {
+                            const active = routineDraft.activeDays.includes(day);
+                            return (
+                              <Pressable
+                                key={`draft-day-${day}`}
+                                onPress={() => toggleDraftDay(day)}
+                                style={[styles.routineDayChip, active && styles.routineDayChipActive]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${active ? 'Desativar' : 'Ativar'} ${ROUTINE_DAY_LABELS[day]}`}
+                              >
+                                <Text style={[styles.routineDayChipText, active && styles.routineDayChipTextActive]}>
+                                  {ROUTINE_DAY_LABELS[day]}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                        <View style={styles.routineDraftActionsRow}>
+                          <Pressable
+                            onPress={saveRoutineDraft}
+                            style={[styles.modalButtonPrimary, styles.routineDraftActionButton]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Salvar passo da rotina"
+                          >
+                            <Text style={styles.modalButtonPrimaryText}>Salvar passo</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={cancelRoutineDraft}
+                            style={[styles.modalButtonLight, styles.routineDraftActionButton]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Descartar passo"
+                          >
+                            <Text>Cancelar</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
 
                     <Pressable
                       onPress={resetTodayRoutineProgress}
@@ -2659,6 +3414,89 @@ export default function App() {
 
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
                       Maximo de {ROUTINE_STEPS_MAX} passos. O progresso reinicia automaticamente no proximo dia.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+
+            {configSection === 'cenas' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Cenas visuais</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                  Tire fotos de ambientes (cozinha, quarto) e marque os itens. A criança toca em cada item e ouve o nome.
+                </Text>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador em "Cuidador" para criar e editar cenas.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.routinePickerSourceRow}>
+                      <Pressable
+                        onPress={() => void pickScenePhotoFromCamera()}
+                        style={styles.routinePickerSourceButton}
+                        disabled={pickerBusy}
+                        accessibilityRole="button"
+                        accessibilityLabel="Tirar foto de uma cena"
+                      >
+                        <Text style={styles.routinePickerSourceIcon}>📷</Text>
+                        <Text style={styles.routinePickerSourceLabel}>Nova foto</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => void pickScenePhotoFromGallery()}
+                        style={styles.routinePickerSourceButton}
+                        disabled={pickerBusy}
+                        accessibilityRole="button"
+                        accessibilityLabel="Escolher cena da galeria"
+                      >
+                        <Text style={styles.routinePickerSourceIcon}>🖼</Text>
+                        <Text style={styles.routinePickerSourceLabel}>Da galeria</Text>
+                      </Pressable>
+                    </View>
+
+                    <View style={styles.sceneListContainer}>
+                      {visualScenes.length === 0 && (
+                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                          Nenhuma cena ainda.
+                        </Text>
+                      )}
+                      {visualScenes.map(scene => (
+                        <View
+                          key={`scene-row-${scene.id}`}
+                          style={[styles.sceneListRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+                        >
+                          <Image source={{ uri: scene.photoUri }} style={styles.sceneListThumb} resizeMode="cover" />
+                          <View style={styles.sceneListInfo}>
+                            <Text style={[styles.sceneListName, isHighContrast && styles.textHighContrast]} numberOfLines={1}>
+                              {scene.name}
+                            </Text>
+                            <Text style={[styles.sceneListMeta, isHighContrast && styles.textMutedHighContrast]}>
+                              {scene.hotspots.length} {scene.hotspots.length === 1 ? 'item marcado' : 'itens marcados'}
+                            </Text>
+                          </View>
+                          <Pressable
+                            onPress={() => editExistingScene(scene)}
+                            style={styles.phraseEditorButton}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Editar cena ${scene.name}`}
+                          >
+                            <Text style={styles.phraseEditorButtonText}>✎</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => void deleteVisualScene(scene.id)}
+                            style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remover cena ${scene.name}`}
+                          >
+                            <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+
+                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                      Máximo de {VISUAL_SCENES_MAX} cenas com até {HOTSPOTS_PER_SCENE_MAX} marcadores cada.
                     </Text>
                   </>
                 )}
@@ -2863,6 +3701,30 @@ export default function App() {
         </View>
       </IOSBottomSheet>
 
+      {viewerScene && (
+        <SceneViewer
+          scene={viewerScene}
+          onClose={() => setViewerScene(null)}
+          onHotspotPress={speakHotspot}
+        />
+      )}
+
+      {editingScene && (
+        <SceneEditor
+          scene={editingScene}
+          onUpdateName={name => setEditingScene(prev => (prev ? { ...prev, name } : prev))}
+          onAddHotspot={addHotspotToDraft}
+          onUpdateHotspotLabel={updateHotspotLabel}
+          onRemoveHotspot={removeHotspot}
+          onStartRecord={startHotspotRecording}
+          onStopRecord={stopHotspotRecording}
+          recordingId={hotspotRecordingId}
+          onCancel={cancelSceneEditor}
+          onSave={() => void saveSceneEditor()}
+          isHighContrast={isHighContrast}
+        />
+      )}
+
       {toast && (
         <View style={[styles.toast, toast.type === 'success' ? styles.toastSuccess : styles.toastError]}>
           <Text style={styles.toastText}>{toast.message}</Text>
@@ -3035,40 +3897,61 @@ function SymbolCard({
 
 function RoutineStepCard({
   step,
+  stepNumber,
   completed,
   onToggle,
+  onPreview,
   highContrast,
   uiScaleFactor
 }: {
   step: RoutineStep;
+  stepNumber: number;
   completed: boolean;
   onToggle: () => void;
+  onPreview: () => void;
   highContrast: boolean;
   uiScaleFactor: number;
 }) {
   return (
     <Pressable
       onPress={onToggle}
+      onLongPress={onPreview}
+      delayLongPress={300}
       style={[
         styles.routineStepCard,
         completed && styles.routineStepCardDone,
         highContrast && styles.routineStepCardHighContrast
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${completed ? 'Desmarcar' : 'Marcar'} passo ${step.label}`}
+      accessibilityLabel={`${completed ? 'Desmarcar' : 'Marcar'} passo ${stepNumber}: ${step.label}. Segure para ouvir.`}
       accessibilityState={{ checked: completed }}
     >
-      {step.imageUri ? (
-        <Image source={{ uri: step.imageUri }} style={styles.routineStepThumb} resizeMode="cover" />
-      ) : (
-        <View style={[styles.routineStepThumb, styles.routineStepThumbTextOnly]}>
-          <Text style={styles.routineStepThumbLetter}>{step.label.charAt(0).toUpperCase()}</Text>
+      <View style={styles.routineStepImageWrap}>
+        {step.imageUri ? (
+          <Image source={{ uri: step.imageUri }} style={styles.routineStepImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.routineStepImage, styles.routineStepImagePlaceholder]}>
+            <Text style={styles.routineStepImagePlaceholderNumber}>{stepNumber}</Text>
+          </View>
+        )}
+        <View style={[styles.routineStepNumberBadge, completed && styles.routineStepNumberBadgeDone]}>
+          <Text style={styles.routineStepNumberBadgeText}>{stepNumber}</Text>
         </View>
-      )}
+        {step.audioUri ? (
+          <View style={styles.routineStepAudioBadge}>
+            <Text style={styles.routineStepAudioBadgeText}>🔊</Text>
+          </View>
+        ) : null}
+        {completed && (
+          <View style={styles.routineStepDoneOverlay}>
+            <Text style={styles.routineStepDoneCheck}>✓</Text>
+          </View>
+        )}
+      </View>
       <Text
         style={[
           styles.routineStepLabel,
-          { fontSize: 18 * uiScaleFactor },
+          { fontSize: 14 * uiScaleFactor },
           completed && styles.routineStepLabelDone,
           highContrast && styles.textHighContrast
         ]}
@@ -3076,12 +3959,202 @@ function RoutineStepCard({
       >
         {step.label}
       </Text>
-      <View style={[styles.routineStepCheck, completed && styles.routineStepCheckDone]}>
-        <Text style={[styles.routineStepCheckIcon, completed && styles.routineStepCheckIconDone]}>
-          {completed ? '✓' : ''}
-        </Text>
-      </View>
     </Pressable>
+  );
+}
+
+function SceneViewer({
+  scene,
+  onClose,
+  onHotspotPress
+}: {
+  scene: VisualScene;
+  onClose: () => void;
+  onHotspotPress: (hotspot: VisualSceneHotspot) => void;
+}) {
+  const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
+  return (
+    <Modal visible animationType="fade" transparent={false} onRequestClose={onClose}>
+      <SafeAreaView style={styles.sceneViewerContainer}>
+        <View style={styles.sceneViewerHeader}>
+          <Pressable
+            onPress={onClose}
+            style={styles.sceneViewerCloseButton}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar cena"
+          >
+            <Text style={styles.sceneViewerCloseLabel}>Fechar</Text>
+          </Pressable>
+          <Text style={styles.sceneViewerTitle} numberOfLines={1}>{scene.name}</Text>
+          <View style={styles.sceneViewerCloseButton} />
+        </View>
+        <View
+          style={styles.sceneViewerImageWrap}
+          onLayout={e => setPhotoSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+        >
+          <Image source={{ uri: scene.photoUri }} style={styles.sceneViewerImage} resizeMode="contain" />
+          {photoSize && scene.hotspots.map(h => {
+            const cx = h.x * photoSize.width;
+            const cy = h.y * photoSize.height;
+            const size = Math.max(48, h.radius * photoSize.width * 2);
+            return (
+              <Pressable
+                key={`hs-${h.id}`}
+                onPress={() => onHotspotPress(h)}
+                style={[
+                  styles.sceneViewerHotspot,
+                  { left: cx - size / 2, top: cy - size / 2, width: size, height: size, borderRadius: size / 2 }
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Tocar para ouvir ${h.label}`}
+              >
+                <View style={styles.sceneViewerHotspotDot} />
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.sceneViewerHint}>Toque nos pontos para ouvir o nome do item.</Text>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+function SceneEditor({
+  scene,
+  onUpdateName,
+  onAddHotspot,
+  onUpdateHotspotLabel,
+  onRemoveHotspot,
+  onStartRecord,
+  onStopRecord,
+  recordingId,
+  onCancel,
+  onSave,
+  isHighContrast
+}: {
+  scene: VisualScene;
+  onUpdateName: (name: string) => void;
+  onAddHotspot: (x: number, y: number) => void;
+  onUpdateHotspotLabel: (id: string, label: string) => void;
+  onRemoveHotspot: (id: string) => void;
+  onStartRecord: (id: string) => void;
+  onStopRecord: () => void;
+  recordingId: string | null;
+  onCancel: () => void;
+  onSave: () => void;
+  isHighContrast: boolean;
+}) {
+  const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
+  return (
+    <Modal visible animationType="slide" transparent={false} onRequestClose={onCancel}>
+      <SafeAreaView style={styles.sceneEditorContainer}>
+        <View style={styles.sceneEditorHeader}>
+          <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel="Cancelar edicao da cena">
+            <Text style={styles.sceneEditorHeaderAction}>Cancelar</Text>
+          </Pressable>
+          <Text style={styles.sceneEditorHeaderTitle}>Editar cena</Text>
+          <Pressable onPress={onSave} accessibilityRole="button" accessibilityLabel="Salvar cena">
+            <Text style={[styles.sceneEditorHeaderAction, styles.sceneEditorHeaderActionPrimary]}>Salvar</Text>
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.sceneEditorContent}>
+          <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>Nome da cena (ex: Cozinha):</Text>
+          <TextInput
+            value={scene.name}
+            onChangeText={onUpdateName}
+            placeholder="Cozinha, Quarto, Sala…"
+            placeholderTextColor={colors.tertiaryLabel}
+            style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
+            maxLength={30}
+          />
+
+          <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+            Toque na foto para marcar um item. Cada marcador precisa de um nome.
+          </Text>
+
+          <Pressable
+            onPress={e => {
+              if (!photoSize) return;
+              const { locationX, locationY } = e.nativeEvent;
+              onAddHotspot(locationX / photoSize.width, locationY / photoSize.height);
+            }}
+            style={styles.sceneEditorImageWrap}
+            onLayout={ev => setPhotoSize({ width: ev.nativeEvent.layout.width, height: ev.nativeEvent.layout.height })}
+            accessibilityRole="button"
+            accessibilityLabel="Toque na foto para marcar um item"
+          >
+            <Image source={{ uri: scene.photoUri }} style={styles.sceneEditorImage} resizeMode="cover" />
+            {photoSize && scene.hotspots.map((h, idx) => {
+              const cx = h.x * photoSize.width;
+              const cy = h.y * photoSize.height;
+              const size = 36;
+              return (
+                <View
+                  key={`mark-${h.id}`}
+                  pointerEvents="none"
+                  style={[
+                    styles.sceneEditorMarker,
+                    { left: cx - size / 2, top: cy - size / 2, width: size, height: size, borderRadius: size / 2 }
+                  ]}
+                >
+                  <Text style={styles.sceneEditorMarkerNumber}>{idx + 1}</Text>
+                </View>
+              );
+            })}
+          </Pressable>
+
+          <Text style={[styles.routinePickerSectionTitle, isHighContrast && styles.textHighContrast]}>
+            Marcadores ({scene.hotspots.length})
+          </Text>
+          {scene.hotspots.length === 0 && (
+            <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+              Nenhum marcador ainda. Toque na foto acima para adicionar.
+            </Text>
+          )}
+          {scene.hotspots.map((h, idx) => {
+            const isRecording = recordingId === h.id;
+            return (
+              <View
+                key={`hs-edit-${h.id}`}
+                style={[styles.sceneHotspotRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+              >
+                <View style={styles.sceneHotspotRowNumber}>
+                  <Text style={styles.sceneHotspotRowNumberText}>{idx + 1}</Text>
+                </View>
+                <View style={styles.sceneHotspotRowFields}>
+                  <TextInput
+                    value={h.label}
+                    onChangeText={text => onUpdateHotspotLabel(h.id, text)}
+                    placeholder="Nome do item (ex: prato)"
+                    placeholderTextColor={colors.tertiaryLabel}
+                    style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
+                    maxLength={30}
+                  />
+                  <View style={styles.sceneHotspotRowActions}>
+                    <Pressable
+                      onPress={() => (isRecording ? onStopRecord() : onStartRecord(h.id))}
+                      style={[styles.audioButton, isRecording ? styles.audioButtonStop : styles.audioButtonRecord]}
+                      accessibilityRole="button"
+                      accessibilityLabel={isRecording ? 'Parar gravação' : 'Gravar voz para esse item'}
+                    >
+                      <Text style={styles.audioButtonText}>{isRecording ? '■ Parar' : (h.audioUri ? '🔊 Regravar' : '● Gravar')}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => void onRemoveHotspot(h.id)}
+                      style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remover marcador ${idx + 1}`}
+                    >
+                      <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -4077,17 +5150,13 @@ const styles = StyleSheet.create({
     gap: 8
   },
   routineStepCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 12,
-    marginBottom: 6,
-    minHeight: 72
+    padding: 10,
+    gap: 8,
+    marginBottom: 8
   },
   routineStepCardDone: {
     backgroundColor: '#E6F4EA',
@@ -4097,50 +5166,420 @@ const styles = StyleSheet.create({
     backgroundColor: '#0b1220',
     borderColor: '#facc15'
   },
-  routineStepThumb: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+  routineStepImageWrap: {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 1.6,
+    borderRadius: 14,
+    overflow: 'hidden',
     backgroundColor: '#E2E8F0'
   },
-  routineStepThumbTextOnly: {
-    alignItems: 'center',
-    justifyContent: 'center'
+  routineStepImage: {
+    width: '100%',
+    height: '100%'
   },
-  routineStepThumbLetter: {
-    fontSize: 22,
+  routineStepImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#CBD5E1'
+  },
+  routineStepImagePlaceholderNumber: {
+    fontSize: 64,
     fontWeight: '800',
     color: '#0f172a'
   },
-  routineStepLabel: {
-    flex: 1,
-    color: '#0f172a',
-    fontWeight: '700'
-  },
-  routineStepLabelDone: {
-    color: '#475569',
-    textDecorationLine: 'line-through'
-  },
-  routineStepCheck: {
-    width: 32,
+  routineStepNumberBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    minWidth: 32,
     height: 32,
+    paddingHorizontal: 8,
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#cbd5e1',
+    backgroundColor: 'rgba(0, 122, 255, 0.95)',
     alignItems: 'center',
     justifyContent: 'center'
   },
-  routineStepCheckDone: {
-    backgroundColor: '#5B8C7A',
-    borderColor: '#5B8C7A'
+  routineStepNumberBadgeDone: {
+    backgroundColor: 'rgba(91, 140, 122, 0.95)'
   },
-  routineStepCheckIcon: {
-    color: '#cbd5e1',
-    fontSize: 18,
+  routineStepNumberBadgeText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '800'
   },
-  routineStepCheckIconDone: {
+  routineStepAudioBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  routineStepAudioBadgeText: {
+    fontSize: 16
+  },
+  routineStepDoneOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(91, 140, 122, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  routineStepDoneCheck: {
+    fontSize: 88,
+    fontWeight: '800',
     color: '#ffffff'
+  },
+  routineStepLabel: {
+    color: '#0f172a',
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 4
+  },
+  routineStepLabelDone: {
+    color: '#475569'
+  },
+  routinePickerSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 12,
+    marginBottom: 6
+  },
+  routinePickerSourceRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8
+  },
+  routinePickerSourceButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4
+  },
+  routinePickerSourceButtonActive: {
+    backgroundColor: '#E0EFFF',
+    borderColor: '#007AFF'
+  },
+  routinePickerSourceIcon: {
+    fontSize: 22
+  },
+  routinePickerSourceLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0f172a'
+  },
+  routineSymbolPicker: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingVertical: 8,
+    marginBottom: 8
+  },
+  routineSymbolPickerHighContrast: {
+    backgroundColor: '#0b1220'
+  },
+  routineSymbolPickerRow: {
+    paddingHorizontal: 8,
+    gap: 8
+  },
+  routineSymbolPickerItem: {
+    width: 80,
+    alignItems: 'center',
+    gap: 4,
+    position: 'relative'
+  },
+  routineSymbolPickerThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0'
+  },
+  routineSymbolPickerCaption: {
+    fontSize: 11,
+    color: '#0f172a',
+    textAlign: 'center'
+  },
+  routineSymbolPickerAudioBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    fontSize: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    color: '#ffffff',
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    overflow: 'hidden'
+  },
+  routineDraftCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 10,
+    marginBottom: 8
+  },
+  routineDraftPreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: '#e5e7eb'
+  },
+  routineDraftActionsRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  routineDraftActionButton: {
+    flex: 1
+  },
+  routineStepEditCard: {
+    gap: 6,
+    marginBottom: 6
+  },
+  routineDayChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    paddingTop: 2
+  },
+  routineDayChip: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: '#E5E5EA',
+    borderWidth: 1,
+    borderColor: '#D1D1D6'
+  },
+  routineDayChipActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF'
+  },
+  routineDayChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3C3C43'
+  },
+  routineDayChipTextActive: {
+    color: '#ffffff'
+  },
+  sceneTile: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 4,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+    position: 'relative'
+  },
+  sceneTileImage: {
+    width: '100%',
+    height: '100%'
+  },
+  sceneTileOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)'
+  },
+  sceneTileLabel: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  sceneTileMeta: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 11
+  },
+  sceneListContainer: {
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8
+  },
+  sceneListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#F2F2F7'
+  },
+  sceneListThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0'
+  },
+  sceneListInfo: {
+    flex: 1,
+    gap: 2
+  },
+  sceneListName: {
+    color: '#0f172a',
+    fontWeight: '700'
+  },
+  sceneListMeta: {
+    color: '#64748b',
+    fontSize: 12
+  },
+  sceneViewerContainer: {
+    flex: 1,
+    backgroundColor: '#000000'
+  },
+  sceneViewerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)'
+  },
+  sceneViewerCloseButton: {
+    width: 80
+  },
+  sceneViewerCloseLabel: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '600'
+  },
+  sceneViewerTitle: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'center'
+  },
+  sceneViewerImageWrap: {
+    flex: 1,
+    position: 'relative',
+    justifyContent: 'center'
+  },
+  sceneViewerImage: {
+    width: '100%',
+    height: '100%'
+  },
+  sceneViewerHotspot: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.18)',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 122, 255, 0.55)'
+  },
+  sceneViewerHotspotDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0, 122, 255, 0.95)'
+  },
+  sceneViewerHint: {
+    color: '#ffffff',
+    textAlign: 'center',
+    paddingVertical: 12,
+    fontSize: 13,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)'
+  },
+  sceneEditorContainer: {
+    flex: 1,
+    backgroundColor: '#F2F2F7'
+  },
+  sceneEditorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0'
+  },
+  sceneEditorHeaderAction: {
+    color: '#007AFF',
+    fontSize: 17,
+    fontWeight: '500'
+  },
+  sceneEditorHeaderActionPrimary: {
+    fontWeight: '700'
+  },
+  sceneEditorHeaderTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#0f172a',
+    fontSize: 17,
+    fontWeight: '700'
+  },
+  sceneEditorContent: {
+    padding: 14,
+    gap: 10
+  },
+  sceneEditorImageWrap: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+    position: 'relative'
+  },
+  sceneEditorImage: {
+    width: '100%',
+    height: '100%'
+  },
+  sceneEditorMarker: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0, 122, 255, 0.95)',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sceneEditorMarkerNumber: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  sceneHotspotRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  sceneHotspotRowNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sceneHotspotRowNumberText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  sceneHotspotRowFields: {
+    flex: 1,
+    gap: 8
+  },
+  sceneHotspotRowActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center'
   },
   phraseText: {
     minHeight: 30,

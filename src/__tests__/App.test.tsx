@@ -426,8 +426,8 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByText('Acordar')).toBeTruthy();
       expect(screen.getByText('Escovar dentes')).toBeTruthy();
-      expect(screen.getByLabelText('Desmarcar passo Acordar')).toBeTruthy();
-      expect(screen.getByLabelText('Marcar passo Escovar dentes')).toBeTruthy();
+      expect(screen.getByLabelText('Desmarcar passo 1: Acordar. Segure para ouvir.')).toBeTruthy();
+      expect(screen.getByLabelText('Marcar passo 2: Escovar dentes. Segure para ouvir.')).toBeTruthy();
     });
   });
 
@@ -444,7 +444,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText('Rotina')).toBeTruthy());
     fireEvent.press(screen.getByText('Rotina'));
 
-    const stepBtn = await screen.findByLabelText('Marcar passo Tomar cafe');
+    const stepBtn = await screen.findByLabelText('Marcar passo 1: Tomar cafe. Segure para ouvir.');
     fireEvent.press(stepBtn);
 
     await waitFor(() => {
@@ -472,8 +472,8 @@ describe('App', () => {
     fireEvent.press(screen.getByText('Rotina'));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Marcar passo Passo antigo')).toBeTruthy();
-      expect(screen.queryByLabelText('Desmarcar passo Passo antigo')).toBeNull();
+      expect(screen.getByLabelText('Marcar passo 1: Passo antigo. Segure para ouvir.')).toBeTruthy();
+      expect(screen.queryByLabelText('Desmarcar passo 1: Passo antigo. Segure para ouvir.')).toBeNull();
     });
   });
 });

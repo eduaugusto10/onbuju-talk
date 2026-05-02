@@ -41,14 +41,35 @@ export interface CustomCategory {
   createdAt: string;
 }
 
+export type RoutineDay = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
+
 export interface RoutineStep {
   id: string;
   label: string;
   imageUri?: string | null;
+  audioUri?: string | null;
+  activeDays?: RoutineDay[];
   createdAt: string;
 }
 
 export interface RoutineProgress {
   date: string;
   completedStepIds: string[];
+}
+
+export interface VisualSceneHotspot {
+  id: string;
+  label: string;
+  audioUri?: string | null;
+  x: number;
+  y: number;
+  radius: number;
+}
+
+export interface VisualScene {
+  id: string;
+  name: string;
+  photoUri: string;
+  hotspots: VisualSceneHotspot[];
+  createdAt: string;
 }
