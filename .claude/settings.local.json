@@ -29,7 +29,14 @@
       "Skill(gsd-autonomous)",
       "Skill(gsd-plan-phase)",
       "Skill(gsd-discuss-phase)",
-      "Skill(gsd-ui-phase)"
+      "Skill(gsd-ui-phase)",
+      "Skill(gsd-progress)",
+      "Skill(gsd-progress:*)",
+      "PowerShell(gsd-sdk query init.progress)",
+      "Skill(gsd-new-milestone)",
+      "Skill(gsd-new-milestone:*)",
+      "Bash(git remote *)",
+      "Bash(git ls-remote *)"
     ]
   }
 }
