@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sketch 002 — Card de Pictograma · Fala Mobile</title>
+<link rel="stylesheet" href="../themes/default.css" id="theme-link">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(111,157,134,0.10), transparent 60%),
+      var(--color-bg-soft);
+    color: var(--color-text);
+    padding: 62px 20px 60px;
+    min-height: 100vh; -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Barra de variantes ── */
+  #vnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    padding: 10px 16px; display: flex; gap: 8px; align-items: center;
+    box-shadow: var(--shadow-sm);
+  }
+  #vnav .brand { font-weight: 800; font-size: 14px; margin-right: 8px; }
+  #vnav .brand small { color: var(--color-text-muted); font-weight: 600; }
+  .vtab {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 700;
+    padding: 7px 14px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-text-muted); cursor: pointer; transition: all 0.15s ease;
+  }
+  .vtab:hover { border-color: var(--color-border-strong); }
+  .vtab.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+  /* ── Palco ── */
+  .stage { display: none; }
+  .stage.active { display: flex; flex-direction: column; align-items: center; }
+  .stage-caption { max-width: 440px; text-align: center; margin-bottom: 16px; }
+  .stage-caption h2 { font-size: 20px; font-weight: 800; }
+  .stage-caption p { font-size: 13px; color: var(--color-text-muted); margin-top: 4px; line-height: 1.5; }
+  .legend {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin-top: 10px; font-size: 11.5px; font-weight: 700; color: var(--color-text-muted);
+  }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .legend .sw { width: 13px; height: 13px; border-radius: 4px; }
+
+  /* ── Moldura de celular ── */
+  .phone {
+    width: 392px; height: 760px; background: var(--color-bg);
+    border-radius: 44px; border: 11px solid #2A2620;
+    box-shadow: var(--shadow-lg); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .statusbar {
+    height: 42px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 22px 0 26px;
+    font-size: 13px; font-weight: 800;
+  }
+  .statusbar .dots { letter-spacing: 1px; font-size: 11px; }
+  .screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .header {
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    padding: 8px 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .header .t { flex: 1; text-align: center; font-size: 18px; font-weight: 800; }
+  .iconbtn {
+    width: 38px; height: 38px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .iconbtn:hover { background: var(--color-bg-soft); }
+
+  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px; scrollbar-width: none; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cat {
+    flex-shrink: 0; font-family: var(--font-sans); font-size: 13px; font-weight: 700;
+    padding: 7px 14px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-surface);
+    color: var(--color-text-muted); cursor: pointer; white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .cat.on { background: var(--color-primary-soft); color: var(--color-primary-ink); border-color: var(--color-primary); }
+
+  .gridwrap { flex: 1; overflow-y: auto; padding: 6px 14px 16px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+
+  /* ── Card base ── */
+  .pcard {
+    position: relative; border: none; cursor: pointer; font-family: var(--font-sans);
+    display: flex; flex-direction: column; align-items: center;
+    transition: transform 0.13s ease, box-shadow 0.16s ease, border-color 0.13s ease, background 0.13s ease;
+  }
+  .pcard:active { transform: scale(0.95); }
+  .favstar {
+    position: absolute; top: 7px; right: 7px; z-index: 2;
+    width: 26px; height: 26px; border-radius: var(--radius-full);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--color-text-soft);
+    background: rgba(252,250,244,0.85); cursor: pointer;
+    transition: all 0.14s ease;
+  }
+  .favstar:hover { transform: scale(1.15); }
+  .pcard.fav .favstar { color: var(--color-star); }
+  .pic { display: flex; align-items: center; justify-content: center; }
+  .plabel { text-align: center; line-height: 1.15; }
+  @keyframes ringflash {
+    0% { box-shadow: 0 0 0 0 rgba(111,157,134,0.55); }
+    100% { box-shadow: 0 0 0 12px rgba(111,157,134,0); }
+  }
+  .pcard.added { animation: ringflash 0.5s ease; }
+
+  /* ════════ A · Rótulo embaixo ════════ */
+  .ca .pcard {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 13px 8px; gap: 9px;
+    box-shadow: var(--shadow-sm);
+  }
+  .ca .pcard:hover { transform: translateY(-2px); border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+  .ca .pic {
+    width: 66px; height: 66px; font-size: 40px;
+    background: var(--color-bg-soft); border-radius: 16px;
+  }
+  .ca .plabel { font-size: 14px; font-weight: 800; color: var(--color-text); }
+
+  /* ════════ B · Faixa de categoria ════════ */
+  .cb .pcard {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);
+  }
+  .cb .pcard:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .cb .pic { width: 100%; height: 80px; font-size: 44px; margin-top: 8px; }
+  .cb .plabel {
+    width: 100%; padding: 9px 4px; font-size: 13.5px; font-weight: 800;
+  }
+  /* Cores de categoria (suaves) — usadas em B, D, E */
+  .pcard[data-cat="acao"]   { --cat:#DBE6DE; --cat-ink:#2E4A3E; }
+  .pcard[data-cat="comida"] { --cat:#F6E6C7; --cat-ink:#5B3F12; }
+  .pcard[data-cat="pessoa"] { --cat:#F0DCCE; --cat-ink:#6E4326; }
+  .pcard[data-cat="lazer"]  { --cat:#E3E8D2; --cat-ink:#404B22; }
+  .pcard[data-cat="rotina"] { --cat:#E7E0EC; --cat-ink:#463A52; }
+  .cb .plabel { background: var(--cat); color: var(--cat-ink); }
+  .cstrip { display: none; }
+
+  /* ════════ D · Síntese: tile com cor de categoria ════════ */
+  .cd .pcard {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 13px 8px; gap: 9px;
+    box-shadow: var(--shadow-sm);
+  }
+  .cd .pcard:hover { transform: translateY(-2px); border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+  .cd .pic { width: 66px; height: 66px; font-size: 40px; border-radius: 16px; background: var(--cat); }
+  .cd .plabel { font-size: 14px; font-weight: 800; color: var(--color-text); }
+
+  /* ════════ E · Síntese: faixa fina de cor ════════ */
+  .ce .pcard {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 13px 8px 17px; gap: 9px;
+    box-shadow: var(--shadow-sm); overflow: hidden;
+  }
+  .ce .pcard:hover { transform: translateY(-2px); border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+  .ce .pic { width: 66px; height: 66px; font-size: 40px; border-radius: 16px; background: var(--color-bg-soft); }
+  .ce .plabel { font-size: 14px; font-weight: 800; color: var(--color-text); }
+  .ce .cstrip { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--cat); }
+
+  /* ════════ C · Pictograma puro (sem card) ════════ */
+  .cc .pcard {
+    background: transparent; border: 1px solid transparent;
+    border-radius: var(--radius-md); padding: 11px 6px; gap: 8px;
+  }
+  .cc .pcard:hover { background: var(--color-surface); border-color: var(--color-border); }
+  .cc .pic { width: 76px; height: 76px; font-size: 48px; }
+  .cc .plabel { font-size: 14px; font-weight: 800; color: var(--color-text); }
+  .cc .favstar { background: transparent; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 26px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--color-text); color: var(--color-bg);
+    padding: 12px 22px; border-radius: var(--radius-full);
+    font-size: 14px; font-weight: 700; box-shadow: var(--shadow-lg);
+    opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 9999;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Toolbar ── */
+  #sketch-tools {
+    position: fixed; bottom: 12px; right: 12px; z-index: 9999;
+    font-family: system-ui; font-size: 12px;
+    background: rgba(42,38,32,0.92); color: #fff;
+    padding: 9px 13px; border-radius: 10px; opacity: 0.45;
+    transition: opacity 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools select { font-family: system-ui; font-size: 12px; padding: 3px 6px; border-radius: 6px; border: none; }
+</style>
+</head>
+<body>
+
+<div id="vnav">
+  <span class="brand">Fala <small>· 002 card de pictograma</small></span>
+  <button class="vtab" onclick="showVariant('a',this)">A · Rótulo embaixo</button>
+  <button class="vtab" onclick="showVariant('b',this)">B · Faixa de categoria</button>
+  <button class="vtab" onclick="showVariant('c',this)">C · Pictograma puro</button>
+  <button class="vtab active" onclick="showVariant('d',this)">D · Síntese: tile colorido ✦ ★</button>
+  <button class="vtab" onclick="showVariant('e',this)">E · Síntese: faixa fina ✦</button>
+</div>
+
+<!-- ════════ VARIANTE A ════════ -->
+<div class="stage" id="variant-a">
+  <div class="stage-caption">
+    <h2>A · Rótulo embaixo</h2>
+    <p>O clássico, refeito com calma. Pictograma num bloco de cor neutra, rótulo
+       logo abaixo. Card branco com borda leve e sombra suave. Previsível e legível.</p>
+  </div>
+  <div class="phone ca">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen">
+      <div class="header">
+        <button class="iconbtn">⚙️</button>
+        <div class="t">Fala</div>
+        <button class="iconbtn">🔍</button>
+      </div>
+      <div class="cats"></div>
+      <div class="gridwrap"><div class="grid"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ VARIANTE B ════════ -->
+<div class="stage" id="variant-b">
+  <div class="stage-caption">
+    <h2>B · Faixa de categoria</h2>
+    <p>O rótulo vira uma faixa colorida no rodapé do card — e a cor indica a
+       categoria. Cor suave, calma, mas dá uma pista visual extra: a criança
+       aprende "verde = ações", "amarelo = comida". Ajuda a reconhecer e navegar.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:#DBE6DE"></i>ações</span>
+      <span><i class="sw" style="background:#F6E6C7"></i>comida</span>
+      <span><i class="sw" style="background:#F0DCCE"></i>pessoas</span>
+      <span><i class="sw" style="background:#E3E8D2"></i>lazer</span>
+      <span><i class="sw" style="background:#E7E0EC"></i>rotina</span>
+    </div>
+  </div>
+  <div class="phone cb">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen">
+      <div class="header">
+        <button class="iconbtn">⚙️</button>
+        <div class="t">Fala</div>
+        <button class="iconbtn">🔍</button>
+      </div>
+      <div class="cats"></div>
+      <div class="gridwrap"><div class="grid"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ VARIANTE C ════════ -->
+<div class="stage" id="variant-c">
+  <div class="stage-caption">
+    <h2>C · Pictograma puro</h2>
+    <p>Sem card, sem borda, sem moldura. Os pictogramas flutuam direto sobre o
+       fundo creme. O máximo de calma e ar — só o pictograma e o rótulo. O card
+       aparece de leve só ao tocar. Risco: pode parecer "vazio" ou sem estrutura.</p>
+  </div>
+  <div class="phone cc">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen">
+      <div class="header">
+        <button class="iconbtn">⚙️</button>
+        <div class="t">Fala</div>
+        <button class="iconbtn">🔍</button>
+      </div>
+      <div class="cats"></div>
+      <div class="gridwrap"><div class="grid"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SÍNTESE D ════════ -->
+<div class="stage active" id="variant-d">
+  <div class="stage-caption">
+    <h2>D · Síntese: tile com cor de categoria ✦</h2>
+    <p>O card limpo do A (rótulo é texto, não barra) + a cor do B — mas a cor entra
+       <b>no bloco atrás do pictograma</b>, não numa faixa. A categoria se lê pela
+       cor do "tapete" do pictograma. Calmo, coeso, sem virar etiqueta.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:#DBE6DE"></i>ações</span>
+      <span><i class="sw" style="background:#F6E6C7"></i>comida</span>
+      <span><i class="sw" style="background:#F0DCCE"></i>pessoas</span>
+      <span><i class="sw" style="background:#E3E8D2"></i>lazer</span>
+      <span><i class="sw" style="background:#E7E0EC"></i>rotina</span>
+    </div>
+  </div>
+  <div class="phone cd">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen">
+      <div class="header">
+        <button class="iconbtn">⚙️</button>
+        <div class="t">Fala</div>
+        <button class="iconbtn">🔍</button>
+      </div>
+      <div class="cats"></div>
+      <div class="gridwrap"><div class="grid"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SÍNTESE E ════════ -->
+<div class="stage" id="variant-e">
+  <div class="stage-caption">
+    <h2>E · Síntese: faixa fina de cor ✦</h2>
+    <p>O card limpo do A + a cor do B como uma <b>faixa fina na base do card</b>.
+       O pictograma fica em bloco neutro, o rótulo é texto, e a cor aparece só
+       como um traço discreto embaixo. Pista de categoria sem peso visual.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:#DBE6DE"></i>ações</span>
+      <span><i class="sw" style="background:#F6E6C7"></i>comida</span>
+      <span><i class="sw" style="background:#F0DCCE"></i>pessoas</span>
+      <span><i class="sw" style="background:#E3E8D2"></i>lazer</span>
+      <span><i class="sw" style="background:#E7E0EC"></i>rotina</span>
+    </div>
+  </div>
+  <div class="phone ce">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen">
+      <div class="header">
+        <button class="iconbtn">⚙️</button>
+        <div class="t">Fala</div>
+        <button class="iconbtn">🔍</button>
+      </div>
+      <div class="cats"></div>
+      <div class="gridwrap"><div class="grid"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="sketch-tools">
+  <span>tema</span>
+  <select id="theme-switcher" onchange="document.getElementById('theme-link').href='../themes/'+this.value+'.css'">
+    <option value="default">Sálvia &amp; Creme</option>
+    <option value="terracota">Terracota</option>
+    <option value="sereno-escuro">Sereno Escuro</option>
+  </select>
+</div>
+
+<script>
+  const PICTOS = [
+    {e:'🧒',l:'eu',cat:'pessoa',fav:true},
+    {e:'✋',l:'quero',cat:'acao',fav:true},
+    {e:'🍴',l:'comer',cat:'acao'},
+    {e:'🥤',l:'beber',cat:'acao'},
+    {e:'💧',l:'água',cat:'comida'},
+    {e:'🍎',l:'maçã',cat:'comida',fav:true},
+    {e:'🍌',l:'banana',cat:'comida'},
+    {e:'🧸',l:'brincar',cat:'lazer',fav:true},
+    {e:'⚽',l:'bola',cat:'lazer'},
+    {e:'👩',l:'mamãe',cat:'pessoa'},
+    {e:'😴',l:'dormir',cat:'rotina'},
+    {e:'📖',l:'livro',cat:'rotina'}
+  ];
+  const CATS = ['⭐ Favoritos','Tudo','🍎 Comer','😊 Sentir','📅 Rotina'];
+
+  function buildGrid(el){
+    el.innerHTML = PICTOS.map(p =>
+      `<button class="pcard${p.fav?' fav':''}" data-cat="${p.cat}" data-label="${p.l}">
+         <span class="favstar" title="Favoritar">★</span>
+         <span class="pic">${p.e}</span>
+         <span class="plabel">${p.l}</span>
+         <span class="cstrip"></span>
+       </button>`).join('');
+  }
+  function buildCats(el){
+    el.innerHTML = CATS.map((c,i) =>
+      `<button class="cat${i===1?' on':''}">${c}</button>`).join('');
+  }
+  document.querySelectorAll('.grid').forEach(buildGrid);
+  document.querySelectorAll('.cats').forEach(buildCats);
+
+  document.addEventListener('click', e => {
+    const star = e.target.closest('.favstar');
+    if (star){
+      e.stopPropagation();
+      const card = star.closest('.pcard');
+      card.classList.toggle('fav');
+      showToast(card.classList.contains('fav')
+        ? '★ ' + card.dataset.label + ' nos favoritos'
+        : card.dataset.label + ' saiu dos favoritos');
+      return;
+    }
+    const card = e.target.closest('.pcard');
+    if (card){
+      card.classList.remove('added');
+      void card.offsetWidth;
+      card.classList.add('added');
+      showToast('“' + card.dataset.label + '” adicionado à frase');
+      return;
+    }
+    const cat = e.target.closest('.cat');
+    if (cat){
+      cat.parentElement.querySelectorAll('.cat').forEach(c => c.classList.remove('on'));
+      cat.classList.add('on');
+    }
+  });
+
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1900);
+  }
+
+  function showVariant(id, btn){
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
+    document.getElementById('variant-' + id).classList.add('active');
+    btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

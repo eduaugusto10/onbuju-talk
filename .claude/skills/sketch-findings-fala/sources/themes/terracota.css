@@ -1,0 +1,62 @@
+/* ───────────────────────────────────────────────────────────
+   Fala Mobile — Tema "Terracota"
+   Variação mais quente da paleta calma. Argila e barro à frente,
+   sálvia recua para detalhe. Mesma estrutura, temperatura maior.
+   ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --color-bg:          #F0E6D8;
+  --color-bg-soft:      #E6D8C5;
+  --color-surface:      #FDFAF3;
+  --color-surface-2:    #F5EBDA;
+  --color-border:       #E5D4BD;
+  --color-border-strong:#CFB896;
+
+  --color-text:         #3F352B;
+  --color-text-muted:   #91806C;
+  --color-text-soft:    #B8A88F;
+
+  /* Terracota é o estado ativo aqui */
+  --color-primary:      #C9805C;
+  --color-primary-hover:#B56E4C;
+  --color-primary-soft: #F0DDCE;
+  --color-primary-ink:  #5C3725;
+
+  --color-generate:     #DDA04B;
+  --color-generate-hover:#CA8F3E;
+  --color-generate-soft:#F5E4C3;
+  --color-generate-ink: #5B3F12;
+
+  /* Sálvia recua para a ação herói */
+  --color-accent:       #6F9D86;
+  --color-accent-hover: #5C8872;
+  --color-accent-soft:  #DBE6DE;
+
+  --color-danger:       #BF6A5C;
+  --color-danger-soft:  #EFD6CF;
+  --color-success:      #7FA982;
+  --color-star:         #E2B24C;
+
+  --font-display: 'Nunito', system-ui, sans-serif;
+  --font-sans:    'Nunito', system-ui, sans-serif;
+  --text-xs:   0.72rem;
+  --text-sm:   0.84rem;
+  --text-base: 1rem;
+  --text-lg:   1.14rem;
+  --text-xl:   1.34rem;
+  --text-2xl:  1.62rem;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   22px;
+  --radius-xl:   30px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(74,63,43,0.07);
+  --shadow-md: 0 6px 16px rgba(74,63,43,0.09);
+  --shadow-lg: 0 16px 34px rgba(74,63,43,0.13);
+}

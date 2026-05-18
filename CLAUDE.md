@@ -31,6 +31,10 @@ Persistence keys are centralized in the `STORAGE_KEYS` const inside `src/App.tsx
 - When calling external APIs, follow the existing pattern: memory cache → persistent cache → fetch → degrade gracefully. Don't add throw-on-failure paths to services.
 - Jest preset is `jest-expo`; `jest.setup.ts` mocks AsyncStorage. `.planning/` is excluded from test discovery.
 
+## Design
+
+- **Sketch findings for fala** (validated design decisions, CSS patterns, visual direction from the visual redesign sketches) → `Skill("sketch-findings-fala")`. Load this before any UI/visual implementation work.
+
 ## Planning Artifacts
 
 `.planning/` holds the GSD workflow state (PROJECT.md, ROADMAP.md, STATE.md, phase dirs, milestone archives, and `.planning/codebase/` maps). Milestones 1 and 3 are shipped; Milestone 2 (UX remodel, phases 5–7) is the active scope per `ROADMAP.md`. Treat these as source of truth for product intent — do not modify shipped milestone archives.

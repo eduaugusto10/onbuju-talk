@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sketch 001 — Tela & Paleta · Fala Mobile</title>
+<link rel="stylesheet" href="../themes/default.css" id="theme-link">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(111,157,134,0.10), transparent 60%),
+      var(--color-bg-soft);
+    color: var(--color-text);
+    padding: 78px 20px 60px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Barra de variantes (fixa no topo) ── */
+  #vnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 10px 16px; display: flex; gap: 8px; align-items: center;
+    box-shadow: var(--shadow-sm);
+  }
+  #vnav .brand { font-weight: 800; font-size: 14px; margin-right: 8px; color: var(--color-text); }
+  #vnav .brand small { color: var(--color-text-muted); font-weight: 600; }
+  .vtab {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 700;
+    padding: 7px 14px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-bg);
+    color: var(--color-text-muted); cursor: pointer; transition: all 0.15s ease;
+  }
+  .vtab:hover { border-color: var(--color-border-strong); }
+  .vtab.active {
+    background: var(--color-primary); color: #fff; border-color: var(--color-primary);
+  }
+
+  /* ── Palco das variantes ── */
+  .stage { display: none; }
+  .stage.active { display: flex; flex-direction: column; align-items: center; }
+  .stage-caption { max-width: 420px; text-align: center; margin-bottom: 20px; }
+  .stage-caption h2 { font-size: 20px; font-weight: 800; }
+  .stage-caption p { font-size: 13px; color: var(--color-text-muted); margin-top: 4px; line-height: 1.5; }
+
+  /* ── Moldura de celular ── */
+  .phone {
+    width: 392px; height: 812px;
+    background: var(--color-bg);
+    border-radius: 44px;
+    border: 11px solid #2A2620;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+  .statusbar {
+    height: 44px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px 0 26px; font-size: 13px; font-weight: 800;
+    color: var(--color-text);
+  }
+  .statusbar .dots { letter-spacing: 1px; font-size: 11px; }
+  .screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Componentes compartilhados ── */
+  .iconbtn {
+    width: 40px; height: 40px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; flex-shrink: 0; transition: all 0.15s ease;
+  }
+  .iconbtn:hover { background: var(--color-bg-soft); }
+  .iconbtn:active { transform: scale(0.92); }
+
+  /* Faixa de categorias */
+  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 6px; scrollbar-width: none; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cat {
+    flex-shrink: 0; font-family: var(--font-sans); font-size: 13px; font-weight: 700;
+    padding: 8px 15px; border-radius: var(--radius-full);
+    border: 1px solid var(--color-border); background: var(--color-surface);
+    color: var(--color-text-muted); cursor: pointer; white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .cat:hover { border-color: var(--color-border-strong); }
+  .cat.on {
+    background: var(--color-primary-soft); color: var(--color-primary-ink);
+    border-color: var(--color-primary);
+  }
+
+  /* Grade de pictogramas */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .picto {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 12px 6px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all 0.13s ease; position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .picto:hover { border-color: var(--color-primary); transform: translateY(-2px); }
+  .picto:active { transform: scale(0.95); }
+  .picto .glyph {
+    width: 60px; height: 60px; border-radius: 16px;
+    background: var(--color-bg-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+  }
+  .picto .plabel {
+    font-size: 14px; font-weight: 700; color: var(--color-text);
+    text-align: center; line-height: 1.1;
+  }
+  .picto .star {
+    position: absolute; top: 6px; right: 6px; font-size: 13px;
+    color: var(--color-text-soft); opacity: 0.55;
+  }
+  .picto.fav .star { color: var(--color-star); opacity: 1; }
+
+  /* Barra de vocabulário central */
+  .corev-bar { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
+  .corev-bar::-webkit-scrollbar { display: none; }
+  .cvbtn {
+    flex-shrink: 0; font-family: var(--font-sans); font-size: 12.5px; font-weight: 800;
+    letter-spacing: 0.4px; padding: 9px 14px; border-radius: var(--radius-sm);
+    background: var(--color-primary-soft); color: var(--color-primary-ink);
+    border: 1px solid var(--color-primary); cursor: pointer; transition: all 0.13s ease;
+  }
+  .cvbtn:hover { background: var(--color-primary); color: #fff; }
+  .cvbtn:active { transform: scale(0.93); }
+
+  /* Compositor */
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-height: 44px; align-items: center; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips .empty-hint { font-size: 12.5px; color: var(--color-text-soft); font-weight: 600; }
+  .chip {
+    position: relative; flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
+    background: var(--color-surface); border: 1.5px solid var(--color-border-strong);
+    font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.13s ease;
+  }
+  .chip:hover { border-color: var(--color-danger); }
+  .phrase {
+    font-size: 16px; font-weight: 700; color: var(--color-text); line-height: 1.35;
+  }
+  .phrase.empty { color: var(--color-text-soft); font-weight: 600; font-size: 14px; }
+
+  .actions { display: flex; gap: 8px; }
+  .act {
+    flex: 1; font-family: var(--font-sans); font-weight: 800; cursor: pointer;
+    border-radius: var(--radius-md); border: none; transition: all 0.14s ease;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 11px 4px;
+  }
+  .act .aico { font-size: 19px; }
+  .act .alabel { font-size: 12px; }
+  .act:active { transform: scale(0.95); }
+  .act-clear { background: transparent; color: var(--color-danger); border: 1.5px solid var(--color-danger-soft); }
+  .act-clear:hover { background: var(--color-danger-soft); }
+  .act-gen { background: var(--color-generate); color: var(--color-generate-ink); box-shadow: var(--shadow-sm); }
+  .act-gen:hover { background: var(--color-generate-hover); }
+  .act-speak { background: var(--color-accent); color: #fff; box-shadow: var(--shadow-sm); }
+  .act-speak:hover { background: var(--color-accent-hover); }
+
+  /* ════════ VARIANTE A — Moldura Calma ════════ */
+  .va .screen { padding: 0; gap: 0; }
+  .va .header {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 8px 14px 8px;
+  }
+  .va .header-top { display: flex; align-items: center; gap: 10px; }
+  .va .title-wrap { flex: 1; text-align: center; }
+  .va .title-wrap .t { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+  .va .title-wrap .sub { font-size: 10.5px; color: var(--color-text-muted); font-weight: 600; }
+  .va .scroll { flex: 1; overflow-y: auto; padding: 12px 14px 6px; }
+  .va .corev-wrap { padding: 6px 14px; background: var(--color-bg); }
+  .va .composer {
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    border-radius: 26px 26px 0 0;
+    padding: 12px 14px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    box-shadow: 0 -6px 20px rgba(74,63,43,0.06);
+  }
+  .va .phrase-box {
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 10px 13px; min-height: 46px;
+    display: flex; align-items: center;
+  }
+
+  /* ════════ VARIANTE B — Foco no Conteúdo ════════ */
+  .vb .screen { padding: 0; position: relative; }
+  .vb .topbar {
+    display: flex; align-items: center; gap: 10px; padding: 6px 14px 8px;
+  }
+  .vb .topbar .t { font-size: 17px; font-weight: 800; flex: 1; }
+  .vb .topbar .t span { color: var(--color-primary); }
+  .vb .scroll { flex: 1; overflow-y: auto; padding: 4px 14px 230px; }
+  .vb .grid { grid-template-columns: repeat(3, 1fr); gap: 11px; }
+  .vb .picto { padding: 16px 6px 13px; }
+  .vb .picto .glyph { width: 66px; height: 66px; font-size: 38px; }
+  .vb .dock {
+    position: absolute; left: 12px; right: 12px; bottom: 14px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    padding: 12px 14px 14px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .vb .dock-row { display: flex; align-items: center; gap: 10px; }
+  .vb .dock .phrase-box {
+    flex: 1; background: var(--color-bg); border-radius: var(--radius-md);
+    padding: 8px 12px; min-height: 42px; display: flex; align-items: center;
+    overflow: hidden;
+  }
+  .vb .fab {
+    width: 56px; height: 56px; border-radius: var(--radius-full); flex-shrink: 0;
+    background: var(--color-accent); color: #fff; border: none; cursor: pointer;
+    font-size: 24px; box-shadow: var(--shadow-md); transition: all 0.14s ease;
+  }
+  .vb .fab:hover { background: var(--color-accent-hover); }
+  .vb .fab:active { transform: scale(0.92); }
+  .vb .mini-actions { display: flex; gap: 8px; }
+  .vb .mini {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 800; cursor: pointer;
+    padding: 8px 12px; border-radius: var(--radius-sm); transition: all 0.13s ease;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .vb .mini-gen { flex: 1; justify-content: center; background: var(--color-generate); color: var(--color-generate-ink); border: none; }
+  .vb .mini-gen:hover { background: var(--color-generate-hover); }
+  .vb .mini-clear { background: transparent; color: var(--color-danger); border: 1.5px solid var(--color-danger-soft); }
+  .vb .mini-clear:hover { background: var(--color-danger-soft); }
+
+  /* ════════ VARIANTE C — Dois Blocos ════════ */
+  .vc .screen { padding: 0; }
+  .vc .vc-topbar {
+    display: flex; align-items: center; gap: 10px; padding: 6px 14px 4px;
+  }
+  .vc .vc-topbar .t { flex: 1; font-size: 17px; font-weight: 800; }
+  .vc .block-pick { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .vc .blocklabel {
+    display: flex; align-items: center; gap: 8px; padding: 8px 16px 6px;
+    font-size: 12px; font-weight: 800; color: var(--color-text-muted);
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .vc .blocklabel .num {
+    width: 22px; height: 22px; border-radius: var(--radius-full);
+    background: var(--color-primary); color: #fff; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .vc .pick-scroll { flex: 1; overflow-y: auto; padding: 4px 14px 12px; }
+  .vc .block-say {
+    background: var(--color-bg-soft);
+    border-top: 2px solid var(--color-border);
+    border-radius: 28px 28px 0 0;
+    padding: 8px 16px 18px;
+    flex-shrink: 0;
+  }
+  .vc .say-card {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 13px 14px;
+    display: flex; flex-direction: column; gap: 11px; box-shadow: var(--shadow-sm);
+  }
+  .vc .say-phrase {
+    background: var(--color-bg); border-radius: var(--radius-md);
+    padding: 12px 14px; min-height: 56px; display: flex; align-items: center;
+  }
+  .vc .say-phrase .phrase { font-size: 18px; }
+  .vc .actions { gap: 9px; }
+  .vc .act-speak { flex: 1.6; }
+
+  /* ════════ VARIANTE D — Enxuto ════════ */
+  .vd .screen { padding: 0; }
+  .vd .header {
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    padding: 7px 14px;
+  }
+  .vd .header-top { display: flex; align-items: center; gap: 10px; }
+  .vd .header-top .t { flex: 1; text-align: center; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+  .vd .scroll { flex: 1; overflow-y: auto; padding: 10px 14px 6px; }
+  .vd .composer {
+    background: var(--color-surface); border-top: 1px solid var(--color-border);
+    border-radius: 26px 26px 0 0; padding: 12px 14px 16px;
+    display: flex; flex-direction: column; gap: 9px;
+    box-shadow: 0 -6px 20px rgba(74,63,43,0.06);
+  }
+  .vd .phrase-strip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 7px 7px 7px 12px;
+  }
+  .vd .phrase-strip .chips { flex: 1; min-height: 40px; }
+  .vd .inline-gen {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; border: none;
+    background: var(--color-generate); color: var(--color-generate-ink);
+    font-size: 19px; cursor: pointer; transition: all 0.14s ease;
+  }
+  .vd .inline-gen:hover { background: var(--color-generate-hover); }
+  .vd .inline-gen:active { transform: scale(0.92); }
+  .strip-clear {
+    flex-shrink: 0; background: transparent; border: none;
+    color: var(--color-text-muted); font-family: var(--font-sans);
+    font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 8px 8px;
+    text-decoration: underline; text-underline-offset: 3px; white-space: nowrap;
+    transition: color 0.13s ease; display: none;
+  }
+  .strip-clear:hover { color: var(--color-danger); }
+  .strip-clear:active { transform: scale(0.92); }
+  .vd .readline { font-size: 13px; font-weight: 700; color: var(--color-text); padding: 0 4px; min-height: 18px; }
+  .vd .readline.empty { color: var(--color-text-soft); font-weight: 600; }
+  .vd .speak-wide {
+    width: 100%; background: var(--color-accent); color: #fff; border: none;
+    border-radius: var(--radius-md); padding: 15px; cursor: pointer;
+    font-family: var(--font-sans); font-size: 17px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    box-shadow: var(--shadow-sm); transition: all 0.14s ease;
+  }
+  .vd .speak-wide:hover { background: var(--color-accent-hover); }
+  .vd .speak-wide:active { transform: scale(0.97); }
+
+  /* ════════ VARIANTE E — Modo Foco ════════ */
+  .ve .screen { padding: 0; }
+  .ve .ve-top {
+    display: flex; align-items: center; gap: 8px; padding: 8px 14px 6px;
+  }
+  .ve .cat-single {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 800;
+    padding: 9px 16px; border-radius: var(--radius-full);
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    color: var(--color-text); cursor: pointer; transition: all 0.15s ease;
+  }
+  .ve .cat-single:hover { border-color: var(--color-primary); }
+  .ve .cat-single .chev { color: var(--color-text-muted); font-size: 11px; }
+  .ve .iconbtn.ghost { border-color: transparent; background: transparent; }
+  .ve .scroll { flex: 1; overflow-y: auto; padding: 8px 14px 6px; }
+  .ve .grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ve .picto { padding: 17px 6px 14px; }
+  .ve .picto .glyph { width: 68px; height: 68px; font-size: 40px; }
+  .ve .picto .star { display: none; }
+  .ve .composer {
+    background: var(--color-surface); border-top: 1px solid var(--color-border);
+    border-radius: 28px 28px 0 0; padding: 12px 14px 16px;
+    display: flex; flex-direction: column; gap: 9px;
+    box-shadow: 0 -7px 22px rgba(74,63,43,0.07);
+  }
+  .ve .phrase-strip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 8px 8px 8px 13px;
+  }
+  .ve .phrase-strip .chips { flex: 1; min-height: 44px; }
+  .ve .inline-gen {
+    width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px; border: none;
+    background: var(--color-generate); color: var(--color-generate-ink);
+    font-size: 20px; cursor: pointer; transition: all 0.14s ease;
+  }
+  .ve .inline-gen:hover { background: var(--color-generate-hover); }
+  .ve .inline-gen:active { transform: scale(0.92); }
+  .ve .readline { font-size: 13px; font-weight: 700; color: var(--color-text); padding: 0 4px; min-height: 18px; }
+  .ve .readline.empty { color: var(--color-text-soft); font-weight: 600; }
+  .ve .speak-wide {
+    width: 100%; background: var(--color-accent); color: #fff; border: none;
+    border-radius: var(--radius-lg); padding: 17px; cursor: pointer;
+    font-family: var(--font-sans); font-size: 18px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: var(--shadow-md); transition: all 0.14s ease;
+  }
+  .ve .speak-wide:hover { background: var(--color-accent-hover); }
+  .ve .speak-wide:active { transform: scale(0.97); }
+
+  /* ════════ COMPARAÇÃO F — Apagar figuras ════════ */
+  .cmp { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .cmp-col {
+    width: 332px; background: var(--color-surface);
+    border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+    padding: 18px; box-shadow: var(--shadow-sm);
+  }
+  .cmp-col .ctag {
+    display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--color-primary-ink);
+    background: var(--color-primary-soft); padding: 3px 9px;
+    border-radius: var(--radius-full); margin-bottom: 8px;
+  }
+  .cmp-col.chosen {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-soft), var(--shadow-md);
+  }
+  .cmp-col h3 { font-size: 16px; font-weight: 800; }
+  .cmp-col .desc {
+    font-size: 12.5px; color: var(--color-text-muted);
+    margin: 5px 0 14px; line-height: 1.5; min-height: 72px;
+  }
+  .mini-strip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 8px 8px 8px 12px; min-height: 60px;
+  }
+  .mc-chips { display: flex; gap: 7px; flex: 1; flex-wrap: wrap; }
+  .mc-chip {
+    position: relative; width: 42px; height: 42px; border-radius: 12px;
+    background: var(--color-surface); border: 1.5px solid var(--color-border-strong);
+    font-size: 23px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.17s ease, opacity 0.17s ease, border-color 0.13s ease;
+  }
+  .mc-hint { font-size: 11.5px; color: var(--color-text-soft); margin-top: 10px; font-weight: 600; line-height: 1.4; }
+
+  /* T1 — link discreto */
+  .mini-strip[data-t="1"] .mc-chip:hover { border-color: var(--color-danger); }
+  .mc-clear {
+    flex-shrink: 0; background: transparent; border: none;
+    color: var(--color-text-muted); font-family: var(--font-sans);
+    font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 8px 8px;
+    text-decoration: underline; text-underline-offset: 3px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.18s ease, color 0.13s ease;
+  }
+  .mc-clear.show { opacity: 1; pointer-events: auto; }
+  .mc-clear:hover { color: var(--color-danger); }
+
+  /* T2 — backspace */
+  .mc-back {
+    flex-shrink: 0; width: 46px; height: 46px; border-radius: 13px;
+    background: var(--color-surface-2); border: 1px solid var(--color-border);
+    color: var(--color-text); font-size: 19px; cursor: pointer;
+    transition: all 0.13s ease;
+  }
+  .mc-back:hover { background: var(--color-bg-soft); border-color: var(--color-border-strong); }
+  .mc-back:active { transform: scale(0.92); }
+
+  /* T3 — modo editar */
+  .mc-row { display: flex; align-items: center; gap: 8px; }
+  .mc-row .mini-strip { flex: 1; }
+  .mc-edit {
+    flex-shrink: 0; background: var(--color-surface-2);
+    border: 1px solid var(--color-border); border-radius: var(--radius-full);
+    font-family: var(--font-sans); font-size: 12px; font-weight: 800;
+    color: var(--color-text-muted); padding: 10px 15px; cursor: pointer;
+    transition: all 0.14s ease;
+  }
+  .mc-edit:hover { border-color: var(--color-border-strong); }
+  .mc-edit.on { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+  .mini-strip.editing .mc-chip { animation: jiggle 0.32s ease-in-out infinite; }
+  @keyframes jiggle {
+    0%,100% { transform: rotate(-2.4deg); }
+    50% { transform: rotate(2.4deg); }
+  }
+  .mc-minus {
+    position: absolute; top: -7px; left: -7px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #4A443A; color: #fff; font-size: 15px; font-weight: 800;
+    align-items: center; justify-content: center; line-height: 1;
+    border: 2px solid var(--color-surface); display: none;
+  }
+  .mini-strip.editing .mc-minus { display: flex; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--color-text); color: var(--color-bg);
+    padding: 12px 22px; border-radius: var(--radius-full);
+    font-size: 14px; font-weight: 700; box-shadow: var(--shadow-lg);
+    opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 9999;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Toolbar do sketch ── */
+  #sketch-tools {
+    position: fixed; bottom: 12px; right: 12px; z-index: 9999;
+    font-family: system-ui; font-size: 12px;
+    background: rgba(42,38,32,0.92); color: #fff;
+    padding: 9px 13px; border-radius: 10px; opacity: 0.45;
+    transition: opacity 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools select {
+    font-family: system-ui; font-size: 12px; padding: 3px 6px;
+    border-radius: 6px; border: none;
+  }
+  .pulse { animation: pulse 0.6s ease; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 40% { transform: scale(1.06); } }
+</style>
+</head>
+<body>
+
+<div id="vnav">
+  <span class="brand">Fala <small>· 001 tela & paleta</small></span>
+  <button class="vtab" onclick="showVariant('a',this)">A · Moldura Calma</button>
+  <button class="vtab" onclick="showVariant('b',this)">B · Foco no Conteúdo</button>
+  <button class="vtab" onclick="showVariant('c',this)">C · Dois Blocos</button>
+  <button class="vtab active" onclick="showVariant('d',this)">D · Enxuto ✄ ★</button>
+  <button class="vtab" onclick="showVariant('e',this)">E · Modo Foco ✄</button>
+  <button class="vtab" onclick="showVariant('f',this)">F · Apagar figuras ⚑</button>
+</div>
+
+<!-- ════════════════ VARIANTE A ════════════════ -->
+<div class="stage" id="variant-a">
+  <div class="stage-caption">
+    <h2>A · Moldura Calma</h2>
+    <p>A estrutura vertical clássica, refeita com calma. Cabeçalho suave, compositor
+       ancorado embaixo como uma "bandeja". Tudo visível de uma vez — nada se esconde.</p>
+  </div>
+  <div class="phone va">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen variant" data-v="a">
+      <div class="header">
+        <div class="header-top">
+          <button class="iconbtn" title="Configurações do cuidador">⚙️</button>
+          <div class="title-wrap">
+            <div class="t">Fala</div>
+            <div class="sub">comunicação assistiva</div>
+          </div>
+          <button class="iconbtn" title="Buscar">🔍</button>
+        </div>
+      </div>
+      <div class="cats"></div>
+      <div class="scroll">
+        <div class="grid"></div>
+      </div>
+      <div class="corev-wrap"><div class="corev-bar"></div></div>
+      <div class="composer">
+        <div class="chips"></div>
+        <div class="phrase-box"><span class="phrase empty" data-placeholder="Toque nos símbolos para montar a frase…"></span></div>
+        <div class="actions">
+          <button class="act act-clear"><span class="aico">🧹</span><span class="alabel">Limpar</span></button>
+          <button class="act act-gen"><span class="aico">✨</span><span class="alabel">Gerar</span></button>
+          <button class="act act-speak"><span class="aico">🔊</span><span class="alabel">Ouvir</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ VARIANTE B ════════════════ -->
+<div class="stage" id="variant-b">
+  <div class="stage-caption">
+    <h2>B · Foco no Conteúdo</h2>
+    <p>Moldura mínima: cabeçalho fino, pictogramas maiores ocupando a tela toda.
+       O compositor flutua sobre o conteúdo como uma bandeja elevada, com o botão
+       Ouvir em destaque circular.</p>
+  </div>
+  <div class="phone vb">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen variant" data-v="b">
+      <div class="topbar">
+        <div class="t">Fala<span>.</span></div>
+        <button class="iconbtn" title="Buscar">🔍</button>
+        <button class="iconbtn" title="Configurações">⚙️</button>
+      </div>
+      <div class="cats"></div>
+      <div class="scroll">
+        <div class="grid"></div>
+      </div>
+      <div class="dock">
+        <div class="chips"></div>
+        <div class="dock-row">
+          <div class="phrase-box"><span class="phrase empty" data-placeholder="Monte sua frase…"></span></div>
+          <button class="fab act-speak" title="Ouvir">🔊</button>
+        </div>
+        <div class="mini-actions">
+          <button class="mini mini-gen act-gen">✨ Gerar frase</button>
+          <button class="mini mini-clear act-clear">🧹 Limpar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ VARIANTE C ════════════════ -->
+<div class="stage" id="variant-c">
+  <div class="stage-caption">
+    <h2>C · Dois Blocos</h2>
+    <p>A tela é dividida com clareza: <b>1 · Escolher</b> (em cima) e
+       <b>2 · Minha frase</b> (embaixo, num bloco visualmente distinto). Separação
+       forte reduz a carga cognitiva — a criança sempre sabe onde está.</p>
+  </div>
+  <div class="phone vc">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen variant" data-v="c">
+      <div class="vc-topbar">
+        <button class="iconbtn" title="Configurações">⚙️</button>
+        <div class="t">Fala</div>
+        <button class="iconbtn" title="Buscar">🔍</button>
+      </div>
+      <div class="block-pick">
+        <div class="blocklabel"><span class="num">1</span> Escolher palavras</div>
+        <div class="cats"></div>
+        <div class="pick-scroll">
+          <div class="grid"></div>
+        </div>
+      </div>
+      <div class="block-say">
+        <div class="blocklabel"><span class="num">2</span> Minha frase</div>
+        <div class="say-card">
+          <div class="chips"></div>
+          <div class="say-phrase"><span class="phrase empty" data-placeholder="Sua frase aparece aqui…"></span></div>
+          <div class="actions">
+            <button class="act act-clear"><span class="aico">🧹</span><span class="alabel">Limpar</span></button>
+            <button class="act act-gen"><span class="aico">✨</span><span class="alabel">Gerar</span></button>
+            <button class="act act-speak"><span class="aico">🔊</span><span class="alabel">Ouvir frase</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ VARIANTE D — Enxuto ════════════════ -->
+<div class="stage active" id="variant-d">
+  <div class="stage-caption">
+    <h2>D · Enxuto ✄</h2>
+    <p>Layout A, decluttered. Cortados: o slogan e a <b>barra de vocabulário</b>
+       (redundante — eu/quero/sim já estão na grade). O botão Limpar fixo virou
+       uma <b>🗑 contextual</b> que só aparece quando há figuras. Categorias 7 → 5.
+       <b>De ~11 blocos para 8.</b></p>
+  </div>
+  <div class="phone vd">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen variant" data-v="d">
+      <div class="header">
+        <div class="header-top">
+          <button class="iconbtn" title="Configurações do cuidador">⚙️</button>
+          <div class="t">Fala</div>
+          <button class="iconbtn" title="Buscar">🔍</button>
+        </div>
+      </div>
+      <div class="cats" data-count="5"></div>
+      <div class="scroll"><div class="grid"></div></div>
+      <div class="composer">
+        <div class="phrase-strip">
+          <div class="chips"></div>
+          <button class="strip-clear act-clear" title="Apagar tudo">limpar</button>
+          <button class="inline-gen act-gen" title="Gerar frase com IA">✨</button>
+        </div>
+        <div class="readline phrase empty" data-placeholder="A frase falada aparece aqui…"></div>
+        <button class="speak-wide act-speak"><span>🔊</span><span>Ouvir</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ VARIANTE E — Modo Foco ════════════════ -->
+<div class="stage" id="variant-e">
+  <div class="stage-caption">
+    <h2>E · Modo Foco ✄</h2>
+    <p>O corte radical. Some a fileira de categorias (vira <b>um botão</b> que abre
+       uma folha), some o título, a busca recolhe. Sobra: grade grande + frase +
+       Ouvir. <b>De ~11 blocos para 5.</b> A 🗑 aparece só quando há figuras.
+       A criança vê quase só pictogramas.</p>
+  </div>
+  <div class="phone ve">
+    <div class="statusbar"><span>9:41</span><span class="dots">● ● ●  ▮▮▮</span></div>
+    <div class="screen variant" data-v="e">
+      <div class="ve-top">
+        <button class="iconbtn ghost" title="Configurações do cuidador">⚙️</button>
+        <button class="cat-single" onclick="showToast('Abre a folha de categorias')">
+          <span>📂</span><span>Tudo</span><span class="chev">▾</span>
+        </button>
+        <button class="iconbtn ghost" title="Buscar">🔍</button>
+      </div>
+      <div class="scroll"><div class="grid"></div></div>
+      <div class="composer">
+        <div class="phrase-strip">
+          <div class="chips"></div>
+          <button class="strip-clear act-clear" title="Apagar tudo">limpar</button>
+          <button class="inline-gen act-gen" title="Gerar frase com IA">✨</button>
+        </div>
+        <div class="readline phrase empty" data-placeholder="A frase falada aparece aqui…"></div>
+        <button class="speak-wide act-speak"><span>🔊</span><span>Ouvir frase</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ COMPARAÇÃO F — Apagar figuras ════════════════ -->
+<div class="stage" id="variant-f">
+  <div class="stage-caption">
+    <h2>F · Apagar figuras — 3 jeitos limpos</h2>
+    <p>O badge ✕ vermelho e a caixinha de lixeira ficaram feios. Aqui três formas
+       de apagar <b>integradas à barra</b>, sem adesivo de erro e sem remendo.
+       Todas funcionam de verdade — escolha a que parece melhor.</p>
+  </div>
+  <div class="cmp">
+
+    <div class="cmp-col chosen">
+      <span class="ctag">opção 1 · escolhida ★</span>
+      <h3>Tocar para tirar</h3>
+      <p class="desc">As figuras ficam limpas, sem nenhum badge. Toque numa figura
+        e ela some com uma animação suave. Para apagar tudo, um link discreto
+        <b>"limpar"</b> aparece ao lado — só quando há figuras.</p>
+      <div class="mini-strip" data-t="1">
+        <div class="mc-chips"></div>
+        <button class="mc-clear">limpar</button>
+      </div>
+      <p class="mc-hint">Toque numa figura para tirá-la.</p>
+    </div>
+
+    <div class="cmp-col">
+      <span class="ctag">opção 2</span>
+      <h3>Apagar como num teclado</h3>
+      <p class="desc">Um único botão <b>⌫</b> tira a última figura — igual a digitar.
+        Segure o botão para limpar tudo. Um controle só, footprint igual ao do ✨,
+        zero poluição. É o padrão de apps AAC de verdade.</p>
+      <div class="mini-strip" data-t="2">
+        <div class="mc-chips"></div>
+        <button class="mc-back" title="Apagar última (segure p/ limpar tudo)">⌫</button>
+      </div>
+      <p class="mc-hint">⌫ tira a última. Segure ⌫ para limpar tudo.</p>
+    </div>
+
+    <div class="cmp-col">
+      <span class="ctag">opção 3</span>
+      <h3>Modo editar</h3>
+      <p class="desc">No uso normal as figuras ficam intocáveis — nada de remoção
+        acidental. O botão <b>"editar"</b> faz aparecer um − em cada figura
+        (estilo iOS, cinza discreto). Tocou, voltou ao normal.</p>
+      <div class="mc-row">
+        <div class="mini-strip" data-t="3">
+          <div class="mc-chips"></div>
+        </div>
+        <button class="mc-edit">editar</button>
+      </div>
+      <p class="mc-hint">"Editar" mostra um − discreto em cada figura.</p>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="sketch-tools">
+  <span>tema</span>
+  <select id="theme-switcher" onchange="document.getElementById('theme-link').href='../themes/'+this.value+'.css'">
+    <option value="default">Sálvia &amp; Creme</option>
+    <option value="terracota">Terracota</option>
+    <option value="sereno-escuro">Sereno Escuro</option>
+  </select>
+</div>
+
+<script>
+  /* ── Dados ── */
+  const PICTOS = [
+    {e:'🧒',l:'eu',fav:true},{e:'✋',l:'quero',fav:true},{e:'🍴',l:'comer'},
+    {e:'🥤',l:'beber'},{e:'💧',l:'água'},{e:'🍎',l:'maçã'},
+    {e:'🧸',l:'brincar',fav:true},{e:'🚽',l:'banheiro'},{e:'👩',l:'mamãe'},
+    {e:'😴',l:'dormir'},{e:'📖',l:'livro'},{e:'🎵',l:'música'},
+    {e:'🤗',l:'abraço'},{e:'⚽',l:'bola'},{e:'🌳',l:'parque'}
+  ];
+  const CATS = ['⭐ Favoritos','Tudo','💬 Frases','📅 Rotina','🏞 Cenas','🍎 Comer','😊 Sentir'];
+  const COREV = ['EU','QUERO','MAIS','SIM','NÃO','ACABOU','AJUDA'];
+
+  /* ── Render ── */
+  function buildGrid(el){
+    el.innerHTML = PICTOS.map(p =>
+      `<div class="picto${p.fav?' fav':''}" data-emoji="${p.e}" data-label="${p.l}">
+         <span class="star">★</span>
+         <span class="glyph">${p.e}</span>
+         <span class="plabel">${p.l}</span>
+       </div>`).join('');
+  }
+  function buildCats(el){
+    const n = el.dataset.count ? +el.dataset.count : CATS.length;
+    el.innerHTML = CATS.slice(0, n).map((c,i) =>
+      `<button class="cat${i===1?' on':''}">${c}</button>`).join('');
+  }
+  function buildCorev(el){
+    el.innerHTML = COREV.map(w => `<button class="cvbtn" data-word="${w}">${w}</button>`).join('');
+  }
+  document.querySelectorAll('.grid').forEach(buildGrid);
+  document.querySelectorAll('.cats').forEach(buildCats);
+  document.querySelectorAll('.corev-bar').forEach(buildCorev);
+
+  /* ── Estado / compositor ── */
+  function refreshPhrase(v){
+    const labels = [...v.querySelectorAll('.chips .chip')].map(c => c.dataset.label);
+    const ph = v.querySelector('.phrase');
+    const hint = v.querySelector('.chips .empty-hint');
+    // Lixeira contextual: só aparece quando há figuras selecionadas
+    v.querySelectorAll('.strip-clear').forEach(b => b.style.display = labels.length ? 'flex' : 'none');
+    if (labels.length){
+      ph.textContent = labels.join(' ');
+      ph.classList.remove('empty');
+      if (hint) hint.remove();
+    } else {
+      ph.textContent = ph.dataset.placeholder;
+      ph.classList.add('empty');
+      if (!hint){
+        const h = document.createElement('span');
+        h.className = 'empty-hint';
+        h.textContent = 'nenhum símbolo ainda';
+        v.querySelector('.chips').appendChild(h);
+      }
+    }
+  }
+  function addChip(v, emoji, label){
+    const chips = v.querySelector('.chips');
+    const hint = chips.querySelector('.empty-hint');
+    if (hint) hint.remove();
+    const c = document.createElement('button');
+    c.className = 'chip'; c.dataset.label = label;
+    c.innerHTML = '<span>' + emoji + '</span>';
+    c.title = 'Toque para remover esta figura';
+    c.onclick = () => { popChip(c, () => refreshPhrase(v)); };
+    chips.appendChild(c);
+    chips.scrollLeft = chips.scrollWidth;
+    refreshPhrase(v);
+  }
+
+  document.addEventListener('click', e => {
+    const picto = e.target.closest('.picto');
+    if (picto){
+      const v = picto.closest('.variant');
+      addChip(v, picto.dataset.emoji, picto.dataset.label);
+      picto.classList.add('pulse');
+      setTimeout(() => picto.classList.remove('pulse'), 600);
+      return;
+    }
+    const cv = e.target.closest('.cvbtn');
+    if (cv){
+      addChip(cv.closest('.variant'), '·', cv.dataset.word.toLowerCase());
+      return;
+    }
+    const cat = e.target.closest('.cat');
+    if (cat){
+      cat.parentElement.querySelectorAll('.cat').forEach(c => c.classList.remove('on'));
+      cat.classList.add('on');
+      return;
+    }
+    const clear = e.target.closest('.act-clear');
+    if (clear){
+      const v = clear.closest('.variant');
+      v.querySelectorAll('.chips .chip').forEach(c => c.remove());
+      refreshPhrase(v);
+      return;
+    }
+    const gen = e.target.closest('.act-gen');
+    if (gen){
+      const v = gen.closest('.variant');
+      const ph = v.querySelector('.phrase');
+      if (v.querySelectorAll('.chips .chip').length === 0){
+        showToast('Escolha alguns símbolos primeiro 🙂'); return;
+      }
+      const old = ph.textContent;
+      ph.textContent = 'Gerando…'; ph.classList.remove('empty');
+      gen.style.opacity = '0.6';
+      setTimeout(() => {
+        ph.textContent = 'Eu quero comer uma maçã, por favor.';
+        gen.style.opacity = '1';
+        showToast('✨ Frase organizada pela IA');
+      }, 800);
+      return;
+    }
+    const speak = e.target.closest('.act-speak');
+    if (speak){
+      const v = speak.closest('.variant');
+      if (v.querySelectorAll('.chips .chip').length === 0){
+        showToast('Monte uma frase para ouvir 🙂'); return;
+      }
+      speak.classList.add('pulse');
+      setTimeout(() => speak.classList.remove('pulse'), 600);
+      showToast('🔊 Falando a frase…');
+      return;
+    }
+  });
+
+  /* ── Toast ── */
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  /* ── Variantes ── */
+  function showVariant(id, btn){
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
+    document.getElementById('variant-' + id).classList.add('active');
+    btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── Pré-carrega uma frase de exemplo em cada variante ── */
+  document.querySelectorAll('.variant').forEach(v => {
+    ['🧒|eu','✋|quero','🍴|comer'].forEach(pair => {
+      const [e,l] = pair.split('|');
+      addChip(v, e, l);
+    });
+  });
+
+  /* ── Comparação F: apagar figuras ── */
+  const MINI = ['🧒|eu','✋|quero','🍴|comer','🍎|maçã'];
+  function fillMini(strip, withMinus){
+    const wrap = strip.querySelector('.mc-chips');
+    wrap.innerHTML = '';
+    MINI.forEach(p => {
+      const [e,l] = p.split('|');
+      const c = document.createElement('button');
+      c.className = 'mc-chip'; c.dataset.label = l;
+      c.innerHTML = (withMinus ? '<span class="mc-minus">−</span>' : '') + '<span>' + e + '</span>';
+      wrap.appendChild(c);
+    });
+  }
+  function popChip(c, cb){
+    c.style.transform = 'scale(0)'; c.style.opacity = '0';
+    setTimeout(() => { c.remove(); if (cb) cb(); }, 175);
+  }
+
+  /* T1 — tocar para tirar + link "limpar" */
+  const t1 = document.querySelector('.mini-strip[data-t="1"]');
+  const t1clear = t1.querySelector('.mc-clear');
+  fillMini(t1, false);
+  function t1sync(){ t1clear.classList.toggle('show', t1.querySelectorAll('.mc-chip').length > 0); }
+  t1sync();
+  t1.addEventListener('click', e => {
+    const c = e.target.closest('.mc-chip');
+    if (c){ popChip(c, t1sync); showToast('Figura removida'); }
+  });
+  t1clear.addEventListener('click', () => {
+    t1.querySelectorAll('.mc-chip').forEach(c => popChip(c, t1sync));
+    showToast('Frase apagada');
+  });
+
+  /* T2 — backspace (segurar p/ limpar tudo) */
+  const t2 = document.querySelector('.mini-strip[data-t="2"]');
+  const t2back = t2.querySelector('.mc-back');
+  fillMini(t2, false);
+  let holdTimer, held;
+  t2back.addEventListener('click', () => {
+    if (held){ held = false; return; }
+    const chips = t2.querySelectorAll('.mc-chip');
+    if (!chips.length){ showToast('Nada para apagar'); return; }
+    popChip(chips[chips.length - 1]);
+    showToast('Última figura removida');
+  });
+  function startHold(){
+    holdTimer = setTimeout(() => {
+      held = true;
+      t2.querySelectorAll('.mc-chip').forEach(c => popChip(c));
+      showToast('Frase apagada');
+    }, 600);
+  }
+  function cancelHold(){ clearTimeout(holdTimer); }
+  ['mousedown','touchstart'].forEach(ev => t2back.addEventListener(ev, startHold));
+  ['mouseup','mouseleave','touchend'].forEach(ev => t2back.addEventListener(ev, cancelHold));
+
+  /* T3 — modo editar */
+  const t3 = document.querySelector('.mini-strip[data-t="3"]');
+  const t3edit = document.querySelector('.mc-edit');
+  fillMini(t3, true);
+  t3edit.addEventListener('click', () => {
+    const on = t3.classList.toggle('editing');
+    t3edit.classList.toggle('on', on);
+    t3edit.textContent = on ? 'pronto' : 'editar';
+  });
+  t3.addEventListener('click', e => {
+    if (!t3.classList.contains('editing')) return;
+    const c = e.target.closest('.mc-chip');
+    if (c){ popChip(c); showToast('Figura removida'); }
+  });
+</script>
+</body>
+</html>
