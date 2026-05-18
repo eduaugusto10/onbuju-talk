@@ -1,10 +1,10 @@
 # STATE
 
 ## Current Position
-- Milestone: v5 - Refatoracao de Design no Estilo iOS - ARCHIVED (shipped 2026-04-21)
-- Phase: nenhuma ativa
-- Status: Aguardando nova milestone ou validacao manual em device (RELEASE-CHECKLIST.md).
-- Last activity: 2026-04-21 - Milestone v5 auditada, arquivada e cleanup executado.
+- Milestone: v6 - Redesign Visual Calmo
+- Phase: nao iniciada (definindo requisitos)
+- Status: Definindo requisitos
+- Last activity: 2026-05-18 - Milestone v6 iniciada (redesign visual a partir dos sketches).
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).

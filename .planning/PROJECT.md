@@ -10,35 +10,27 @@ Aplicativo AAC (comunicação aumentativa e alternativa) em React Native/Expo pa
 Entregar experiência mobile estável, rápida e offline-friendly para uso diário por pessoas que precisam de apoio de comunicação.
 
 ## Current State
-- Versao enviada: `v3`
-- Milestone 1 concluida e arquivada em `.planning/milestones/v1-ROADMAP.md`.
-- Requisitos da v1 arquivados em `.planning/milestones/v1-REQUIREMENTS.md`.
-- Milestone 3 concluida e arquivada em `.planning/milestones/v3-ROADMAP.md`.
-- Requisitos da v3 arquivados em `.planning/milestones/v3-REQUIREMENTS.md`.
-- Milestone v4 (Comunicacao Pessoal e Rotina Visual) concluida em 2026-04-21 (12/12 requisitos, aguardando arquivamento).
-- Milestone ativa: v5 - Refatoracao de Design no Estilo iOS.
+- Versao enviada: `v5`
+- Milestones 1, 3, 4 e 5 concluidas e arquivadas em `.planning/milestones/`.
+- Milestone ativa: v6 - Redesign Visual Calmo.
 
-## Current Milestone: v5 Refatoracao de Design no Estilo iOS
+## Current Milestone: v6 Redesign Visual Calmo
 
-**Goal:** Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone), preservando a funcionalidade completa entregue nas milestones v1-v4 e a restricao dura de simplicidade para o publico autista.
+**Goal:** Aplicar ao app real a direcao de design validada nos 4 sketches — paleta calma "Salvia & Creme", layout enxuto, novos cards, compositor reorganizado e configuracoes em drill-down — substituindo a estetica iOS azul da v5.
 
 **Target features:**
-- Design system iOS: tokens de cor (system blue, grays, grouped backgrounds), tipografia SF-like, escala de espacamento, raios de canto, sombras sutis
-- Header no estilo Navigation Bar do iOS
-- Barra de categorias como Segmented Control / pills horizontais estilo iOS
-- Campo de busca em estilo iOS search field
-- Grid de simbolos com cards iOS (raio, sombra, tap feedback)
-- Composer e botoes em variantes iOS (Filled/Tinted/Plain)
-- Modais convertidos para Bottom Sheets com grabber e backdrop desfocado (expo-blur)
-- Config "Ajustes" estilo iOS (inset grouped list, chevrons, switches)
-- Haptic feedback em toques principais via expo-haptics
+- Sistema de tema "Salvia & Creme" em `src/theme.ts`: paleta terrosa de baixo estimulo sensorial, fonte Nunito, raios/sombras suaves, 3 temas (claro, terracota, escuro calmo)
+- Tela principal redesenhada: layout enxuto, card de pictograma com cor de categoria, compositor "Ouvir heroi", apagar figura em 1 toque
+- Tela de configuracoes reorganizada: 10 abas planas viram 3 grupos (App / Conteudo da crianca / Cuidador) com navegacao drill-down
+- Regressao dos fluxos v1-v4 sem quebras e preparacao de release
 
 **Contexto-chave:**
-- Escopo exclusivamente visual/UX — zero mudanca de funcionalidade
-- Preservar fluxos das milestones 1-4 (composer, vocabulario core, frases prontas, historico, simbolos pessoais, voz gravada, rotina visual, categorias customizadas, admin)
-- Novas deps nativas (expo-haptics, expo-blur) requerem rebuild
-- Respeitar modo high-contrast e escala UI existentes
-- Numeracao de fases continua a partir da Phase 17
+- Escopo visual/UX — sem features funcionais novas; preservar toda a funcionalidade v1-v4
+- Decisoes de design empacotadas no skill `sketch-findings-fala` (auto-carregado em trabalho de UI)
+- Sketches interativos preservados em `.planning/sketches/`
+- Substitui a estetica iOS azul da v5 (que competia visualmente com os pictogramas)
+- Respeitar modo de contraste e escala de UI existentes
+- Numeracao de fases continua a partir da Phase 22
 
 ## Stack Atual
 - Expo SDK 54
@@ -93,4 +85,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-**Last updated:** 2026-04-21 (inicio da milestone v5 - refatoracao iOS)
+**Last updated:** 2026-05-18 (inicio da milestone v6 - redesign visual calmo)
