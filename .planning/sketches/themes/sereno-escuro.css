@@ -1,0 +1,61 @@
+/* ───────────────────────────────────────────────────────────
+   Fala Mobile — Tema "Sereno Escuro"
+   Modo escuro de baixo estímulo. Substitui o alto-contraste
+   preto/amarelo agressivo por um escuro quente e calmo.
+   Para uso noturno ou crianças sensíveis a brilho.
+   ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --color-bg:          #211F1B;   /* marrom-carvão quente, não preto puro */
+  --color-bg-soft:     #1A1916;
+  --color-surface:     #2C2A24;
+  --color-surface-2:   #34322B;
+  --color-border:      #423F36;
+  --color-border-strong:#565244;
+
+  --color-text:        #F0EADC;
+  --color-text-muted:  #A9A18C;
+  --color-text-soft:   #7C7565;
+
+  --color-primary:     #8FBBA3;   /* sálvia clareada para contraste */
+  --color-primary-hover:#A2C9B3;
+  --color-primary-soft:#33453C;
+  --color-primary-ink: #EAF3EC;
+
+  --color-generate:    #E8B468;
+  --color-generate-hover:#F0C17E;
+  --color-generate-soft:#4A3B22;
+  --color-generate-ink:#FBEFD6;
+
+  --color-accent:      #E0A07C;
+  --color-accent-hover:#EBAE8C;
+  --color-accent-soft: #46362C;
+
+  --color-danger:      #D89384;
+  --color-danger-soft: #45302B;
+  --color-success:     #8FBBA3;
+  --color-star:        #E8C572;
+
+  --font-display: 'Nunito', system-ui, sans-serif;
+  --font-sans:    'Nunito', system-ui, sans-serif;
+  --text-xs:   0.72rem;
+  --text-sm:   0.84rem;
+  --text-base: 1rem;
+  --text-lg:   1.14rem;
+  --text-xl:   1.34rem;
+  --text-2xl:  1.62rem;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   22px;
+  --radius-xl:   30px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.30);
+  --shadow-md: 0 6px 16px rgba(0,0,0,0.38);
+  --shadow-lg: 0 16px 34px rgba(0,0,0,0.46);
+}
