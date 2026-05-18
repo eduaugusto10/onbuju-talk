@@ -260,3 +260,92 @@ Goal: evoluir o Fala Mobile de montador de frases para ferramenta de comunicacao
 | 21. Regressao, Polimento e Release | 1/1 | Complete | 2026-04-21 |
 
 </details>
+
+## Milestone 6 - Redesign Visual Calmo
+
+Goal: aplicar ao app real a direcao de design validada nos 4 sketches — paleta calma "Salvia & Creme", layout enxuto, novos cards de pictograma, compositor reorganizado e configuracoes em drill-down — substituindo a estetica iOS azul da v5, que competia visualmente com os pictogramas. Escopo exclusivamente visual/UX: nenhuma feature funcional nova; toda a funcionalidade v1-v4 e preservada. Restricao dura mantida: simplicidade acima de riqueza de features (publico autista). Numeracao continua a partir da Phase 22.
+
+Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala` (`.claude/skills/sketch-findings-fala/`), com sketches interativos preservados em `.planning/sketches/`. O downstream planning deve consumir esse skill (tema vencedor em `sources/themes/default.css`, referencias em `references/`).
+
+### Phase 22 - Sistema de Tema "Salvia & Creme"
+- Objetivo: estabelecer o sistema de tema calmo de baixo estimulo sensorial como fundacao de design — paleta terrosa, fonte Nunito e 3 temas selecionaveis — substituindo a estetica iOS azul. Todas as demais fases da milestone dependem desta.
+- Entregas:
+  - `src/theme.ts` reescrito com a paleta "Salvia & Creme": salvia (ativo/selecionado), ouro (acao Gerar IA), terracota (acao Ouvir), creme (fundo e cards), texto quase-preto quente; remocao do azul iOS `#007AFF` como cor primaria. Tokens portados de `sources/themes/default.css`.
+  - Fonte Nunito carregada e exposta como token tipografico (pesos 400-800); nenhuma familia de fonte hardcoded fora dos tokens.
+  - 3 temas definidos como conjuntos de tokens: "Salvia & Creme" (padrao), "Terracota" e "Sereno Escuro" (modo escuro calmo que substitui o alto-contraste preto/amarelo agressivo).
+  - Seletor de tema na configuracao do cuidador com persistencia em AsyncStorage (nova chave em `STORAGE_KEYS`, hidratada no boot `useEffect`).
+  - Raios generosos (16-30px) e sombras baixas/suaves tingidas de quente nos tokens.
+- Depends on: nada (primeira fase da milestone)
+- Requisitos mapeados: VIS-01, VIS-02, VIS-03
+- Criterios de Sucesso:
+  1. App inteiro renderiza com a paleta Salvia & Creme; nenhum elemento exibe o azul iOS `#007AFF` como cor primaria.
+  2. Textos do app aparecem na fonte Nunito arredondada em vez da fonte de sistema.
+  3. Cuidador abre a configuracao, escolhe entre os 3 temas e o app reflete a troca imediatamente.
+  4. Apos reiniciar o app, o tema escolhido pelo cuidador permanece aplicado.
+- **UI hint**: yes
+
+### Phase 23 - Tela Principal Redesenhada
+- Objetivo: redesenhar a tela principal com o layout enxuto validado — sem slogan, sem barra de vocabulario competindo, cards de pictograma com cor de categoria, compositor com hierarquia "Ouvir heroi" e remocao de figura em 1 toque.
+- Entregas:
+  - Layout enxuto: remocao do slogan e da barra de vocabulario separada; vocabulario core integrado a grade sem competir como segunda barra.
+  - `SymbolCard` refeito no estilo validado: card limpo com a cor da categoria no bloco atras do pictograma e o rotulo em texto abaixo (sem etiqueta colorida).
+  - Compositor com hierarquia "Ouvir heroi": botao "Ouvir" dominante; botao "Gerar (IA)" rotulado e visivel porem menor, como acao de apoio (preservando-o no view padrao por ser funcionalidade core).
+  - Remocao de figura selecionada com 1 toque na propria figura; controle discreto "limpar" visivel apenas quando ha figuras, apagando todas.
+  - Aplicacao dos tokens da Phase 22 a header, busca, categorias e grade.
+- Depends on: Phase 22
+- Requisitos mapeados: TELA-01, TELA-02, TELA-03, TELA-04
+- Criterios de Sucesso:
+  1. Tela principal abre sem slogan e sem barra de vocabulario separada; o vocabulario core continua acessivel integrado.
+  2. Cada card de pictograma mostra a cor da categoria no bloco atras do simbolo, com rotulo em texto abaixo.
+  3. No compositor, "Ouvir" e visualmente o botao dominante e "Gerar (IA)" aparece menor mas rotulado e acionavel.
+  4. Usuario toca uma figura selecionada e ela e removida; o controle "limpar" so aparece quando ha figuras e apaga todas de uma vez.
+  5. Fluxo principal (buscar, selecionar, gerar, ouvir, salvar) continua funcionando sem regressao.
+- **UI hint**: yes
+
+### Phase 24 - Configuracoes Agrupadas com Drill-down
+- Objetivo: reorganizar a tela de configuracoes das 10 abas planas para um inicio agrupado em 3 grupos com navegacao drill-down, eliminando listas densas e expondo o gating de cuidador de forma clara.
+- Entregas:
+  - Inicio de configuracoes com 3 grupos — "App", "Conteudo da crianca" e "Cuidador" — substituindo as 10 abas planas.
+  - Navegacao drill-down: cada item abre sua propria tela com botao voltar (troca de estado de View, sem React Navigation); eliminacao das listas "rotulo + 3 botoes espremidos".
+  - Gating por grupo: cuidador deslogado ve apenas o grupo "App" disponivel; os grupos "Conteudo da crianca" e "Cuidador" exibem indicador de bloqueio e pedem senha.
+  - Aplicacao dos tokens da Phase 22 a todas as telas de configuracao.
+- Depends on: Phase 22
+- Requisitos mapeados: CFG-01, CFG-02, CFG-03
+- Criterios de Sucesso:
+  1. A tela de configuracoes abre com 3 grupos ("App", "Conteudo da crianca", "Cuidador") em vez de 10 abas planas.
+  2. Tocar um item de configuracao abre sua propria tela dedicada com botao voltar; nenhuma lista densa de "rotulo + 3 botoes" permanece.
+  3. Com o cuidador deslogado, apenas o grupo "App" e acessivel; os outros mostram indicador de bloqueio e pedem senha ao serem tocados.
+  4. Todos os ajustes existentes (voz, acessibilidade, editores) continuam acessiveis e funcionais via drill-down.
+- **UI hint**: yes
+
+### Phase 25 - Regressao e Release
+- Objetivo: regressao completa dos fluxos v1-v4 sob o novo design, correcao de bugs visuais detectados e preparacao do release da milestone v6.
+- Entregas:
+  - Regressao manual e automatizada de todos os fluxos v1-v4 (buscar, selecionar, gerar, ouvir, salvar, frases prontas, historico, simbolos pessoais, voz gravada, rotina, categorias, admin) sob o tema novo.
+  - Correcao de bugs visuais ou de layout detectados durante a regressao, incluindo verificacao nos 3 temas e respeito a escala de UI existente.
+  - Atualizacao de testes se a UI mudou ids/labels acessiveis.
+  - `npm run lint` e `npm run test` sem novas falhas.
+  - `RELEASE-CHECKLIST.md` atualizado com secao v6 e regressao completa.
+- Depends on: Phase 23, Phase 24
+- Requisitos mapeados: REG-01
+- Criterios de Sucesso:
+  1. Todos os fluxos v1-v4 passam regressao manual sem bugs visuais ou funcionais.
+  2. `npm run lint` limpo e `npm run test` sem novas falhas alem das pre-existentes herdadas.
+  3. Os 3 temas (Salvia & Creme, Terracota, Sereno Escuro) renderizam consistentemente nos fluxos principais.
+  4. Release checklist atualizado e marcado para v6.
+
+## Phase Summary (Milestone 6)
+
+- [ ] **Phase 22: Sistema de Tema "Salvia & Creme"** - Paleta terrosa de baixo estimulo, fonte Nunito e 3 temas em `src/theme.ts`.
+- [ ] **Phase 23: Tela Principal Redesenhada** - Layout enxuto, cards com cor de categoria, compositor Ouvir-heroi, apagar em 1 toque.
+- [ ] **Phase 24: Configuracoes Agrupadas com Drill-down** - 10 abas planas viram 3 grupos com navegacao drill-down e gating claro.
+- [ ] **Phase 25: Regressao e Release** - Regressao dos fluxos v1-v4 sem quebras e preparacao de release.
+
+## Progress Table (Milestone 6)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 22. Sistema de Tema "Salvia & Creme" | 0/0 | Not started | - |
+| 23. Tela Principal Redesenhada | 0/0 | Not started | - |
+| 24. Configuracoes Agrupadas com Drill-down | 0/0 | Not started | - |
+| 25. Regressao e Release | 0/0 | Not started | - |

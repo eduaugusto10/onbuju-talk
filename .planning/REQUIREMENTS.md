@@ -52,21 +52,21 @@
 
 ## Traceability
 
-| REQ-ID  | Category        | Phase | Notes |
-|---------|-----------------|-------|-------|
-| VIS-01  | Sistema Visual  | TBD   | Paleta Salvia & Creme em theme.ts |
-| VIS-02  | Sistema Visual  | TBD   | Fonte Nunito como token |
-| VIS-03  | Sistema Visual  | TBD   | 3 temas selecionaveis |
-| TELA-01 | Tela Principal  | TBD   | Layout enxuto |
-| TELA-02 | Tela Principal  | TBD   | Card com cor de categoria |
-| TELA-03 | Tela Principal  | TBD   | Compositor Ouvir-heroi |
-| TELA-04 | Tela Principal  | TBD   | Apagar figura em 1 toque |
-| CFG-01  | Configuracoes   | TBD   | Inicio agrupado em 3 grupos |
-| CFG-02  | Configuracoes   | TBD   | Navegacao drill-down |
-| CFG-03  | Configuracoes   | TBD   | Gating por grupo |
-| REG-01  | Regressao       | TBD   | Regressao dos fluxos v1-v4 |
+| REQ-ID  | Category        | Phase    | Notes |
+|---------|-----------------|----------|-------|
+| VIS-01  | Sistema Visual  | Phase 22 | Paleta Salvia & Creme em theme.ts |
+| VIS-02  | Sistema Visual  | Phase 22 | Fonte Nunito como token |
+| VIS-03  | Sistema Visual  | Phase 22 | 3 temas selecionaveis |
+| TELA-01 | Tela Principal  | Phase 23 | Layout enxuto |
+| TELA-02 | Tela Principal  | Phase 23 | Card com cor de categoria |
+| TELA-03 | Tela Principal  | Phase 23 | Compositor Ouvir-heroi |
+| TELA-04 | Tela Principal  | Phase 23 | Apagar figura em 1 toque |
+| CFG-01  | Configuracoes   | Phase 24 | Inicio agrupado em 3 grupos |
+| CFG-02  | Configuracoes   | Phase 24 | Navegacao drill-down |
+| CFG-03  | Configuracoes   | Phase 24 | Gating por grupo |
+| REG-01  | Regressao       | Phase 25 | Regressao dos fluxos v1-v4 |
 
 ---
 
-**Total:** 11 requirements | **Categorias:** 4 | **Status:** aguardando criacao do roadmap
-*Milestone v6 - Redesign Visual Calmo | Requisitos definidos em 2026-05-18*
+**Total:** 11 requirements | **Categorias:** 4 | **Status:** roadmap criado — 11/11 requisitos mapeados (Phases 22-25)
+*Milestone v6 - Redesign Visual Calmo | Requisitos definidos em 2026-05-18 | Roadmap em 2026-05-18*
