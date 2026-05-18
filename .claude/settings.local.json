@@ -36,7 +36,8 @@
       "Skill(gsd-new-milestone)",
       "Skill(gsd-new-milestone:*)",
       "Bash(git remote *)",
-      "Bash(git ls-remote *)"
+      "Bash(git ls-remote *)",
+      "Bash(git push *)"
     ]
   }
 }
