@@ -1,94 +1,72 @@
-# REQUIREMENTS - Milestone v5
+# REQUIREMENTS - Milestone v6
 
-**Milestone:** v5 - Refatoracao de Design no Estilo iOS
-**Goal:** Refatorar a aparencia do Fala Mobile para o idioma visual do iOS (iPhone), preservando a funcionalidade completa entregue nas milestones v1-v4 e a restricao dura de simplicidade para o publico autista.
+**Milestone:** v6 - Redesign Visual Calmo
+**Goal:** Aplicar ao app real a direcao de design validada nos 4 sketches — paleta calma "Salvia & Creme", layout enxuto, novos cards, compositor reorganizado e configuracoes em drill-down — substituindo a estetica iOS azul da v5.
 **Publico-alvo:** criancas autistas; restricao dura de simplicidade sobre riqueza de features.
-**Escopo:** exclusivamente visual/UX — nenhum requisito funcional novo.
+**Escopo:** visual/UX — nenhum requisito funcional novo. Toda a funcionalidade v1-v4 e preservada.
+**Fonte de design:** decisoes empacotadas no skill `sketch-findings-fala`; sketches em `.planning/sketches/`.
 
 ---
 
-## v5 Requirements
+## v6 Requirements
 
-### Design System (DS)
+### Sistema Visual (VIS)
 
-- [ ] **DS-01**: App usa paleta de cores iOS (system blue `#007AFF`, system grays, grouped backgrounds) como tokens centralizados em `src/theme.ts`.
-- [ ] **DS-02**: App usa escala tipografica iOS (largeTitle 34pt, title1 28pt, title2 22pt, body 17pt, footnote 13pt, caption 11pt) como tokens; nenhum `fontSize` hardcoded fora dos tokens.
-- [ ] **DS-03**: App usa raios de canto (8/12/16px), sombras sutis iOS-like e escala de espacamento 4/8/12/16/20/24 consistentes em todos os componentes.
+- [ ] **VIS-01**: App usa a paleta "Salvia & Creme" como tokens centralizados em `src/theme.ts` — salvia (ativo/selecionado), ouro (acao Gerar IA), terracota (acao Ouvir), creme (fundo e cards), texto quase-preto quente; substitui o azul iOS `#007AFF` como cor primaria.
+- [ ] **VIS-02**: App usa a fonte Nunito (arredondada) como token tipografico, substituindo a fonte de sistema; nenhuma familia de fonte hardcoded fora dos tokens.
+- [ ] **VIS-03**: Cuidador pode escolher entre 3 temas — "Salvia & Creme" (padrao), "Terracota" e "Sereno Escuro" (modo escuro calmo que substitui o alto-contraste preto/amarelo agressivo); a escolha persiste apos reiniciar o app.
 
-### Tela Principal (MAIN)
+### Tela Principal (TELA)
 
-- [ ] **MAIN-01**: Header exibe titulo em estilo Navigation Bar iOS (titulo grande ou centralizado conforme padrao iOS), com acoes alinhadas a direita.
-- [ ] **MAIN-02**: Barra de categorias usa estilo Segmented Control / pills iOS com selecionado em destaque e nao-selecionado em tom neutro.
-- [ ] **MAIN-03**: Campo de busca (quando visivel) usa estilo iOS search field — background secundario, cantos arredondados, placeholder pt-BR e icone de lupa.
-- [ ] **MAIN-04**: Cards da grade de simbolos seguem estilo iOS — raio 12-16px, sombra sutil, tap feedback (opacidade ou escala leve).
-- [ ] **MAIN-05**: Composer (selecao + frase + acoes) usa botoes em variantes iOS (Filled/Tinted/Plain), com icones e espacamento caracteristico.
+- [ ] **TELA-01**: Tela principal usa layout enxuto — sem slogan e sem barra de vocabulario separada da grade; o vocabulario core continua acessivel integrado, sem competir como segunda barra.
+- [ ] **TELA-02**: Cards de pictograma usam o estilo validado — card limpo com a cor da categoria no bloco atras do pictograma e o rotulo em texto abaixo (nunca etiqueta colorida).
+- [ ] **TELA-03**: Compositor usa hierarquia "Ouvir heroi" — "Ouvir" e o botao dominante; "Gerar (IA)" fica rotulado e visivel, porem menor, como acao de apoio.
+- [ ] **TELA-04**: Usuario remove uma figura selecionada com 1 toque na propria figura; um controle discreto "limpar" aparece apenas quando ha figuras e apaga todas.
 
-### Sheets e Modais (SHEET)
+### Configuracoes (CFG)
 
-- [ ] **SHEET-01**: Modais principais (config, draft de simbolo, gravacao de voz, naming de grupo, regravar voz) abrem como bottom sheets com grabber visivel e ancorados no safe-area bottom.
-- [ ] **SHEET-02**: Backdrop dos sheets usa blur / material translucido (via `expo-blur`) em vez de overlay solido.
-- [ ] **SHEET-03**: Sheets possuem header com "Cancelar" a esquerda e "Pronto"/"Salvar" a direita, estilo iOS.
+- [ ] **CFG-01**: Tela de configuracoes usa inicio agrupado em 3 grupos — "App", "Conteudo da crianca" e "Cuidador" — substituindo as 10 abas planas.
+- [ ] **CFG-02**: Configuracoes usam navegacao drill-down — cada item abre sua propria tela com botao voltar; listas densas de "rotulo + 3 botoes espremidos" sao eliminadas.
+- [ ] **CFG-03**: Cuidador deslogado ve apenas o grupo "App" disponivel; os demais grupos exibem indicador de bloqueio e pedem senha (sem abas bloqueadas expostas).
 
-### Config "Ajustes" (CFG)
+### Regressao e Release (REG)
 
-- [ ] **CFG-01**: Config apresenta secoes agrupadas estilo iOS (inset grouped list), com labels de secao em caixa pequena (UPPERCASE ou small-caps) acima de cada grupo.
-- [ ] **CFG-02**: Rows de config usam layout de linha iOS — texto/label a esquerda, valor ou accessory a direita, chevron `>` quando navegavel.
-- [ ] **CFG-03**: Toggles binarios (feedback visual, contraste, ...) usam componente `Switch` nativo estilo iOS em vez de `OptionChip`.
-
-### Feedback Tatil (FDB)
-
-- [ ] **FDB-01**: App aciona haptic feedback via `expo-haptics` em toques principais (falar frase, marcar passo de rotina, adicionar simbolo ao composer, salvar).
-
-### Regressao (REG)
-
-- [ ] **REG-01**: Todos os fluxos das milestones v1-v4 continuam funcionando sem regressao apos a refatoracao visual (composer, gerar IA, voz TTS, favoritos, vocabulario core, frases prontas, historico, simbolos pessoais via camera/galeria, voz gravada, rotina visual, categorias customizadas, admin).
+- [ ] **REG-01**: Todos os fluxos v1-v4 (buscar, selecionar, gerar, ouvir, salvar, frases prontas, historico, simbolos pessoais, voz gravada, rotina, categorias, admin) passam regressao sem quebras; `npm run lint` e `npm run test` sem novas falhas; checklist de release atualizado.
 
 ---
 
 ## Future Requirements (Deferred)
 
-Features avaliadas para v5 mas adiadas para milestones futuras:
-
-- **Dark mode iOS completo** — o modo high-contrast atual ja cobre parte do caso; migrar para semantic colors iOS (system*) em milestone futura.
-- **SF Symbols via expo-symbols** — usar glifos iOS nativos em vez de emojis; exige native module adicional.
-- **Large title com collapse animado** — `Header` animado que encolhe ao rolar. Complexidade alta para beneficio incremental.
-- **Animacoes de transicao iOS (spring)** — `react-native-reanimated` com springs padrao iOS.
-- **Context menus (long press menu iOS)** — menu de acoes estilo iOS ao long-press em simbolos/frases.
-- **Swipe actions em rows** — gesto de deslizar para revelar acoes (editar/remover).
+- **Redesenho de layout das telas de Cenas (VSD) e Rotina (visao da crianca)** — nao foram esbocadas nesta rodada; recebem o tema novo automaticamente, mas mantem a estrutura atual.
+- **Pictogramas reais do ARASAAC ajustados na paleta nova** — os sketches usaram emoji como stand-in; validar/ajustar os pictogramas reais com a paleta Salvia & Creme.
 
 ## Out of Scope
 
-Features explicitamente fora do escopo com justificativa:
-
-- **Reescrita de funcionalidade** — v5 e visual apenas; nenhum comportamento muda.
-- **Redesign do splash/intro screen** — intro da v3 ja e recente e esta funcionando bem; foco da v5 e a tela principal.
-- **Redesign para Android Material** — app e mobile cross-plataforma, mas a diretriz do usuario e iPhone. Android recebe o mesmo visual iOS-style (consistencia single-design).
-- **Navegacao multi-screen (React Navigation)** — app permanece single-screen.
-- **Novos fluxos ou features funcionais** — fora do escopo desta milestone.
+- **Qualquer feature funcional nova** — esta milestone e exclusivamente visual/UX.
+- **Mudanca de comportamento dos fluxos v1-v4** — apenas a aparencia muda.
+- **Remocao do vocabulario core como funcionalidade** — e preservado; apenas deixa de ter uma barra propria competindo na tela.
+- **Novas dependencias nativas que exijam rebuild** alem das ja presentes (expo-haptics, expo-blur permanecem).
+- **Navegacao multi-screen (React Navigation)** — app permanece single-screen; o drill-down de configuracoes e troca de estado de View.
 
 ---
 
 ## Traceability
 
-| REQ-ID  | Category                     | Phase    | Notes                                         |
-|---------|------------------------------|----------|-----------------------------------------------|
-| DS-01   | Design System                | Phase 17 | Tokens de cor em theme.ts                     |
-| DS-02   | Design System                | Phase 17 | Tokens de tipografia                          |
-| DS-03   | Design System                | Phase 17 | Raios, sombras, espacamento                   |
-| MAIN-01 | Tela Principal               | Phase 18 | Nav bar iOS                                   |
-| MAIN-02 | Tela Principal               | Phase 18 | Segmented control / pills                     |
-| MAIN-03 | Tela Principal               | Phase 18 | Search field iOS                              |
-| MAIN-04 | Tela Principal               | Phase 18 | Cards iOS                                     |
-| MAIN-05 | Tela Principal               | Phase 18 | Composer iOS                                  |
-| SHEET-01| Sheets e Modais              | Phase 19 | Bottom sheet com grabber                      |
-| SHEET-02| Sheets e Modais              | Phase 19 | Blur backdrop                                 |
-| SHEET-03| Sheets e Modais              | Phase 19 | Header Cancelar/Pronto                        |
-| CFG-01  | Config Ajustes               | Phase 20 | Inset grouped list                            |
-| CFG-02  | Config Ajustes               | Phase 20 | List rows com chevron                         |
-| CFG-03  | Config Ajustes               | Phase 20 | Switch iOS                                    |
-| FDB-01  | Feedback Tatil               | Phase 20 | Haptic feedback                               |
-| REG-01  | Regressao                    | Phase 21 | Regressao de todos os fluxos anteriores       |
+| REQ-ID  | Category        | Phase | Notes |
+|---------|-----------------|-------|-------|
+| VIS-01  | Sistema Visual  | TBD   | Paleta Salvia & Creme em theme.ts |
+| VIS-02  | Sistema Visual  | TBD   | Fonte Nunito como token |
+| VIS-03  | Sistema Visual  | TBD   | 3 temas selecionaveis |
+| TELA-01 | Tela Principal  | TBD   | Layout enxuto |
+| TELA-02 | Tela Principal  | TBD   | Card com cor de categoria |
+| TELA-03 | Tela Principal  | TBD   | Compositor Ouvir-heroi |
+| TELA-04 | Tela Principal  | TBD   | Apagar figura em 1 toque |
+| CFG-01  | Configuracoes   | TBD   | Inicio agrupado em 3 grupos |
+| CFG-02  | Configuracoes   | TBD   | Navegacao drill-down |
+| CFG-03  | Configuracoes   | TBD   | Gating por grupo |
+| REG-01  | Regressao       | TBD   | Regressao dos fluxos v1-v4 |
 
 ---
 
-**Total:** 16 requirements | **Categorias:** 6 | **Status:** roadmap criado, aguardando planejamento da Phase 17
+**Total:** 11 requirements | **Categorias:** 4 | **Status:** aguardando criacao do roadmap
+*Milestone v6 - Redesign Visual Calmo | Requisitos definidos em 2026-05-18*
