@@ -4613,7 +4613,7 @@ function makeStyles(theme: Theme) {
     maxHeight: 46
   },
   categoriesRow: {
-    gap: 8,
+    gap: theme.spacing.sm,
     paddingTop: 2,
     paddingBottom: 2,
     alignItems: 'center',
@@ -4621,8 +4621,8 @@ function makeStyles(theme: Theme) {
     paddingLeft: 2
   },
   categoryButton: {
-    backgroundColor: 'rgba(120, 120, 128, 0.16)',
-    borderRadius: 999,
+    backgroundColor: theme.colors.bgSoft,
+    borderRadius: theme.radii.full,
     paddingHorizontal: 14,
     paddingVertical: 7,
     minHeight: 32,
@@ -4630,19 +4630,17 @@ function makeStyles(theme: Theme) {
     alignSelf: 'flex-start'
   },
   categoryButtonHighContrast: {
-    backgroundColor: '#1e293b'
+    backgroundColor: theme.colors.surface2
   },
   categoryButtonActive: {
-    backgroundColor: '#007AFF'
+    backgroundColor: theme.colors.primary
   },
   categoryButtonText: {
-    color: '#000000',
-    fontWeight: '500',
-    fontSize: 14
+    ...theme.typography.subheadline,
+    color: theme.colors.text
   },
   categoryButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600'
+    color: '#FFFFFF'
   },
   loadingState: {
     flex: 1,
