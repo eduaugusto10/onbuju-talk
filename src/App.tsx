@@ -2056,7 +2056,6 @@ export default function App() {
             </Pressable>
             <View style={styles.headerTextBlock}>
               <Text style={[styles.title, { fontSize: 17 * uiScaleFactor }, isHighContrast && styles.textHighContrast]}>ONBUJU TALK</Text>
-              <Text style={[styles.headerTagline, isHighContrast && styles.textMutedHighContrast]}>Comunicação assistiva</Text>
             </View>
             <View style={styles.headerActions}>
               {isAdmin && (
@@ -4459,9 +4458,9 @@ function makeStyles(theme: Theme) {
     fontSize: 15
   },
   headerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(60, 60, 67, 0.29)',
+    borderBottomColor: theme.colors.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 4
@@ -4471,17 +4470,8 @@ function makeStyles(theme: Theme) {
     borderColor: '#334155'
   },
   title: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '700',
-    color: '#000000'
-  },
-  headerTagline: {
-    fontSize: 11,
-    lineHeight: 13,
-    color: 'rgba(60, 60, 67, 0.6)',
-    marginTop: 1,
-    fontWeight: '500'
+    ...theme.typography.title2,
+    color: theme.colors.text
   },
   subtitle: {
     fontSize: 12,
@@ -4512,47 +4502,47 @@ function makeStyles(theme: Theme) {
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EFEAE0',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
   menuIcon: {
     fontSize: 22,
-    color: '#3F6656'
+    color: theme.colors.primaryInk
   },
   adminBadge: {
-    borderRadius: 999,
+    borderRadius: theme.radii.full,
     paddingHorizontal: 10,
     paddingVertical: 3
   },
   adminBadgeOn: {
-    backgroundColor: 'rgba(120, 120, 128, 0.2)'
+    backgroundColor: theme.colors.primarySoft
   },
   adminBadgeOff: {
     backgroundColor: 'rgba(120, 120, 128, 0.16)'
   },
   adminBadgeText: {
-    color: '#007AFF',
-    fontWeight: '600',
-    fontSize: 11,
+    ...theme.typography.caption1,
+    color: theme.colors.primaryInk,
     letterSpacing: 0.3
   },
   searchToggleButton: {
     width: 34,
     height: 34,
-    borderRadius: 10,
-    backgroundColor: '#e2e8f0',
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.bgSoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
   searchToggleButtonActive: {
-    backgroundColor: '#D9E7E0',
+    backgroundColor: theme.colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#5B8C7A'
+    borderColor: theme.colors.primary
   },
   searchToggleIcon: {
-    fontSize: 16
+    fontSize: 16,
+    color: theme.colors.primaryInk
   },
   menuItem: {
     backgroundColor: '#e2e8f0',
