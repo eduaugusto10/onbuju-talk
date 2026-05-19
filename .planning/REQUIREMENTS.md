@@ -13,8 +13,8 @@
 ### Sistema Visual (VIS)
 
 - [x] **VIS-01**: App usa a paleta "Salvia & Creme" como tokens centralizados em `src/theme.ts` — salvia (ativo/selecionado), ouro (acao Gerar IA), terracota (acao Ouvir), creme (fundo e cards), texto quase-preto quente; substitui o azul iOS `#007AFF` como cor primaria.
-- [x] **VIS-02**: App usa a fonte Nunito (arredondada) como token tipografico, substituindo a fonte de sistema; nenhuma familia de fonte hardcoded fora dos tokens.
-- [ ] **VIS-03**: Cuidador pode escolher entre 3 temas — "Salvia & Creme" (padrao), "Terracota" e "Sereno Escuro" (modo escuro calmo que substitui o alto-contraste preto/amarelo agressivo); a escolha persiste apos reiniciar o app.
+- [ ] **VIS-02**: App usa a fonte Nunito (arredondada) como token tipografico, substituindo a fonte de sistema; nenhuma familia de fonte hardcoded fora dos tokens. **PARCIAL** — fonte carregada (`NUNITO_FONT_MAP` via `useFonts`) e tokens `theme.typography.*` carregam `fontFamily`, mas nenhum `<Text>` em `src/App.tsx` aplica `fontFamily` (grep retorna 0). A fonte ainda nao e exibida; fechar aplicando os tokens tipograficos no restyling das fases 23/24 ou na fase 25.
+- [ ] **VIS-03**: Cuidador pode escolher entre 3 temas — "Salvia & Creme" (padrao), "Terracota" e "Sereno Escuro" (modo escuro calmo que substitui o alto-contraste preto/amarelo agressivo); a escolha persiste apos reiniciar o app. **CODIGO CONCLUIDO** — seletor de 3 temas implementado (plano 22-03), runtime/persistencia prontos desde 22-02; verificacao humana em device/emulador adiada pelo usuario (fazer na fase 25 ou quando conveniente).
 
 ### Tela Principal (TELA)
 
@@ -55,8 +55,8 @@
 | REQ-ID  | Category        | Phase    | Notes |
 |---------|-----------------|----------|-------|
 | VIS-01  | Sistema Visual  | Phase 22 | Concluido (22-01/22-02) — paleta Salvia & Creme em theme.ts, tema aplicado ao shell de App.tsx |
-| VIS-02  | Sistema Visual  | Phase 22 | Concluido (22-02) — fonte Nunito carregada via useFonts e gateando o boot |
-| VIS-03  | Sistema Visual  | Phase 22 | Pendente — seletor de 3 temas na config e do plano 22-03; runtime/persistencia ja prontos em 22-02 |
+| VIS-02  | Sistema Visual  | Phase 22 | PARCIAL — fonte Nunito carregada (useFonts) e tokens theme.typography.* carregam fontFamily, mas nenhum Text aplica fontFamily; fechar nas fases 23/24/25 |
+| VIS-03  | Sistema Visual  | Phase 22 | Codigo concluido (22-03) — seletor de 3 temas na config; verificacao humana em device adiada pelo usuario (fase 25 ou quando conveniente) |
 | TELA-01 | Tela Principal  | Phase 23 | Layout enxuto |
 | TELA-02 | Tela Principal  | Phase 23 | Card com cor de categoria |
 | TELA-03 | Tela Principal  | Phase 23 | Compositor Ouvir-heroi |

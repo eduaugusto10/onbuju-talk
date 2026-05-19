@@ -336,11 +336,11 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 
 ## Phase Summary (Milestone 6)
 
-- [ ] **Phase 22: Sistema de Tema "Salvia & Creme"** - Paleta terrosa de baixo estimulo, fonte Nunito e 3 temas em `src/theme.ts`.
+- [x] **Phase 22: Sistema de Tema "Salvia & Creme"** - Paleta terrosa de baixo estimulo, fonte Nunito e 3 temas em `src/theme.ts`. (verificacao humana em device adiada; VIS-02 fonte carregada mas nao aplicada — fechar nas fases 23/24/25)
   - **Plans:** 3 plans (3 waves)
   - [x] 22-01-PLAN.md -- Reescrever src/theme.ts com 3 temas Salvia & Creme + instalar fonte Nunito
   - [x] 22-02-PLAN.md -- Integrar tema em App.tsx: estado themeName, makeStyles factory, fonte no boot, shell
-  - [ ] 22-03-PLAN.md -- Seletor de 3 temas na config + verificacao humana
+  - [x] 22-03-PLAN.md -- Seletor de 3 temas na config (verificacao humana adiada pelo usuario)
 - [ ] **Phase 23: Tela Principal Redesenhada** - Layout enxuto, cards com cor de categoria, compositor Ouvir-heroi, apagar em 1 toque.
 - [ ] **Phase 24: Configuracoes Agrupadas com Drill-down** - 10 abas planas viram 3 grupos com navegacao drill-down e gating claro.
 - [ ] **Phase 25: Regressao e Release** - Regressao dos fluxos v1-v4 sem quebras e preparacao de release.
@@ -349,7 +349,7 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 22. Sistema de Tema "Salvia & Creme" | 2/3 | In Progress | - |
+| 22. Sistema de Tema "Salvia & Creme" | 3/3 | Complete | 2026-05-19 |
 | 23. Tela Principal Redesenhada | 0/0 | Not started | - |
 | 24. Configuracoes Agrupadas com Drill-down | 0/0 | Not started | - |
 | 25. Regressao e Release | 0/0 | Not started | - |
