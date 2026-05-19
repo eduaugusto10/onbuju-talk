@@ -4797,17 +4797,14 @@ function makeStyles(theme: Theme) {
     fontWeight: '600'
   },
   composerCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 0,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1
+    ...theme.shadows.sm
   },
   phraseChipsRow: {
     flexDirection: 'row',
@@ -4823,25 +4820,25 @@ function makeStyles(theme: Theme) {
     alignItems: 'center'
   },
   emptyChipHint: {
-    color: '#64748b',
-    fontSize: 12
+    ...theme.typography.footnote,
+    color: theme.colors.textMuted
   },
   selectedImage: {
     width: 30,
     height: 30,
-    borderRadius: 6,
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    backgroundColor: '#ffffff'
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface
   },
   selectedTextChip: {
     minWidth: 40,
     height: 30,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: '#5B8C7A',
-    backgroundColor: '#E9F2EE',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -4850,9 +4847,8 @@ function makeStyles(theme: Theme) {
     backgroundColor: '#1e293b'
   },
   selectedTextChipText: {
-    color: '#1e3a34',
-    fontSize: 12,
-    fontWeight: '800',
+    ...theme.typography.caption1,
+    color: theme.colors.primaryInk,
     letterSpacing: 0.4
   },
   selectedTextChipTextHighContrast: {
@@ -5664,15 +5660,15 @@ function makeStyles(theme: Theme) {
     alignItems: 'center'
   },
   phraseText: {
+    ...theme.typography.callout,
     minHeight: 30,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface2,
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: theme.colors.border,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    color: '#0f172a',
-    fontWeight: '600'
+    color: theme.colors.text
   },
   actionRow: {
     flexDirection: 'row',
@@ -5711,8 +5707,8 @@ function makeStyles(theme: Theme) {
   },
   generateButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.generate,
+    borderRadius: theme.radii.md,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -5721,9 +5717,8 @@ function makeStyles(theme: Theme) {
     gap: 2
   },
   generateButtonLabel: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
+    ...theme.typography.footnote,
+    color: theme.colors.generateInk,
     letterSpacing: 0.2
   },
   generateButtonBusy: {
@@ -5731,9 +5726,9 @@ function makeStyles(theme: Theme) {
   },
   saveGroupButton: {
     flex: 1,
-    backgroundColor: 'rgba(120, 120, 128, 0.2)',
+    backgroundColor: theme.colors.bgSoft,
     borderWidth: 0,
-    borderRadius: 12,
+    borderRadius: theme.radii.md,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -5742,15 +5737,14 @@ function makeStyles(theme: Theme) {
     gap: 2
   },
   saveGroupButtonLabel: {
-    color: '#007AFF',
-    fontSize: 13,
-    fontWeight: '500',
+    ...theme.typography.footnote,
+    color: theme.colors.text,
     letterSpacing: 0.2
   },
   playButton: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
+    flex: 1.9,
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.radii.md,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -5759,9 +5753,8 @@ function makeStyles(theme: Theme) {
     gap: 2
   },
   playButtonLabel: {
+    ...theme.typography.subheadline,
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
     letterSpacing: 0.2
   },
   actionPrimary: {
