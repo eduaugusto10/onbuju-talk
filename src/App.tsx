@@ -44,7 +44,8 @@ import {
   VisualScene,
   VisualSceneHotspot
 } from './types';
-import { CHILD_GRID_COLUMNS, colors, shadows, spacing, typography } from './theme';
+import { CHILD_GRID_COLUMNS, NUNITO_FONT_MAP, resolveTheme, type Theme, type ThemeName } from './theme';
+import { useFonts } from 'expo-font';
 import { IOSBottomSheet } from './ui';
 import { triggerHaptic } from './services/hapticsService';
 import {
@@ -62,7 +63,6 @@ import { deletePersonalAudioFile, savePersonalAudioFile } from './services/perso
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
-type ContrastMode = 'padrao' | 'alto';
 type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina' | 'cenas';
 type GridColumns = 2 | 3 | 4 | 5;
 
@@ -79,7 +79,7 @@ const STORAGE_KEYS = {
   rate: 'arasaac_rate',
   adminPasswordHash: 'admin_password_hash',
   uiScale: 'ui_scale',
-  contrastMode: 'contrast_mode',
+  themeName: 'theme_name',
   visualFeedback: 'visual_feedback',
   introSkipEnabled: 'intro_skip_enabled',
   gridColumns: 'grid_columns',
@@ -376,7 +376,7 @@ export default function App() {
   const [rate, setRate] = useState(1);
   const [pitch, setPitch] = useState(1);
   const [uiScale, setUiScale] = useState<UiScale>('padrao');
-  const [contrastMode, setContrastMode] = useState<ContrastMode>('padrao');
+  const [themeName, setThemeName] = useState<ThemeName>('default');
   const [visualFeedbackEnabled, setVisualFeedbackEnabled] = useState(true);
   const [gridColumns, setGridColumns] = useState<GridColumns>(DEFAULT_GRID_COLUMNS);
   const [coreVocabulary, setCoreVocabulary] = useState<string[]>(() => sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
@@ -423,9 +423,19 @@ export default function App() {
   const [aiApiKeyInput, setAiApiKeyInput] = useState(DEFAULT_AI_API_KEY);
   const [adminPasswordHash, setAdminPasswordHash] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [fontsLoaded] = useFonts(NUNITO_FONT_MAP);
+  const theme = useMemo(() => resolveTheme(themeName), [themeName]);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  // Espelha tema e estilos resolvidos em escopo de modulo para que os
+  // componentes auxiliares (CategoryButton, SymbolCard, etc.) — definidos
+  // fora de App — leiam o tema ativo. Eles sempre renderizam como filhos de
+  // App, entao o espelho ja esta atualizado quando renderizam.
+  moduleTheme = theme;
+  moduleStyles = styles;
   const needsAdminSetup = !adminPasswordHash;
   const uiScaleFactor = uiScale === 'compacto' ? 0.92 : uiScale === 'confortavel' ? 1.08 : 1;
-  const isHighContrast = contrastMode === 'alto';
+  const isDarkTheme = theme.isDark;
+  const isHighContrast = isDarkTheme;
   const effectiveGridColumns: GridColumns = isAdmin ? gridColumns : (CHILD_GRID_COLUMNS as GridColumns);
   const androidTopInset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
 
@@ -548,7 +558,8 @@ export default function App() {
           savedPitch,
           savedAdminPasswordHash,
           savedUiScale,
-          savedContrastMode,
+          savedThemeName,
+          savedLegacyContrast,
           savedVisualFeedback,
           savedIntroSkipEnabled,
           savedGridColumns,
@@ -567,7 +578,8 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.pitch),
           AsyncStorage.getItem(STORAGE_KEYS.adminPasswordHash),
           AsyncStorage.getItem(STORAGE_KEYS.uiScale),
-          AsyncStorage.getItem(STORAGE_KEYS.contrastMode),
+          AsyncStorage.getItem(STORAGE_KEYS.themeName),
+          AsyncStorage.getItem('contrast_mode'),
           AsyncStorage.getItem(STORAGE_KEYS.visualFeedback),
           AsyncStorage.getItem(STORAGE_KEYS.introSkipEnabled),
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
@@ -599,8 +611,22 @@ export default function App() {
         if (savedUiScale === 'compacto' || savedUiScale === 'padrao' || savedUiScale === 'confortavel') {
           setUiScale(savedUiScale);
         }
-        if (savedContrastMode === 'padrao' || savedContrastMode === 'alto') {
-          setContrastMode(savedContrastMode);
+        if (
+          savedThemeName === 'default' ||
+          savedThemeName === 'terracota' ||
+          savedThemeName === 'sereno-escuro'
+        ) {
+          setThemeName(savedThemeName);
+        } else if (savedLegacyContrast === 'alto') {
+          // Migracao: alto contraste legado -> tema Sereno Escuro.
+          setThemeName('sereno-escuro');
+          void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'sereno-escuro');
+          void AsyncStorage.removeItem('contrast_mode');
+        } else {
+          // 'padrao' ou ausente -> tema padrao.
+          setThemeName('default');
+          void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'default');
+          void AsyncStorage.removeItem('contrast_mode');
         }
         if (savedVisualFeedback) {
           setVisualFeedbackEnabled(savedVisualFeedback === '1');
@@ -733,8 +759,8 @@ export default function App() {
   }, [uiScale]);
 
   useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.contrastMode, contrastMode);
-  }, [contrastMode]);
+    void AsyncStorage.setItem(STORAGE_KEYS.themeName, themeName);
+  }, [themeName]);
 
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.visualFeedback, visualFeedbackEnabled ? '1' : '0');
@@ -1958,11 +1984,11 @@ export default function App() {
     }
   }, [isStartingApp, skipIntroNextOpen]);
 
-  if (isBootHydrating) {
+  if (!fontsLoaded || isBootHydrating) {
     return (
-      <SafeAreaView style={[styles.safeArea, isHighContrast && styles.safeAreaHighContrast]}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.bootLoadingState}>
-          <ActivityIndicator size="large" color="#5B8C7A" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -2011,7 +2037,11 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, isHighContrast && styles.safeAreaHighContrast]}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar
+        barStyle={theme.isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.colors.bg}
+      />
       <View style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10 }]}>
         <View style={[styles.headerCard, isHighContrast && styles.cardHighContrast]}>
           <View style={styles.headerRow}>
@@ -2519,7 +2549,7 @@ export default function App() {
             value={pendingSymbolLabel}
             onChangeText={setPendingSymbolLabel}
             placeholder="Rotulo (ex: vovo)"
-            placeholderTextColor={colors.tertiaryLabel}
+            placeholderTextColor={theme.colors.textSoft}
             style={styles.modalInput}
             autoFocus
             maxLength={40}
@@ -2924,7 +2954,7 @@ export default function App() {
                           value={pendingSymbolLabel}
                           onChangeText={setPendingSymbolLabel}
                           placeholder="Rotulo (ex: vovo)"
-                          placeholderTextColor={colors.tertiaryLabel}
+                          placeholderTextColor={theme.colors.textSoft}
                           style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
                           maxLength={40}
                         />
@@ -3352,7 +3382,7 @@ export default function App() {
                           value={routineDraft.label}
                           onChangeText={text => setRoutineDraft(prev => (prev ? { ...prev, label: text } : prev))}
                           placeholder="Ex: escovar dentes"
-                          placeholderTextColor={colors.tertiaryLabel}
+                          placeholderTextColor={theme.colors.textSoft}
                           style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
                           maxLength={40}
                         />
@@ -3535,9 +3565,9 @@ export default function App() {
                 <View style={styles.iosToggleRow}>
                   <Text style={[styles.iosToggleLabel, isHighContrast && styles.textHighContrast]}>Alto contraste</Text>
                   <Switch
-                    value={contrastMode === 'alto'}
-                    onValueChange={v => setContrastMode(v ? 'alto' : 'padrao')}
-                    trackColor={{ false: colors.systemGray4, true: colors.systemBlue }}
+                    value={isDarkTheme}
+                    onValueChange={v => setThemeName(v ? 'sereno-escuro' : 'default')}
+                    trackColor={{ false: '#D1D1D6', true: theme.colors.primary }}
                     thumbColor="#FFFFFF"
                     accessibilityLabel="Alternar alto contraste"
                   />
@@ -3547,7 +3577,7 @@ export default function App() {
                   <Switch
                     value={visualFeedbackEnabled}
                     onValueChange={setVisualFeedbackEnabled}
-                    trackColor={{ false: colors.systemGray4, true: colors.systemBlue }}
+                    trackColor={{ false: '#D1D1D6', true: theme.colors.primary }}
                     thumbColor="#FFFFFF"
                     accessibilityLabel="Alternar feedback visual"
                   />
@@ -3734,6 +3764,16 @@ export default function App() {
   );
 }
 
+// ----------------------------------------------------------------------------
+// Espelho de modulo do tema/estilos ativos.
+// Os componentes auxiliares abaixo sao definidos fora de App e renderizam
+// sempre como filhos de App. App atualiza estes espelhos no inicio do seu
+// render, antes dos filhos renderizarem, entao os auxiliares sempre leem o
+// tema ativo. Inicializados com o tema padrao para satisfazer o tsc.
+// ----------------------------------------------------------------------------
+let moduleTheme: Theme = resolveTheme('default');
+let moduleStyles: ReturnType<typeof makeStyles> = makeStyles(moduleTheme);
+
 function CategoryButton({
   label,
   active,
@@ -3745,6 +3785,7 @@ function CategoryButton({
   onPress: () => void;
   highContrast?: boolean;
 }) {
+  const styles = moduleStyles;
   return (
     <Pressable onPress={onPress} style={[styles.categoryButton, highContrast && styles.categoryButtonHighContrast, active && styles.categoryButtonActive]}>
       <Text numberOfLines={1} style={[styles.categoryButtonText, active && styles.categoryButtonTextActive]}>
@@ -3755,6 +3796,7 @@ function CategoryButton({
 }
 
 function ConfigTab({ label, active, onPress, highContrast = false }: { label: string; active: boolean; onPress: () => void; highContrast?: boolean }) {
+  const styles = moduleStyles;
   return (
     <Pressable onPress={onPress} style={[styles.configTab, highContrast && styles.configTabHighContrast, active && styles.configTabActive]}>
       <Text style={[styles.configTabText, highContrast && styles.configTabTextHighContrast, active && styles.configTabTextActive]}>{label}</Text>
@@ -3773,6 +3815,7 @@ function ConfigNavItem({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = moduleStyles;
   return (
     <Pressable
       onPress={onPress}
@@ -3787,6 +3830,7 @@ function ConfigNavItem({
 }
 
 function OptionChip({ label, active, onPress, highContrast = false }: { label: string; active: boolean; onPress: () => void; highContrast?: boolean }) {
+  const styles = moduleStyles;
   return (
     <Pressable onPress={onPress} style={[styles.optionChip, highContrast && styles.optionChipHighContrast, active && styles.optionChipActive]}>
       <Text style={[styles.optionChipText, highContrast && styles.optionChipTextHighContrast, active && styles.optionChipTextActive]}>{label}</Text>
@@ -3831,6 +3875,7 @@ function ActionButton({
   onPress: () => void;
   tone: 'primary' | 'secondary' | 'muted' | 'neutral';
 }) {
+  const styles = moduleStyles;
   return (
     <Pressable
       onPress={onPress}
@@ -3868,6 +3913,7 @@ function SymbolCard({
   hasAudio?: boolean;
   isAdmin: boolean;
 }) {
+  const styles = moduleStyles;
   const isDense = columns >= 4;
   const isUltraDense = columns >= 5;
   return (
@@ -3912,6 +3958,7 @@ function RoutineStepCard({
   highContrast: boolean;
   uiScaleFactor: number;
 }) {
+  const styles = moduleStyles;
   return (
     <Pressable
       onPress={onToggle}
@@ -3972,6 +4019,7 @@ function SceneViewer({
   onClose: () => void;
   onHotspotPress: (hotspot: VisualSceneHotspot) => void;
 }) {
+  const styles = moduleStyles;
   const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
   return (
     <Modal visible animationType="fade" transparent={false} onRequestClose={onClose}>
@@ -4044,6 +4092,8 @@ function SceneEditor({
   onSave: () => void;
   isHighContrast: boolean;
 }) {
+  const styles = moduleStyles;
+  const theme = moduleTheme;
   const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
   return (
     <Modal visible animationType="slide" transparent={false} onRequestClose={onCancel}>
@@ -4063,7 +4113,7 @@ function SceneEditor({
             value={scene.name}
             onChangeText={onUpdateName}
             placeholder="Cozinha, Quarto, Sala…"
-            placeholderTextColor={colors.tertiaryLabel}
+            placeholderTextColor={theme.colors.textSoft}
             style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
             maxLength={30}
           />
@@ -4126,7 +4176,7 @@ function SceneEditor({
                     value={h.label}
                     onChangeText={text => onUpdateHotspotLabel(h.id, text)}
                     placeholder="Nome do item (ex: prato)"
-                    placeholderTextColor={colors.tertiaryLabel}
+                    placeholderTextColor={theme.colors.textSoft}
                     style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
                     maxLength={30}
                   />
@@ -4175,6 +4225,7 @@ function AudioRecorderControls({
   onPlay: () => void;
   onDiscard: () => void;
 }) {
+  const styles = moduleStyles;
   const totalSeconds = Math.floor(Math.max(0, durationMillis) / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -4222,6 +4273,7 @@ function PhraseCard({
   onPress: () => void;
   onDelete?: () => void;
 }) {
+  const styles = moduleStyles;
   return (
     <Pressable
       onPress={onPress}
@@ -4271,6 +4323,7 @@ function CustomSymbolCard({
   onDelete: () => void;
   isAdmin: boolean;
 }) {
+  const styles = moduleStyles;
   return (
     <Pressable style={styles.customCard} onPress={onUse}>
       <View style={styles.customGrid}>
@@ -4290,14 +4343,13 @@ function CustomSymbolCard({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(theme: Theme) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F4ED'
+    backgroundColor: theme.colors.bg
   },
-  safeAreaHighContrast: {
-    backgroundColor: '#020617'
-  },
+  safeAreaHighContrast: {},
   container: {
     flex: 1,
     paddingHorizontal: 12,
@@ -4396,27 +4448,27 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   headerCard: {
-    backgroundColor: colors.systemBackground,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.separator,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.xs
+    borderBottomColor: 'rgba(60, 60, 67, 0.29)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 4
   },
   cardHighContrast: {
     backgroundColor: '#0f172a',
     borderColor: '#334155'
   },
   title: {
-    fontSize: typography.title2.fontSize,
-    lineHeight: typography.title2.lineHeight,
-    fontWeight: typography.title2.fontWeight,
-    color: colors.label
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
+    color: '#000000'
   },
   headerTagline: {
-    fontSize: typography.caption2.fontSize,
-    lineHeight: typography.caption2.lineHeight,
-    color: colors.secondaryLabel,
+    fontSize: 11,
+    lineHeight: 13,
+    color: 'rgba(60, 60, 67, 0.6)',
     marginTop: 1,
     fontWeight: '500'
   },
@@ -4464,13 +4516,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3
   },
   adminBadgeOn: {
-    backgroundColor: colors.fill
+    backgroundColor: 'rgba(120, 120, 128, 0.2)'
   },
   adminBadgeOff: {
-    backgroundColor: colors.secondaryFill
+    backgroundColor: 'rgba(120, 120, 128, 0.16)'
   },
   adminBadgeText: {
-    color: colors.systemBlue,
+    color: '#007AFF',
     fontWeight: '600',
     fontSize: 11,
     letterSpacing: 0.3
@@ -4510,10 +4562,10 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: colors.systemGray6,
+    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     borderWidth: 0,
-    color: colors.label,
+    color: '#000000',
     paddingHorizontal: 12,
     height: 36
   },
@@ -4523,7 +4575,7 @@ const styles = StyleSheet.create({
     color: '#f8fafc'
   },
   searchButton: {
-    backgroundColor: colors.systemBlue,
+    backgroundColor: '#007AFF',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -4536,7 +4588,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 0,
-    backgroundColor: colors.systemGray4,
+    backgroundColor: '#D1D1D6',
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -4568,7 +4620,7 @@ const styles = StyleSheet.create({
     paddingLeft: 2
   },
   categoryButton: {
-    backgroundColor: colors.secondaryFill,
+    backgroundColor: 'rgba(120, 120, 128, 0.16)',
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -4580,10 +4632,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e293b'
   },
   categoryButtonActive: {
-    backgroundColor: colors.systemBlue
+    backgroundColor: '#007AFF'
   },
   categoryButtonText: {
-    color: colors.label,
+    color: '#000000',
     fontWeight: '500',
     fontSize: 14
   },
@@ -4598,7 +4650,7 @@ const styles = StyleSheet.create({
   },
   listCard: {
     flex: 1,
-    backgroundColor: colors.secondarySystemBackground,
+    backgroundColor: '#F2F2F7',
     borderRadius: 16,
     borderWidth: 0,
     overflow: 'hidden'
@@ -4620,14 +4672,18 @@ const styles = StyleSheet.create({
   symbolCard: {
     flex: 1,
     margin: 6,
-    backgroundColor: colors.systemBackground,
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 0,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 160,
-    ...shadows.sm
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   symbolCardDense: {
     minHeight: 120,
@@ -4642,16 +4698,20 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.systemBackground,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.sm
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   favoriteButtonActive: {
-    backgroundColor: colors.systemBackground
+    backgroundColor: '#FFFFFF'
   },
   favoriteButtonText: {
-    color: colors.warning,
+    color: '#FF9500',
     fontSize: 16
   },
   symbolImage: {
@@ -4712,13 +4772,17 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   composerCard: {
-    backgroundColor: colors.secondarySystemGroupedBackground,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 0,
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 6,
-    ...shadows.sm
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   selectedList: {
     gap: 4,
@@ -4762,7 +4826,7 @@ const styles = StyleSheet.create({
     color: '#fde68a'
   },
   coreVocabBar: {
-    backgroundColor: colors.secondaryFill,
+    backgroundColor: 'rgba(120, 120, 128, 0.16)',
     borderRadius: 14,
     borderWidth: 0,
     paddingVertical: 8,
@@ -4781,7 +4845,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: colors.systemBlue,
+    backgroundColor: '#007AFF',
     minWidth: 64,
     alignItems: 'center',
     justifyContent: 'center'
@@ -5628,14 +5692,14 @@ const styles = StyleSheet.create({
     gap: 2
   },
   clearButtonLabel: {
-    color: colors.destructive,
+    color: '#FF3B30',
     fontSize: 13,
     fontWeight: '500',
     letterSpacing: 0.2
   },
   generateButton: {
     flex: 1,
-    backgroundColor: colors.systemBlue,
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -5655,7 +5719,7 @@ const styles = StyleSheet.create({
   },
   saveGroupButton: {
     flex: 1,
-    backgroundColor: colors.fill,
+    backgroundColor: 'rgba(120, 120, 128, 0.2)',
     borderWidth: 0,
     borderRadius: 12,
     paddingVertical: 10,
@@ -5666,14 +5730,14 @@ const styles = StyleSheet.create({
     gap: 2
   },
   saveGroupButtonLabel: {
-    color: colors.systemBlue,
+    color: '#007AFF',
     fontSize: 13,
     fontWeight: '500',
     letterSpacing: 0.2
   },
   playButton: {
     flex: 1,
-    backgroundColor: colors.systemBlue,
+    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -5758,14 +5822,14 @@ const styles = StyleSheet.create({
     gap: 12
   },
   configSubheader: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4
   },
   sheetContent: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    gap: spacing.md
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12
   },
   sheetScrollContent: {
     flexGrow: 1,
@@ -5809,10 +5873,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 0,
-    backgroundColor: colors.secondaryFill
+    backgroundColor: 'rgba(120, 120, 128, 0.16)'
   },
   configNavItemActive: {
-    backgroundColor: colors.systemBlue
+    backgroundColor: '#007AFF'
   },
   configNavIcon: {
     fontSize: 18
@@ -5820,7 +5884,7 @@ const styles = StyleSheet.create({
   configNavItemText: {
     fontSize: 15,
     fontWeight: '500',
-    color: colors.label
+    color: '#000000'
   },
   configNavItemTextActive: {
     color: '#FFFFFF',
@@ -5835,8 +5899,10 @@ const styles = StyleSheet.create({
   },
   iosToggleLabel: {
     flex: 1,
-    ...typography.body,
-    color: colors.label
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '400',
+    color: '#000000'
   },
   modalButtonDanger: {
     backgroundColor: '#F5E0DB',
@@ -5875,7 +5941,7 @@ const styles = StyleSheet.create({
   modalSectionTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.secondaryLabel,
+    color: 'rgba(60, 60, 67, 0.6)',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     paddingTop: 4,
@@ -5894,10 +5960,14 @@ const styles = StyleSheet.create({
   configSectionCard: {
     borderRadius: 16,
     borderWidth: 0,
-    backgroundColor: colors.secondarySystemGroupedBackground,
+    backgroundColor: '#FFFFFF',
     padding: 16,
     gap: 12,
-    ...shadows.sm
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   configSectionCardHighContrast: {
     backgroundColor: '#111827',
@@ -6025,4 +6095,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700'
   }
-});
+  });
+}
