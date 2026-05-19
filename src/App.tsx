@@ -3562,14 +3562,25 @@ export default function App() {
             {configSection === 'acessibilidade' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Acessibilidade</Text>
-                <View style={styles.iosToggleRow}>
-                  <Text style={[styles.iosToggleLabel, isHighContrast && styles.textHighContrast]}>Alto contraste</Text>
-                  <Switch
-                    value={isDarkTheme}
-                    onValueChange={v => setThemeName(v ? 'sereno-escuro' : 'default')}
-                    trackColor={{ false: '#D1D1D6', true: theme.colors.primary }}
-                    thumbColor="#FFFFFF"
-                    accessibilityLabel="Alternar alto contraste"
+                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Tema do aplicativo</Text>
+                <View style={styles.settingActions}>
+                  <OptionChip
+                    label="Salvia & Creme"
+                    active={themeName === 'default'}
+                    highContrast={isHighContrast}
+                    onPress={() => setThemeName('default')}
+                  />
+                  <OptionChip
+                    label="Terracota"
+                    active={themeName === 'terracota'}
+                    highContrast={isHighContrast}
+                    onPress={() => setThemeName('terracota')}
+                  />
+                  <OptionChip
+                    label="Sereno Escuro"
+                    active={themeName === 'sereno-escuro'}
+                    highContrast={isHighContrast}
+                    onPress={() => setThemeName('sereno-escuro')}
                   />
                 </View>
                 <View style={styles.iosToggleRow}>
@@ -3582,7 +3593,7 @@ export default function App() {
                     accessibilityLabel="Alternar feedback visual"
                   />
                 </View>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>No modo reduzido, textos auxiliares e dicas visuais são minimizados.</Text>
+                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>O tema muda as cores do aplicativo. Sereno Escuro é um modo escuro calmo para uso noturno ou crianças sensíveis a brilho.</Text>
               </View>
             )}
 
