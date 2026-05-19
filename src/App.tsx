@@ -60,6 +60,7 @@ import {
 } from './constants';
 import { deletePersonalSymbolImage, savePersonalSymbolImage } from './services/personalSymbolsService';
 import { deletePersonalAudioFile, savePersonalAudioFile } from './services/personalAudioService';
+import { categoryColorFamily } from './categoryColors';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
@@ -3926,6 +3927,7 @@ function SymbolCard({
   const styles = moduleStyles;
   const isDense = columns >= 4;
   const isUltraDense = columns >= 5;
+  const tileColor = categoryColorFamily(item.category);
   return (
     <Pressable
       style={[styles.symbolCard, isDense && styles.symbolCardDense, isUltraDense && styles.symbolCardUltraDense]}
@@ -3943,7 +3945,16 @@ function SymbolCard({
           <Text style={styles.favoriteButtonText}>{favorite ? '★' : '☆'}</Text>
         </Pressable>
       )}
-      <CachedImage uri={item.imageUrl} style={[styles.symbolImage, isDense && styles.symbolImageDense, isUltraDense && styles.symbolImageUltraDense]} resizeMode="contain" />
+      <View
+        style={[
+          styles.symbolTile,
+          isDense && styles.symbolTileDense,
+          isUltraDense && styles.symbolTileUltraDense,
+          { backgroundColor: tileColor }
+        ]}
+      >
+        <CachedImage uri={item.imageUrl} style={[styles.symbolImage, isDense && styles.symbolImageDense, isUltraDense && styles.symbolImageUltraDense]} resizeMode="contain" />
+      </View>
       <Text style={[styles.symbolLabel, isDense && styles.symbolLabelDense]} numberOfLines={1}>
         {item.label}
       </Text>
@@ -4661,8 +4672,9 @@ function makeStyles(theme: Theme) {
     paddingBottom: 12
   },
   emptyText: {
+    ...theme.typography.callout,
     textAlign: 'center',
-    color: '#64748b'
+    color: theme.colors.textMuted
   },
   emptyState: {
     paddingTop: 44,
@@ -4672,18 +4684,15 @@ function makeStyles(theme: Theme) {
   symbolCard: {
     flex: 1,
     margin: 6,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 0,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1
+    ...theme.shadows.sm
   },
   symbolCardDense: {
     minHeight: 120,
@@ -4693,25 +4702,41 @@ function makeStyles(theme: Theme) {
     minHeight: 104,
     padding: 6
   },
+  symbolTile: {
+    width: 96,
+    height: 96,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  symbolTileDense: {
+    width: 60,
+    height: 60,
+    borderRadius: 14
+  },
+  symbolTileUltraDense: {
+    width: 46,
+    height: 46,
+    borderRadius: 12
+  },
   favoriteButton: {
-    alignSelf: 'flex-end',
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    zIndex: 2,
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1
+    ...theme.shadows.sm
   },
   favoriteButtonActive: {
-    backgroundColor: '#FFFFFF'
+    backgroundColor: theme.colors.surface
   },
   favoriteButtonText: {
-    color: '#FF9500',
+    color: theme.colors.star,
     fontSize: 16
   },
   symbolImage: {
@@ -4727,10 +4752,9 @@ function makeStyles(theme: Theme) {
     height: 46
   },
   symbolLabel: {
+    ...theme.typography.subheadline,
     marginTop: 8,
-    fontWeight: '700',
-    color: '#2B2A28',
-    fontSize: 16,
+    color: theme.colors.text,
     width: '100%',
     textAlign: 'center'
   },
@@ -5132,7 +5156,7 @@ function makeStyles(theme: Theme) {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(91, 140, 122, 0.9)',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2
