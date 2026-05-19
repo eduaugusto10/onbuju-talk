@@ -2361,6 +2361,32 @@ export default function App() {
               numColumns={effectiveGridColumns}
               accessibilityLabel={`Grade de simbolos ${effectiveGridColumns} colunas`}
               contentContainerStyle={styles.grid}
+              ListHeaderComponent={
+                activeCategory !== CATEGORIES.scenes &&
+                activeCategory !== CATEGORIES.routine &&
+                coreVocabulary.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.coreVocabRow}
+                    accessibilityLabel="Vocabulario essencial"
+                  >
+                    {coreVocabulary.map(word => (
+                      <Pressable
+                        key={`core-word-${word}`}
+                        onPress={() => addCoreWord(word)}
+                        style={styles.coreVocabButton}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Adicionar palavra ${word}`}
+                      >
+                        <Text style={[styles.coreVocabButtonText, { fontSize: 14 * uiScaleFactor }]}>
+                          {word.toUpperCase()}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                ) : null
+              }
               renderItem={({ item }) => (
                 <SymbolCard
                   item={item}
@@ -2379,39 +2405,6 @@ export default function App() {
             />
           )}
         </View>
-
-        {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && coreVocabulary.length > 0 && (
-          <View
-            style={[styles.coreVocabBar, isHighContrast && styles.coreVocabBarHighContrast]}
-            accessibilityLabel="Vocabulario essencial"
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.coreVocabRow}
-            >
-              {coreVocabulary.map(word => (
-                <Pressable
-                  key={`core-word-${word}`}
-                  onPress={() => addCoreWord(word)}
-                  style={[styles.coreVocabButton, isHighContrast && styles.coreVocabButtonHighContrast]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Adicionar palavra ${word}`}
-                >
-                  <Text
-                    style={[
-                      styles.coreVocabButtonText,
-                      { fontSize: 14 * uiScaleFactor },
-                      isHighContrast && styles.coreVocabButtonTextHighContrast
-                    ]}
-                  >
-                    {word.toUpperCase()}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
         {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && (
         <View style={[styles.composerCard, isHighContrast && styles.cardHighContrast]}>
@@ -4849,41 +4842,26 @@ function makeStyles(theme: Theme) {
   selectedTextChipTextHighContrast: {
     color: '#fde68a'
   },
-  coreVocabBar: {
-    backgroundColor: 'rgba(120, 120, 128, 0.16)',
-    borderRadius: 14,
-    borderWidth: 0,
-    paddingVertical: 8,
-    paddingHorizontal: 8
-  },
-  coreVocabBarHighContrast: {
-    backgroundColor: '#0b1220',
-    borderColor: '#facc15'
-  },
   coreVocabRow: {
     flexDirection: 'row',
     gap: 8,
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.sm,
+    paddingBottom: theme.spacing.sm
   },
   coreVocabButton: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.primarySoft,
     minWidth: 64,
     alignItems: 'center',
     justifyContent: 'center'
   },
-  coreVocabButtonHighContrast: {
-    backgroundColor: '#facc15'
-  },
   coreVocabButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    ...theme.typography.caption1,
+    color: theme.colors.primaryInk,
     letterSpacing: 0.3
-  },
-  coreVocabButtonTextHighContrast: {
-    color: '#020617'
   },
   coreVocabEditorList: {
     gap: 8,
