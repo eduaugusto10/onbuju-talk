@@ -2,14 +2,15 @@
 
 ## Current Position
 - Milestone: v6 - Redesign Visual Calmo
-- Phase: Phase 22 - Sistema de Tema "Salvia & Creme" (nao iniciada)
-- Status: Roadmap criado — aguardando planejamento da Phase 22
-- Last activity: 2026-05-18 - Roadmap da milestone v6 criado (Phases 22-25, 11/11 requisitos mapeados).
+- Phase: Phase 22 - Sistema de Tema "Salvia & Creme" (em andamento — 1/3 planos)
+- Status: Plano 22-01 concluido — fundacao de tokens pronta; proximo: plano 22-02
+- Last activity: 2026-05-19 - Plano 22-01 executado: API de tema Salvia & Creme + fonte Nunito em src/theme.ts.
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
 - Milestone v4 (Comunicacao Pessoal e Rotina Visual) concluida em 2026-04-21 com 12/12 requisitos; aguardando arquivamento formal.
 - Milestone v6: 4 fases (22-25), 11 requisitos (VIS, TELA, CFG, REG), 100% mapeados.
+- Phase 22 em andamento: plano 22-01 concluido (tokens + fonte Nunito); planos 22-02 e 22-03 pendentes.
 - Codebase map em `.planning/codebase/`.
 - `npm run lint` limpo; `npm run test` 22/26 (4 pre-existentes herdados aceitos).
 - Validacao manual em device listada em `.planning/RELEASE-CHECKLIST.md`.
@@ -24,7 +25,7 @@
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
 ## Proximo Comando Recomendado
-- `/gsd-plan-phase 22` para planejar o Sistema de Tema "Salvia & Creme".
+- Executar o plano 22-02 (integrar tema em App.tsx: estado themeName, makeStyles factory, fonte no boot, shell).
 
 ## Ultima Atualizacao
-- 2026-05-18: Roadmap da milestone v6 criado. ROADMAP.md recebeu a secao Milestone 6 (Phases 22-25); REQUIREMENTS.md com traceability preenchida; STATE.md atualizado.
+- 2026-05-19: Plano 22-01 concluido. src/theme.ts agora expoe a API de tema "Salvia & Creme" (3 temas, resolveTheme, NUNITO_FONT_MAP) lado a lado com os exports legacy iOS intactos; expo-font e @expo-google-fonts/nunito instalados. Lint limpo; test 22/26 (4 pre-existentes). Phase 22: 1/3 planos.
