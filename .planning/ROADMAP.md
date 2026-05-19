@@ -343,7 +343,7 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
   - [x] 22-03-PLAN.md -- Seletor de 3 temas na config (verificacao humana adiada pelo usuario)
 - [ ] **Phase 23: Tela Principal Redesenhada** - Layout enxuto, cards com cor de categoria, compositor Ouvir-heroi, apagar em 1 toque.
   - **Plans:** 4 plans (4 waves)
-  - [ ] 23-01-PLAN.md -- Remover slogan + reestilizar header; criar src/categoryColors.ts
+  - [x] 23-01-PLAN.md -- Remover slogan + reestilizar header; criar src/categoryColors.ts
   - [ ] 23-02-PLAN.md -- Reestilizar barra de categorias, busca e container da lista
   - [ ] 23-03-PLAN.md -- SymbolCard com tile de cor de categoria + vocabulario core na grade
   - [ ] 23-04-PLAN.md -- Compositor Ouvir-heroi + apagar figura em 1 toque
@@ -355,6 +355,6 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 22. Sistema de Tema "Salvia & Creme" | 3/3 | Complete | 2026-05-19 |
-| 23. Tela Principal Redesenhada | 0/4 | Planned | - |
+| 23. Tela Principal Redesenhada | 1/4 | In progress | - |
 | 24. Configuracoes Agrupadas com Drill-down | 0/0 | Not started | - |
 | 25. Regressao e Release | 0/0 | Not started | - |

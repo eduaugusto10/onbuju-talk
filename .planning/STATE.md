@@ -2,9 +2,9 @@
 
 ## Current Position
 - Milestone: v6 - Redesign Visual Calmo
-- Phase: Phase 22 - Sistema de Tema "Salvia & Creme" (concluida em codigo — 3/3 planos)
-- Status: Phase 22 concluida (3/3 planos). Proximo: Phase 23 (Tela Principal Redesenhada).
-- Last activity: 2026-05-19 - Plano 22-03 executado: seletor de 3 temas na config (verificacao humana adiada pelo usuario).
+- Phase: Phase 23 - Tela Principal Redesenhada (em andamento — 1/4 planos)
+- Status: Plano 23-01 concluido. Proximo: 23-02 (barra de categorias, busca e container da lista).
+- Last activity: 2026-05-19 - Plano 23-01 executado: slogan do header removido, header reestilizado com tokens de tema + Nunito; src/categoryColors.ts criado.
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
@@ -26,13 +26,15 @@
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
 ## Proximo Comando Recomendado
-- Iniciar a Phase 23 (Tela Principal Redesenhada). Ao reestilizar os textos, adotar os tokens `theme.typography.*` para fechar o gap VIS-02 (fonte Nunito aplicada).
+- Executar o plano 23-02 (reestilizar barra de categorias, busca e container da lista). Continuar adotando os tokens `theme.typography.*` para fechar o gap VIS-02.
 
 ## Decisoes Recentes
+- 23-01: Match categoria->familia de cor por token de palavra inteira em vez de substring crua — evita falso positivo ('acao' casava dentro de 'alimentacao').
+- 23-01: Slogan removido apenas do header (headerTagline); introSubtitle da tela de intro preservada (fora de escopo da fase 23).
 - 22-03: Seletor de 3 temas reusa o OptionChip existente na secao 'acessibilidade' da config — sem redesenhar a tela (drill-down e fase 24).
 - 22-03: Verificacao humana em device/emulador da fase 22 adiada por escolha do usuario — VIS-03 nao marcado como totalmente concluido.
 - 22-02: Componentes auxiliares fora de App leem um espelho de modulo (moduleStyles/moduleTheme) atualizado por App no inicio do render — evita refatorar 13 componentes e seus call sites mantendo reatividade ao tema.
 - 22-02: Tokens legacy em estilos nao-shell foram inlinados como valores literais (nao tokenizados) para garantir zero regressao visual; restyling tela a tela fica para as fases 23/24.
 
 ## Ultima Atualizacao
-- 2026-05-19: Plano 22-03 concluido. src/App.tsx substitui o toggle de alto contraste pelo seletor de 3 temas (OptionChip) na secao de acessibilidade da config. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 22: 3/3 planos em codigo. Pendencias carregadas: verificacao humana em device adiada; VIS-02 (fonte Nunito carregada mas nao aplicada a nenhum Text) a fechar nas fases 23/24/25.
+- 2026-05-19: Plano 23-01 concluido. Header da tela principal sem o slogan 'Comunicação assistiva' (headerTagline removido; introSubtitle da intro intacta); estilos do header migrados para tokens theme.colors/theme.typography (fonte Nunito aplicada em title e adminBadgeText — VIS-02 parcialmente fechado). Novo modulo src/categoryColors.ts com categoryColorFamily (categoria ARASAAC -> 5 familias de cor + neutro), pronto para o card da fase 23-03. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 23: 1/4 planos.
