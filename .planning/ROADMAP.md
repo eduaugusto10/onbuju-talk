@@ -355,6 +355,6 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 22. Sistema de Tema "Salvia & Creme" | 3/3 | Complete | 2026-05-19 |
-| 23. Tela Principal Redesenhada | 1/4 | In progress | - |
+| 23. Tela Principal Redesenhada | 2/4 | In progress | - |
 | 24. Configuracoes Agrupadas com Drill-down | 0/0 | Not started | - |
 | 25. Regressao e Release | 0/0 | Not started | - |
