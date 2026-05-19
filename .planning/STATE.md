@@ -2,9 +2,9 @@
 
 ## Current Position
 - Milestone: v6 - Redesign Visual Calmo
-- Phase: Phase 23 - Tela Principal Redesenhada (em andamento — 2/4 planos)
-- Status: Plano 23-02 concluido. Proximo: 23-03 (grade de pictogramas + card de pictograma).
-- Last activity: 2026-05-19 - Plano 23-02 executado: barra de categorias (pills salvia/neutro), campo de busca e listCard reestilizados com tokens de tema + Nunito.
+- Phase: Phase 23 - Tela Principal Redesenhada (em andamento — 3/4 planos)
+- Status: Plano 23-03 concluido. Proximo: 23-04 (compositor Ouvir-heroi + apagar figura em 1 toque).
+- Last activity: 2026-05-19 - Plano 23-03 executado: SymbolCard refeito com tile de cor de categoria atras do pictograma, estrela como overlay; vocabulario core integrado como primeira linha fixa da grade.
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
@@ -26,9 +26,11 @@
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
 ## Proximo Comando Recomendado
-- Executar o plano 23-03 (reestilizar grade de pictogramas + card de pictograma usando src/categoryColors.ts). Continuar adotando os tokens `theme.typography.*` para fechar o gap VIS-02.
+- Executar o plano 23-04 (compositor Ouvir-heroi + apagar figura em 1 toque — sketch 003). Continuar adotando os tokens `theme.typography.*` para fechar o gap VIS-02.
 
 ## Decisoes Recentes
+- 23-03: Tile do pictograma com raio fixo (18/14/12 por densidade), mais arredondado que o card (theme.radii.md=16) — efeito 'tapete' do sketch 002 variante D.
+- 23-03: Estilos coreVocabBar* e variantes high-contrast removidos — barra de vocabulario separada eliminada (anti-padrao do skill); core agora e ListHeaderComponent da grade.
 - 23-02: categoryButtonTextActive / searchButtonText mantem texto branco literal (#FFFFFF) sobre salvia — salvia e escura o suficiente para contraste; tokens de tema nao tem 'onPrimary' dedicado.
 - 23-02: inputHighContrast preservado verbatim (array legado ainda no JSX) — fora do escopo do plano, coberto pelo tema sereno-escuro.
 - 23-01: Match categoria->familia de cor por token de palavra inteira em vez de substring crua — evita falso positivo ('acao' casava dentro de 'alimentacao').
@@ -39,5 +41,6 @@
 - 22-02: Tokens legacy em estilos nao-shell foram inlinados como valores literais (nao tokenizados) para garantir zero regressao visual; restyling tela a tela fica para as fases 23/24.
 
 ## Ultima Atualizacao
+- 2026-05-19: Plano 23-03 concluido. SymbolCard refeito (sketch 002 variante D): cor da categoria em tile arredondado atras do pictograma via categoryColorFamily, card em surface com borda/sombra de tema, estrela de favorito como overlay circular. Vocabulario core deixou de ser barra separada e virou a primeira linha fixa da grade (ListHeaderComponent); estilos coreVocabBar* orfaos removidos. emptyText/symbolLabel migrados para theme.typography (Nunito) — VIS-02 avancando. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). TELA-01 e TELA-02 concluidos. Phase 23: 3/4 planos.
 - 2026-05-19: Plano 23-02 concluido. Barra de categorias com pills salvia (ativo) / bgSoft neutro (inativo) e raio full; campo de busca com fundo surface2, raio sm e fonte Nunito (typography.callout); searchButton em salvia; listCard sobre bgSoft com raio lg; ActivityIndicator tokenizado. Azul iOS (#007AFF) e cinza iOS (#F2F2F7) removidos dessas regioes. VIS-02 avancando (grep theme.typography subiu para 5). Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 23: 2/4 planos.
 - 2026-05-19: Plano 23-01 concluido. Header da tela principal sem o slogan 'Comunicação assistiva' (headerTagline removido; introSubtitle da intro intacta); estilos do header migrados para tokens theme.colors/theme.typography (fonte Nunito aplicada em title e adminBadgeText — VIS-02 parcialmente fechado). Novo modulo src/categoryColors.ts com categoryColorFamily (categoria ARASAAC -> 5 familias de cor + neutro), pronto para o card da fase 23-03. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 23: 1/4 planos.

@@ -18,8 +18,8 @@
 
 ### Tela Principal (TELA)
 
-- [ ] **TELA-01**: Tela principal usa layout enxuto — sem slogan e sem barra de vocabulario separada da grade; o vocabulario core continua acessivel integrado, sem competir como segunda barra.
-- [ ] **TELA-02**: Cards de pictograma usam o estilo validado — card limpo com a cor da categoria no bloco atras do pictograma e o rotulo em texto abaixo (nunca etiqueta colorida).
+- [x] **TELA-01**: Tela principal usa layout enxuto — sem slogan e sem barra de vocabulario separada da grade; o vocabulario core continua acessivel integrado, sem competir como segunda barra.
+- [x] **TELA-02**: Cards de pictograma usam o estilo validado — card limpo com a cor da categoria no bloco atras do pictograma e o rotulo em texto abaixo (nunca etiqueta colorida).
 - [ ] **TELA-03**: Compositor usa hierarquia "Ouvir heroi" — "Ouvir" e o botao dominante; "Gerar (IA)" fica rotulado e visivel, porem menor, como acao de apoio.
 - [ ] **TELA-04**: Usuario remove uma figura selecionada com 1 toque na propria figura; um controle discreto "limpar" aparece apenas quando ha figuras e apaga todas.
 
@@ -57,8 +57,8 @@
 | VIS-01  | Sistema Visual  | Phase 22 | Concluido (22-01/22-02) — paleta Salvia & Creme em theme.ts, tema aplicado ao shell de App.tsx |
 | VIS-02  | Sistema Visual  | Phase 22 | PARCIAL — fonte Nunito carregada (useFonts) e tokens theme.typography.* carregam fontFamily, mas nenhum Text aplica fontFamily; fechar nas fases 23/24/25 |
 | VIS-03  | Sistema Visual  | Phase 22 | Codigo concluido (22-03) — seletor de 3 temas na config; verificacao humana em device adiada pelo usuario (fase 25 ou quando conveniente) |
-| TELA-01 | Tela Principal  | Phase 23 | Layout enxuto |
-| TELA-02 | Tela Principal  | Phase 23 | Card com cor de categoria |
+| TELA-01 | Tela Principal  | Phase 23 | Concluido (23-01/23-03) — slogan removido + vocabulario core integrado a grade |
+| TELA-02 | Tela Principal  | Phase 23 | Concluido (23-03) — card com tile de cor de categoria atras do pictograma |
 | TELA-03 | Tela Principal  | Phase 23 | Compositor Ouvir-heroi |
 | TELA-04 | Tela Principal  | Phase 23 | Apagar figura em 1 toque |
 | CFG-01  | Configuracoes   | Phase 24 | Inicio agrupado em 3 grupos |
