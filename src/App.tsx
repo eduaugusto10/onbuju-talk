@@ -2408,34 +2408,46 @@ export default function App() {
 
         {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && (
         <View style={[styles.composerCard, isHighContrast && styles.cardHighContrast]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedList}>
-            {selectedSymbols.length === 0 && visualFeedbackEnabled ? (
-              <Text style={styles.emptyChipHint}>Selecione símbolos para montar a frase.</Text>
-            ) : (
-              selectedSymbols.map((symbol, index) => (
-                <Pressable
-                  key={`${symbol.id}-${index}`}
-                  onLongPress={() => {
-                    setSelectedSymbols(prev => prev.filter((_, i) => i !== index));
-                    setNormalizedPhrase('');
-                  }}
-                >
-                  {symbol.imageUrl ? (
-                    <CachedImage uri={symbol.imageUrl} style={styles.selectedImage} resizeMode="contain" />
-                  ) : (
-                    <View style={[styles.selectedTextChip, isHighContrast && styles.selectedTextChipHighContrast]}>
-                      <Text
-                        style={[styles.selectedTextChipText, isHighContrast && styles.selectedTextChipTextHighContrast]}
-                        numberOfLines={1}
-                      >
-                        {symbol.label.toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-              ))
+          <View style={styles.phraseChipsRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.phraseChipsScroll}
+              contentContainerStyle={styles.selectedList}
+            >
+              {selectedSymbols.length === 0 && visualFeedbackEnabled ? (
+                <Text style={styles.emptyChipHint}>Selecione símbolos para montar a frase.</Text>
+              ) : (
+                selectedSymbols.map((symbol, index) => (
+                  <Pressable
+                    key={`${symbol.id}-${index}`}
+                    onPress={() => {
+                      setSelectedSymbols(prev => prev.filter((_, i) => i !== index));
+                      setNormalizedPhrase('');
+                    }}
+                  >
+                    {symbol.imageUrl ? (
+                      <CachedImage uri={symbol.imageUrl} style={styles.selectedImage} resizeMode="contain" />
+                    ) : (
+                      <View style={[styles.selectedTextChip, isHighContrast && styles.selectedTextChipHighContrast]}>
+                        <Text
+                          style={[styles.selectedTextChipText, isHighContrast && styles.selectedTextChipTextHighContrast]}
+                          numberOfLines={1}
+                        >
+                          {symbol.label.toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+            {selectedSymbols.length > 0 && (
+              <Pressable style={styles.clearLink} onPress={clearSymbols} accessibilityRole="button" accessibilityLabel="Limpar frase">
+                <Text style={styles.clearLinkText}>limpar</Text>
+              </Pressable>
             )}
-          </ScrollView>
+          </View>
 
           <TextInput
             value={phraseText}
@@ -2448,10 +2460,6 @@ export default function App() {
           />
 
           <View style={styles.iconActionRow}>
-            <Pressable onPress={clearSymbols} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Deletar seleção">
-              <Text style={styles.iconGlyph}>🗑</Text>
-              <Text style={styles.clearButtonLabel}>Deletar</Text>
-            </Pressable>
             <Pressable
               onPress={() => void handleGenerate()}
               style={[styles.generateButton, isGenerating && styles.generateButtonBusy]}
@@ -4801,6 +4809,14 @@ function makeStyles(theme: Theme) {
     shadowRadius: 2,
     elevation: 1
   },
+  phraseChipsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs
+  },
+  phraseChipsScroll: {
+    flex: 1
+  },
   selectedList: {
     gap: 4,
     minHeight: 32,
@@ -5682,22 +5698,16 @@ function makeStyles(theme: Theme) {
     fontSize: 22,
     lineHeight: 26
   },
-  clearButton: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 64,
-    gap: 2
+  clearLink: {
+    flexShrink: 0,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    alignSelf: 'center'
   },
-  clearButtonLabel: {
-    color: '#FF3B30',
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 0.2
+  clearLinkText: {
+    ...theme.typography.footnote,
+    color: theme.colors.textMuted,
+    textDecorationLine: 'underline'
   },
   generateButton: {
     flex: 1,
