@@ -2177,7 +2177,7 @@ export default function App() {
         <View style={[styles.listCard, isHighContrast && styles.cardHighContrast]}>
           {isLoading ? (
             <View style={styles.loadingState}>
-              <ActivityIndicator size="large" color="#5B8C7A" />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           ) : activeCategory === CATEGORIES.custom ? (
             <FlatList
@@ -4562,11 +4562,12 @@ function makeStyles(theme: Theme) {
     marginTop: 4
   },
   searchInput: {
+    ...theme.typography.callout,
     flex: 1,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 10,
+    backgroundColor: theme.colors.surface2,
+    borderRadius: theme.radii.sm,
     borderWidth: 0,
-    color: '#000000',
+    color: theme.colors.text,
     paddingHorizontal: 12,
     height: 36
   },
@@ -4576,8 +4577,8 @@ function makeStyles(theme: Theme) {
     color: '#f8fafc'
   },
   searchButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radii.sm,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 14,
@@ -4587,19 +4588,19 @@ function makeStyles(theme: Theme) {
   searchClearButton: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: theme.radii.full,
     borderWidth: 0,
-    backgroundColor: '#D1D1D6',
+    backgroundColor: theme.colors.bgSoft,
     alignItems: 'center',
     justifyContent: 'center'
   },
   searchClearButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textMuted,
     fontWeight: '700'
   },
   searchButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600'
+    ...theme.typography.subheadline,
+    color: '#FFFFFF'
   },
   sectionTitle: {
     fontSize: 13,
@@ -4649,8 +4650,8 @@ function makeStyles(theme: Theme) {
   },
   listCard: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 16,
+    backgroundColor: theme.colors.bgSoft,
+    borderRadius: theme.radii.lg,
     borderWidth: 0,
     overflow: 'hidden'
   },
