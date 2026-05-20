@@ -64,7 +64,11 @@ import { categoryColorFamily } from './categoryColors';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
-type ConfigSection = 'perfil' | 'acessibilidade' | 'voz' | 'seguranca' | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina' | 'cenas';
+type ConfigRoute =
+  | 'home'
+  | 'voz' | 'acessibilidade' | 'aparencia'
+  | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina' | 'cenas'
+  | 'senha' | 'chave-ia';
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
@@ -417,7 +421,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-  const [configSection, setConfigSection] = useState<ConfigSection>('perfil');
+  const [configRoute, setConfigRoute] = useState<ConfigRoute>('home');
   const [adminPassword, setAdminPassword] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
@@ -453,12 +457,11 @@ export default function App() {
     setNewAdminPassword('');
     setConfirmAdminPassword('');
     setAiApiKeyInput(DEFAULT_AI_API_KEY);
-    setConfigSection('perfil');
+    setConfigRoute('home');
   }, []);
 
   const openConfigModal = useCallback(() => {
     resetConfigFields();
-    setConfigSection('seguranca');
     setIsConfigModalOpen(true);
   }, [resetConfigFields]);
 
@@ -536,6 +539,18 @@ export default function App() {
     setIsMenuOpen(false);
     showToast('Modo usuário ativado.', 'success');
   }, [showToast]);
+
+  const openConfigRoute = useCallback((route: ConfigRoute) => {
+    // Grupo "App" (voz/acessibilidade/aparencia) e sempre livre.
+    const APP_ROUTES: ConfigRoute[] = ['voz', 'acessibilidade', 'aparencia'];
+    if (route === 'home') { setConfigRoute('home'); return; }
+    if (!isAdmin && !APP_ROUTES.includes(route)) {
+      // Cuidador deslogado tentando entrar em grupo protegido: enviar para o gate de senha.
+      setConfigRoute('senha');
+      return;
+    }
+    setConfigRoute(route);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!toast) return;
@@ -1011,7 +1026,7 @@ export default function App() {
         setPendingSymbolImage(storedUri);
         setPendingSymbolLabel('');
         setPendingSymbolCategoryId(null);
-        setConfigSection('simbolos');
+        setConfigRoute('simbolos');
         setTimeout(() => {
           configScrollRef.current?.scrollTo({ y: 0, animated: true });
         }, 40);
@@ -2625,70 +2640,7 @@ export default function App() {
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.configModalContent}
             >
-            <View style={styles.configNav}>
-              <ConfigNavItem
-                label="Cuidador"
-                icon="🔐"
-                active={configSection === 'seguranca'}
-                onPress={() => setConfigSection('seguranca')}
-              />
-              <ConfigNavItem
-                label="Voz"
-                icon="🔊"
-                active={configSection === 'voz'}
-                onPress={() => setConfigSection('voz')}
-              />
-              <ConfigNavItem
-                label="Acessibilidade"
-                icon="👁"
-                active={configSection === 'acessibilidade'}
-                onPress={() => setConfigSection('acessibilidade')}
-              />
-              <ConfigNavItem
-                label="Perfil"
-                icon="⚙"
-                active={configSection === 'perfil'}
-                onPress={() => setConfigSection('perfil')}
-              />
-              <ConfigNavItem
-                label="Vocabulario"
-                icon="🗣"
-                active={configSection === 'vocabulario'}
-                onPress={() => setConfigSection('vocabulario')}
-              />
-              <ConfigNavItem
-                label="Frases"
-                icon="💬"
-                active={configSection === 'frases'}
-                onPress={() => setConfigSection('frases')}
-              />
-              <ConfigNavItem
-                label="Simbolos"
-                icon="📷"
-                active={configSection === 'simbolos'}
-                onPress={() => setConfigSection('simbolos')}
-              />
-              <ConfigNavItem
-                label="Categorias"
-                icon="🗂"
-                active={configSection === 'categorias'}
-                onPress={() => setConfigSection('categorias')}
-              />
-              <ConfigNavItem
-                label="Rotina"
-                icon="📅"
-                active={configSection === 'rotina'}
-                onPress={() => setConfigSection('rotina')}
-              />
-              <ConfigNavItem
-                label="Cenas"
-                icon="🏠"
-                active={configSection === 'cenas'}
-                onPress={() => setConfigSection('cenas')}
-              />
-            </View>
-
-            {configSection === 'vocabulario' && (
+            {configRoute === 'vocabulario' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Vocabulario core</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -2783,7 +2735,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'frases' && (
+            {configRoute === 'frases' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Frases prontas</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -2906,7 +2858,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'simbolos' && (
+            {configRoute === 'simbolos' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Simbolos pessoais</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -3071,7 +3023,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'categorias' && (
+            {configRoute === 'categorias' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Categorias customizadas</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -3188,7 +3140,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'rotina' && (
+            {configRoute === 'rotina' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Rotina do dia</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -3451,7 +3403,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'cenas' && (
+            {configRoute === 'cenas' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Cenas visuais</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -3534,7 +3486,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'perfil' && (
+            {configRoute === 'aparencia' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Perfil de uso</Text>
                 <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>Ajuste densidade visual conforme preferencia do usuário.</Text>
@@ -3560,7 +3512,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'acessibilidade' && (
+            {configRoute === 'acessibilidade' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Acessibilidade</Text>
                 <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Tema do aplicativo</Text>
@@ -3598,7 +3550,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'voz' && (
+            {configRoute === 'voz' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Voz</Text>
                 <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Velocidade: {rate.toFixed(1)}</Text>
@@ -3628,7 +3580,7 @@ export default function App() {
               </View>
             )}
 
-            {configSection === 'seguranca' && (
+            {(configRoute === 'senha' || configRoute === 'chave-ia') && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 {needsAdminSetup ? (
                   <>
@@ -3812,31 +3764,6 @@ function ConfigTab({ label, active, onPress, highContrast = false }: { label: st
   return (
     <Pressable onPress={onPress} style={[styles.configTab, highContrast && styles.configTabHighContrast, active && styles.configTabActive]}>
       <Text style={[styles.configTabText, highContrast && styles.configTabTextHighContrast, active && styles.configTabTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function ConfigNavItem({
-  label,
-  icon,
-  active,
-  onPress
-}: {
-  label: string;
-  icon: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const styles = moduleStyles;
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.configNavItem, active && styles.configNavItemActive]}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-    >
-      <Text style={styles.configNavIcon}>{icon}</Text>
-      <Text style={[styles.configNavItemText, active && styles.configNavItemTextActive]}>{label}</Text>
     </Pressable>
   );
 }
