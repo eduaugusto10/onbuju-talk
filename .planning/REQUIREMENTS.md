@@ -13,15 +13,15 @@
 ### Sistema Visual (VIS)
 
 - [x] **VIS-01**: App usa a paleta "Salvia & Creme" como tokens centralizados em `src/theme.ts` — salvia (ativo/selecionado), ouro (acao Gerar IA), terracota (acao Ouvir), creme (fundo e cards), texto quase-preto quente; substitui o azul iOS `#007AFF` como cor primaria.
-- [ ] **VIS-02**: App usa a fonte Nunito (arredondada) como token tipografico, substituindo a fonte de sistema; nenhuma familia de fonte hardcoded fora dos tokens. **PARCIAL** — fonte carregada (`NUNITO_FONT_MAP` via `useFonts`) e tokens `theme.typography.*` carregam `fontFamily`, mas nenhum `<Text>` em `src/App.tsx` aplica `fontFamily` (grep retorna 0). A fonte ainda nao e exibida; fechar aplicando os tokens tipograficos no restyling das fases 23/24 ou na fase 25.
+- [x] **VIS-02**: App usa a fonte Nunito (arredondada) como token tipografico, substituindo a fonte de sistema; nenhuma familia de fonte hardcoded fora dos tokens. **CONCLUIDO na fase 23** — os 15 estilos de texto da tela principal adotam `theme.typography.*` (que carrega `fontFamily` Nunito); `grep "fontFamily: '" src/App.tsx` retorna 0. Telas restantes (config/cenas/rotina) recebem o mesmo padrao nas fases 24/25.
 - [ ] **VIS-03**: Cuidador pode escolher entre 3 temas — "Salvia & Creme" (padrao), "Terracota" e "Sereno Escuro" (modo escuro calmo que substitui o alto-contraste preto/amarelo agressivo); a escolha persiste apos reiniciar o app. **CODIGO CONCLUIDO** — seletor de 3 temas implementado (plano 22-03), runtime/persistencia prontos desde 22-02; verificacao humana em device/emulador adiada pelo usuario (fazer na fase 25 ou quando conveniente).
 
 ### Tela Principal (TELA)
 
 - [x] **TELA-01**: Tela principal usa layout enxuto — sem slogan e sem barra de vocabulario separada da grade; o vocabulario core continua acessivel integrado, sem competir como segunda barra.
 - [x] **TELA-02**: Cards de pictograma usam o estilo validado — card limpo com a cor da categoria no bloco atras do pictograma e o rotulo em texto abaixo (nunca etiqueta colorida).
-- [ ] **TELA-03**: Compositor usa hierarquia "Ouvir heroi" — "Ouvir" e o botao dominante; "Gerar (IA)" fica rotulado e visivel, porem menor, como acao de apoio.
-- [ ] **TELA-04**: Usuario remove uma figura selecionada com 1 toque na propria figura; um controle discreto "limpar" aparece apenas quando ha figuras e apaga todas.
+- [x] **TELA-03**: Compositor usa hierarquia "Ouvir heroi" — "Ouvir" e o botao dominante; "Gerar (IA)" fica rotulado e visivel, porem menor, como acao de apoio.
+- [x] **TELA-04**: Usuario remove uma figura selecionada com 1 toque na propria figura; um controle discreto "limpar" aparece apenas quando ha figuras e apaga todas.
 
 ### Configuracoes (CFG)
 
@@ -55,12 +55,12 @@
 | REQ-ID  | Category        | Phase    | Notes |
 |---------|-----------------|----------|-------|
 | VIS-01  | Sistema Visual  | Phase 22 | Concluido (22-01/22-02) — paleta Salvia & Creme em theme.ts, tema aplicado ao shell de App.tsx |
-| VIS-02  | Sistema Visual  | Phase 22 | PARCIAL — fonte Nunito carregada (useFonts) e tokens theme.typography.* carregam fontFamily, mas nenhum Text aplica fontFamily; fechar nas fases 23/24/25 |
+| VIS-02  | Sistema Visual  | Phase 22+23 | Concluido na fase 23 — tela principal aplica theme.typography (Nunito); fontFamily literal = 0 |
 | VIS-03  | Sistema Visual  | Phase 22 | Codigo concluido (22-03) — seletor de 3 temas na config; verificacao humana em device adiada pelo usuario (fase 25 ou quando conveniente) |
 | TELA-01 | Tela Principal  | Phase 23 | Concluido (23-01/23-03) — slogan removido + vocabulario core integrado a grade |
 | TELA-02 | Tela Principal  | Phase 23 | Concluido (23-03) — card com tile de cor de categoria atras do pictograma |
-| TELA-03 | Tela Principal  | Phase 23 | Compositor Ouvir-heroi |
-| TELA-04 | Tela Principal  | Phase 23 | Apagar figura em 1 toque |
+| TELA-03 | Tela Principal  | Phase 23 | Concluido (23-04) — Ouvir dominante (terracota, flex:1.9), Gerar rotulado menor (ouro, flex:1) |
+| TELA-04 | Tela Principal  | Phase 23 | Concluido (23-04) — tocar na figura remove (1 toque); link "limpar" contextual |
 | CFG-01  | Configuracoes   | Phase 24 | Inicio agrupado em 3 grupos |
 | CFG-02  | Configuracoes   | Phase 24 | Navegacao drill-down |
 | CFG-03  | Configuracoes   | Phase 24 | Gating por grupo |

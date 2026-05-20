@@ -2,16 +2,16 @@
 
 ## Current Position
 - Milestone: v6 - Redesign Visual Calmo
-- Phase: Phase 23 - Tela Principal Redesenhada (em andamento — 3/4 planos)
-- Status: Plano 23-03 concluido. Proximo: 23-04 (compositor Ouvir-heroi + apagar figura em 1 toque).
-- Last activity: 2026-05-19 - Plano 23-03 executado: SymbolCard refeito com tile de cor de categoria atras do pictograma, estrela como overlay; vocabulario core integrado como primeira linha fixa da grade.
+- Phase: Phase 24 - Configuracoes Agrupadas com Drill-down (nao iniciada)
+- Status: Phase 23 concluida (4/4 planos). Proximo: smart discuss + planejamento + execucao da Phase 24.
+- Last activity: 2026-05-19 - Phase 23 concluida com 4/4 planos: tela principal inteira reestilizada (header, categorias, busca, card+core, compositor); VIS-02 fechado (Nunito aplicada via theme.typography); checkpoint humano aceito pelo usuario.
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
 - Milestone v4 (Comunicacao Pessoal e Rotina Visual) concluida em 2026-04-21 com 12/12 requisitos; aguardando arquivamento formal.
 - Milestone v6: 4 fases (22-25), 11 requisitos (VIS, TELA, CFG, REG), 100% mapeados.
 - Phase 22 concluida em codigo: planos 22-01 (tokens + fonte), 22-02 (integracao em App.tsx) e 22-03 (seletor de temas na config) concluidos. Verificacao humana em device da fase 22 adiada pelo usuario — fazer na fase 25 ou quando conveniente.
-- GAP CARREGADO (VIS-02): fonte Nunito carregada (`NUNITO_FONT_MAP` via `useFonts`) e tokens `theme.typography.*` carregam `fontFamily`, mas nenhum `<Text>` em `src/App.tsx` aplica `fontFamily` — `grep fontFamily src/App.tsx` retorna 0. VIS-02 NAO esta de fato satisfeito; fechar aplicando os tokens tipograficos no restyling das fases 23/24, ou explicitamente na fase 25.
+- VIS-02 FECHADO na fase 23: os 15 estilos de texto da tela principal adotam `theme.typography.*` (que carrega `fontFamily` Nunito); `grep "fontFamily: '" src/App.tsx` retorna 0. Demais telas (config/cenas/rotina) recebem o mesmo padrao nas fases 24/25.
 - Codebase map em `.planning/codebase/`.
 - `npm run lint` limpo; `npm run test` 22/26 (4 pre-existentes herdados aceitos).
 - Validacao manual em device listada em `.planning/RELEASE-CHECKLIST.md`.
@@ -26,7 +26,7 @@
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
 ## Proximo Comando Recomendado
-- Executar o plano 23-04 (compositor Ouvir-heroi + apagar figura em 1 toque — sketch 003). Continuar adotando os tokens `theme.typography.*` para fechar o gap VIS-02.
+- Iniciar a Phase 24 (Configuracoes Agrupadas com Drill-down — CFG-01/02/03): 10 abas planas viram 3 grupos (App / Conteudo da crianca / Cuidador) com drill-down e gating por grupo. Design contract: `sketch-findings-fala/references/configuracoes.md`.
 
 ## Decisoes Recentes
 - 23-03: Tile do pictograma com raio fixo (18/14/12 por densidade), mais arredondado que o card (theme.radii.md=16) — efeito 'tapete' do sketch 002 variante D.
