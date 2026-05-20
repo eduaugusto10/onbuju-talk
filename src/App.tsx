@@ -3727,32 +3727,35 @@ export default function App() {
             )}
 
             {configRoute === 'chave-ia' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador para alterar a chave da IA.
-                  </Text>
-                ) : (
-                  <>
-                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Chave da IA</Text>
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      A chave do `.env` é usada por padrão. Você pode substituir por outra aqui.
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para alterar a chave da IA.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>CHAVE DA IA (GEMINI)</Text>
+                  <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      A chave do `.env` é usada por padrão. Você pode substituir por outra aqui — fica salva apenas neste dispositivo.
                     </Text>
                     <TextInput
                       value={aiApiKeyInput}
                       onChangeText={setAiApiKeyInput}
                       placeholder="EXPO_PUBLIC_GOOGLE_AI_API_KEY"
+                      placeholderTextColor={theme.colors.textMuted}
                       autoCapitalize="none"
                       autoCorrect={false}
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                     />
-                    <Pressable style={styles.modalButtonPrimary} onPress={() => void handleSaveAiKey()}>
-                      <Text style={styles.modalButtonPrimaryText}>Salvar chave da IA</Text>
+                    <Pressable
+                      style={styles.drillPrimaryButton}
+                      onPress={() => void handleSaveAiKey()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Salvar chave da IA"
+                    >
+                      <Text style={styles.drillPrimaryButtonText}>Salvar chave da IA</Text>
                     </Pressable>
-                  </>
-                )}
-              </View>
+                  </View>
+                </>
+              )
             )}
               </ScrollView>
             </>
