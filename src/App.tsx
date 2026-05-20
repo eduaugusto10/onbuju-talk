@@ -2677,12 +2677,26 @@ export default function App() {
               </View>
             </ScrollView>
           ) : (
-            <ScrollView
-              ref={configScrollRef}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.configModalContent}
-            >
+            <>
+              <View style={styles.configDetailHeader}>
+                <Pressable
+                  onPress={() => setConfigRoute('home')}
+                  style={styles.configBackButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voltar para Ajustes"
+                >
+                  <Text style={styles.configBackText}>‹ Ajustes</Text>
+                </Pressable>
+                <Text style={styles.configDetailTitle} numberOfLines={1}>
+                  {CONFIG_ROUTE_TITLES[configRoute]}
+                </Text>
+              </View>
+              <ScrollView
+                ref={configScrollRef}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.configDetailBody}
+              >
             {configRoute === 'vocabulario' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Vocabulario core</Text>
@@ -3623,7 +3637,7 @@ export default function App() {
               </View>
             )}
 
-            {(configRoute === 'senha' || configRoute === 'chave-ia') && (
+            {configRoute === 'senha' && (
               <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
                 {needsAdminSetup ? (
                   <>
@@ -3713,7 +3727,19 @@ export default function App() {
                     <Pressable style={styles.modalButtonPrimary} onPress={() => void handleUpdateAdminPassword()}>
                       <Text style={styles.modalButtonPrimaryText}>Atualizar senha</Text>
                     </Pressable>
+                  </>
+                )}
+              </View>
+            )}
 
+            {configRoute === 'chave-ia' && (
+              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
+                {!isAdmin ? (
+                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
+                    Entre como cuidador para alterar a chave da IA.
+                  </Text>
+                ) : (
+                  <>
                     <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Chave da IA</Text>
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
                       A chave do `.env` é usada por padrão. Você pode substituir por outra aqui.
@@ -3734,7 +3760,8 @@ export default function App() {
                 )}
               </View>
             )}
-            </ScrollView>
+              </ScrollView>
+            </>
           )}
         </View>
       </IOSBottomSheet>
@@ -3811,6 +3838,20 @@ function ConfigTab({ label, active, onPress, highContrast = false }: { label: st
     </Pressable>
   );
 }
+
+const CONFIG_ROUTE_TITLES: Record<Exclude<ConfigRoute, 'home'>, string> = {
+  voz: 'Voz',
+  acessibilidade: 'Acessibilidade',
+  aparencia: 'Aparência',
+  vocabulario: 'Vocabulário core',
+  frases: 'Frases prontas',
+  simbolos: 'Símbolos pessoais',
+  categorias: 'Categorias',
+  rotina: 'Rotina do dia',
+  cenas: 'Cenas visuais',
+  senha: 'Senha do cuidador',
+  'chave-ia': 'Chave da IA'
+};
 
 function ConfigGroupRow({
   icon,
@@ -6045,6 +6086,39 @@ function makeStyles(theme: Theme) {
     ...theme.typography.caption1,
     color: theme.colors.textMuted,
     marginLeft: 4
+  },
+  // ============================================================================
+  // Wrapper de detalhe (drill-down)
+  // ============================================================================
+  configDetailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
+    gap: theme.spacing.sm
+  },
+  configBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xs,
+    paddingRight: theme.spacing.sm
+  },
+  configBackText: {
+    ...theme.typography.body,
+    color: theme.colors.primary
+  },
+  configDetailTitle: {
+    ...theme.typography.title3,
+    color: theme.colors.text,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 60
+  },
+  configDetailBody: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
+    gap: theme.spacing.md
   },
   configTab: {
     borderRadius: 999,
