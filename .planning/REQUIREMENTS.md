@@ -25,9 +25,9 @@
 
 ### Configuracoes (CFG)
 
-- [ ] **CFG-01**: Tela de configuracoes usa inicio agrupado em 3 grupos — "App", "Conteudo da crianca" e "Cuidador" — substituindo as 10 abas planas.
-- [ ] **CFG-02**: Configuracoes usam navegacao drill-down — cada item abre sua propria tela com botao voltar; listas densas de "rotulo + 3 botoes espremidos" sao eliminadas.
-- [ ] **CFG-03**: Cuidador deslogado ve apenas o grupo "App" disponivel; os demais grupos exibem indicador de bloqueio e pedem senha (sem abas bloqueadas expostas).
+- [x] **CFG-01**: Tela de configuracoes usa inicio agrupado em 3 grupos — "App", "Conteudo da crianca" e "Cuidador" — substituindo as 10 abas planas.
+- [x] **CFG-02**: Configuracoes usam navegacao drill-down — cada item abre sua propria tela com botao voltar; listas densas de "rotulo + 3 botoes espremidos" sao eliminadas.
+- [x] **CFG-03**: Cuidador deslogado ve apenas o grupo "App" disponivel; os demais grupos exibem indicador de bloqueio e pedem senha (sem abas bloqueadas expostas).
 
 ### Regressao e Release (REG)
 
