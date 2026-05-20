@@ -348,6 +348,11 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
   - [x] 23-03-PLAN.md -- SymbolCard com tile de cor de categoria + vocabulario core na grade
   - [ ] 23-04-PLAN.md -- Compositor Ouvir-heroi + apagar figura em 1 toque
 - [ ] **Phase 24: Configuracoes Agrupadas com Drill-down** - 10 abas planas viram 3 grupos com navegacao drill-down e gating claro.
+  - **Plans:** 4 plans (4 waves)
+  - [ ] 24-01-PLAN.md -- Shell agrupado + drill-down (home 3 grupos, ConfigRoute, openConfigRoute com gating, ConfigGroupRow)
+  - [ ] 24-02-PLAN.md -- Grupo App restilizado (Voz, Acessibilidade, Aparencia)
+  - [ ] 24-03-PLAN.md -- Grupo Conteudo da crianca (Vocabulario, Frases, Simbolos, Categorias, Rotina, Cenas) sem listas densas
+  - [ ] 24-04-PLAN.md -- Grupo Cuidador (Senha 3 estados, Chave IA) + checkpoint humano da Phase 24
 - [ ] **Phase 25: Regressao e Release** - Regressao dos fluxos v1-v4 sem quebras e preparacao de release.
 
 ## Progress Table (Milestone 6)
@@ -356,5 +361,5 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 |-------|----------------|--------|-----------|
 | 22. Sistema de Tema "Salvia & Creme" | 3/3 | Complete | 2026-05-19 |
 | 23. Tela Principal Redesenhada | 2/4 | In progress | - |
-| 24. Configuracoes Agrupadas com Drill-down | 0/0 | Not started | - |
+| 24. Configuracoes Agrupadas com Drill-down | 0/4 | Not started | - |
 | 25. Regressao e Release | 0/0 | Not started | - |
