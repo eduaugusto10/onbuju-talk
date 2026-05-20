@@ -2698,140 +2698,120 @@ export default function App() {
                 contentContainerStyle={styles.configDetailBody}
               >
             {configRoute === 'vocabulario' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Vocabulario core</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Palavras essenciais que aparecem sempre na mesma posicao para reforcar o motor planning.
-                </Text>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador em "Cuidador" para editar o vocabulario core.
-                  </Text>
-                ) : (
-                  <>
-                    <View style={styles.coreVocabEditorList}>
-                      {coreVocabulary.map((word, index) => (
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para editar o vocabulário core.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>PALAVRAS ATUAIS</Text>
+                  <View style={styles.drillListCard}>
+                    {coreVocabulary.length === 0 ? (
+                      <Text style={styles.drillEmptyHint}>Nenhuma palavra no core ainda.</Text>
+                    ) : (
+                      coreVocabulary.map((word, index) => (
                         <View
                           key={`core-edit-${word}`}
-                          style={[styles.coreVocabEditorRow, isHighContrast && styles.coreVocabEditorRowHighContrast]}
+                          style={[styles.drillItemRow, index > 0 && styles.drillItemRowDivider]}
                         >
-                          <Text
-                            style={[styles.coreVocabEditorLabel, isHighContrast && styles.textHighContrast]}
-                            numberOfLines={1}
-                          >
-                            {word.toUpperCase()}
-                          </Text>
+                          <Text style={styles.drillItemLabel} numberOfLines={1}>{word.toUpperCase()}</Text>
                           <Pressable
                             onPress={() => moveCoreVocabularyWord(word, -1)}
                             disabled={index === 0}
-                            style={[styles.coreVocabEditorButton, index === 0 && styles.coreVocabEditorButtonDisabled]}
+                            style={[styles.drillIconButton, index === 0 && { opacity: 0.4 }]}
                             accessibilityRole="button"
                             accessibilityLabel={`Mover ${word} para cima`}
                           >
-                            <Text style={styles.coreVocabEditorButtonText}>↑</Text>
+                            <Text style={styles.drillIconButtonText}>↑</Text>
                           </Pressable>
                           <Pressable
                             onPress={() => moveCoreVocabularyWord(word, 1)}
                             disabled={index === coreVocabulary.length - 1}
-                            style={[
-                              styles.coreVocabEditorButton,
-                              index === coreVocabulary.length - 1 && styles.coreVocabEditorButtonDisabled
-                            ]}
+                            style={[styles.drillIconButton, index === coreVocabulary.length - 1 && { opacity: 0.4 }]}
                             accessibilityRole="button"
                             accessibilityLabel={`Mover ${word} para baixo`}
                           >
-                            <Text style={styles.coreVocabEditorButtonText}>↓</Text>
+                            <Text style={styles.drillIconButtonText}>↓</Text>
                           </Pressable>
                           <Pressable
                             onPress={() => removeCoreVocabularyWord(word)}
-                            style={[styles.coreVocabEditorButton, styles.coreVocabEditorButtonDanger]}
+                            style={[styles.drillIconButton, styles.drillIconButtonDanger]}
                             accessibilityRole="button"
                             accessibilityLabel={`Remover ${word}`}
                           >
-                            <Text style={[styles.coreVocabEditorButtonText, styles.coreVocabEditorButtonTextDanger]}>✕</Text>
+                            <Text style={[styles.drillIconButtonText, styles.drillIconButtonTextDanger]}>✕</Text>
                           </Pressable>
                         </View>
-                      ))}
-                    </View>
+                      ))
+                    )}
+                  </View>
 
-                    <View style={styles.coreVocabEditorAddRow}>
+                  <Text style={styles.drillSectionTitle}>ADICIONAR</Text>
+                  <View style={styles.drillSectionCard}>
+                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                       <TextInput
                         value={newCoreWord}
                         onChangeText={setNewCoreWord}
-                        placeholder="Nova palavra (ex: agua)"
-                        placeholderTextColor="#94a3b8"
+                        placeholder="Nova palavra (ex.: água)"
+                        placeholderTextColor={theme.colors.textMuted}
                         autoCapitalize="none"
                         autoCorrect={false}
-                        style={[styles.modalInput, styles.coreVocabEditorInput, isHighContrast && styles.inputHighContrast]}
+                        style={styles.drillInlineInput}
                         onSubmitEditing={addCoreVocabularyWord}
                       />
                       <Pressable
                         onPress={addCoreVocabularyWord}
-                        style={styles.modalButtonPrimary}
+                        style={styles.drillPrimaryButton}
                         accessibilityRole="button"
                         accessibilityLabel="Adicionar palavra ao core"
                       >
-                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                        <Text style={styles.drillPrimaryButtonText}>Adicionar</Text>
                       </Pressable>
                     </View>
-
-                    <Pressable
-                      onPress={resetCoreVocabulary}
-                      style={styles.modalButtonLight}
-                      accessibilityRole="button"
-                      accessibilityLabel="Restaurar vocabulario core padrao"
-                    >
-                      <Text>Restaurar padrao</Text>
-                    </Pressable>
-
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Maximo de {CORE_VOCABULARY_MAX} palavras. Palavras duplicadas sao ignoradas.
+                    <Text style={styles.drillFieldHint}>
+                      Máximo de {CORE_VOCABULARY_MAX} palavras. Duplicadas são ignoradas.
                     </Text>
-                  </>
-                )}
-              </View>
+                  </View>
+
+                  <Pressable
+                    onPress={resetCoreVocabulary}
+                    style={styles.drillSecondaryButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Restaurar vocabulário core padrão"
+                  >
+                    <Text style={styles.drillSecondaryButtonText}>Restaurar padrão</Text>
+                  </Pressable>
+                </>
+              )
             )}
 
             {configRoute === 'frases' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Frases prontas</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Frases que o cuidador pre-monta para uso em um toque pela crianca.
-                </Text>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador em "Cuidador" para editar as frases prontas.
-                  </Text>
-                ) : (
-                  <>
-                    <View style={styles.phraseEditorList}>
-                      {savedPhrases.length === 0 && (
-                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                          Nenhuma frase salva ainda. Adicione abaixo.
-                        </Text>
-                      )}
-                      {savedPhrases.map(phrase => {
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para editar as frases prontas.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>FRASES SALVAS</Text>
+                  <View style={styles.drillListCard}>
+                    {savedPhrases.length === 0 ? (
+                      <Text style={styles.drillEmptyHint}>Nenhuma frase salva ainda. Adicione abaixo.</Text>
+                    ) : (
+                      savedPhrases.map((phrase, index) => {
                         const isEditing = editingPhraseId === phrase.id;
                         return (
                           <View
                             key={`phrase-edit-${phrase.id}`}
-                            style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+                            style={[styles.drillItemRow, index > 0 && styles.drillItemRowDivider]}
                           >
                             {isEditing ? (
                               <TextInput
                                 value={editingPhraseText}
                                 onChangeText={setEditingPhraseText}
-                                style={[styles.phraseEditorInput, isHighContrast && styles.inputHighContrast]}
+                                style={styles.drillInlineInput}
                                 placeholder="Editar frase"
-                                placeholderTextColor="#94a3b8"
+                                placeholderTextColor={theme.colors.textMuted}
                                 autoFocus
                                 onSubmitEditing={commitEditingPhrase}
                               />
                             ) : (
-                              <Text
-                                style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]}
-                                numberOfLines={2}
-                              >
+                              <Text style={styles.drillItemLabel} numberOfLines={2}>
                                 {phrase.text}
                               </Text>
                             )}
@@ -2839,80 +2819,83 @@ export default function App() {
                               <>
                                 <Pressable
                                   onPress={commitEditingPhrase}
-                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonPrimary]}
+                                  style={styles.drillIconButton}
                                   accessibilityRole="button"
-                                  accessibilityLabel={`Salvar edicao da frase ${phrase.text}`}
+                                  accessibilityLabel={`Salvar edição da frase ${phrase.text}`}
                                 >
-                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextPrimary]}>OK</Text>
+                                  <Text style={styles.drillIconButtonText}>OK</Text>
                                 </Pressable>
                                 <Pressable
                                   onPress={cancelEditingPhrase}
-                                  style={styles.phraseEditorButton}
+                                  style={[styles.drillIconButton, styles.drillIconButtonDanger]}
                                   accessibilityRole="button"
-                                  accessibilityLabel="Cancelar edicao da frase"
+                                  accessibilityLabel="Cancelar edição da frase"
                                 >
-                                  <Text style={styles.phraseEditorButtonText}>✕</Text>
+                                  <Text style={[styles.drillIconButtonText, styles.drillIconButtonTextDanger]}>✕</Text>
                                 </Pressable>
                               </>
                             ) : (
                               <>
                                 <Pressable
                                   onPress={() => startEditingPhrase(phrase)}
-                                  style={styles.phraseEditorButton}
+                                  style={styles.drillIconButton}
                                   accessibilityRole="button"
                                   accessibilityLabel={`Editar frase ${phrase.text}`}
                                 >
-                                  <Text style={styles.phraseEditorButtonText}>✎</Text>
+                                  <Text style={styles.drillIconButtonText}>✎</Text>
                                 </Pressable>
                                 <Pressable
                                   onPress={() => removeSavedPhrase(phrase.id)}
-                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                                  style={[styles.drillIconButton, styles.drillIconButtonDanger]}
                                   accessibilityRole="button"
                                   accessibilityLabel={`Remover frase ${phrase.text}`}
                                 >
-                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                                  <Text style={[styles.drillIconButtonText, styles.drillIconButtonTextDanger]}>✕</Text>
                                 </Pressable>
                               </>
                             )}
                           </View>
                         );
-                      })}
-                    </View>
+                      })
+                    )}
+                  </View>
 
-                    <View style={styles.phraseEditorAddRow}>
+                  <Text style={styles.drillSectionTitle}>ADICIONAR</Text>
+                  <View style={styles.drillSectionCard}>
+                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                       <TextInput
                         value={newPhraseInput}
                         onChangeText={setNewPhraseInput}
                         placeholder="Nova frase (ex: quero agua)"
-                        placeholderTextColor="#94a3b8"
-                        style={[styles.modalInput, styles.phraseEditorAddInput, isHighContrast && styles.inputHighContrast]}
+                        placeholderTextColor={theme.colors.textMuted}
+                        style={styles.drillInlineInput}
                         onSubmitEditing={addSavedPhrase}
                       />
                       <Pressable
                         onPress={addSavedPhrase}
-                        style={styles.modalButtonPrimary}
+                        style={styles.drillPrimaryButton}
                         accessibilityRole="button"
                         accessibilityLabel="Adicionar nova frase pronta"
                       >
-                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                        <Text style={styles.drillPrimaryButtonText}>Adicionar</Text>
                       </Pressable>
                     </View>
-
-                    <Pressable
-                      onPress={clearPhraseHistory}
-                      style={styles.modalButtonLight}
-                      accessibilityRole="button"
-                      accessibilityLabel="Limpar historico de frases"
-                    >
-                      <Text>Limpar historico ({phraseHistory.length})</Text>
-                    </Pressable>
-
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Maximo de {SAVED_PHRASES_MAX} frases. Historico guarda as ultimas {PHRASE_HISTORY_MAX} frases faladas.
+                    <Text style={styles.drillFieldHint}>
+                      Máximo de {SAVED_PHRASES_MAX} frases. Histórico guarda as últimas {PHRASE_HISTORY_MAX} faladas.
                     </Text>
-                  </>
-                )}
-              </View>
+                  </View>
+
+                  <Text style={styles.drillSectionTitle}>HISTÓRICO</Text>
+                  <Pressable
+                    onPress={clearPhraseHistory}
+                    style={styles.drillSecondaryButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Limpar histórico de frases"
+                  >
+                    <Text style={styles.drillSecondaryButtonText}>Limpar histórico ({phraseHistory.length})</Text>
+                  </Pressable>
+                </>
+              )
             )}
 
             {configRoute === 'simbolos' && (
@@ -6198,6 +6181,79 @@ function makeStyles(theme: Theme) {
   drillDangerButtonText: {
     ...theme.typography.headline,
     color: theme.colors.danger
+  },
+  // ============================================================================
+  // Tokens de linha-de-item do drill-down (Phase 24-03 — Conteudo da crianca)
+  // ============================================================================
+  drillItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg
+  },
+  drillItemRowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border
+  },
+  drillItemLabel: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.text
+  },
+  drillItemSubLabel: {
+    ...theme.typography.footnote,
+    color: theme.colors.textMuted
+  },
+  drillIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: theme.radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primarySoft
+  },
+  drillIconButtonDanger: {
+    backgroundColor: theme.colors.dangerSoft
+  },
+  drillIconButtonText: {
+    ...theme.typography.body,
+    color: theme.colors.primaryInk
+  },
+  drillIconButtonTextDanger: {
+    color: theme.colors.danger
+  },
+  drillInlineInput: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface2,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md
+  },
+  drillAddRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md
+  },
+  drillEmptyHint: {
+    ...theme.typography.body,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: theme.spacing.lg
+  },
+  drillListCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: 'hidden',
+    ...theme.shadows.sm
   },
   configTab: {
     borderRadius: 999,
