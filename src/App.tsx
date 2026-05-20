@@ -6120,6 +6120,82 @@ function makeStyles(theme: Theme) {
     paddingBottom: theme.spacing.xxl,
     gap: theme.spacing.md
   },
+  // ============================================================================
+  // Tokens de secao do drill-down (Phase 24-02 — Salvia & Creme)
+  // ============================================================================
+  drillSectionTitle: {
+    ...theme.typography.caption1,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: theme.spacing.sm,
+    paddingBottom: 6,
+    paddingTop: theme.spacing.sm
+  },
+  drillSectionCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    ...theme.shadows.sm
+  },
+  drillFieldLabel: {
+    ...theme.typography.subheadline,
+    color: theme.colors.text
+  },
+  drillFieldHint: {
+    ...theme.typography.footnote,
+    color: theme.colors.textMuted
+  },
+  drillChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm
+  },
+  drillToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.xs
+  },
+  drillPrimaryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.radii.full,
+    alignItems: 'center'
+  },
+  drillPrimaryButtonText: {
+    ...theme.typography.headline,
+    color: '#FFFFFF'
+  },
+  drillSecondaryButton: {
+    backgroundColor: theme.colors.bgSoft,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.radii.full,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border
+  },
+  drillSecondaryButtonText: {
+    ...theme.typography.headline,
+    color: theme.colors.text
+  },
+  drillDangerButton: {
+    backgroundColor: theme.colors.dangerSoft,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.radii.full,
+    alignItems: 'center'
+  },
+  drillDangerButtonText: {
+    ...theme.typography.headline,
+    color: theme.colors.danger
+  },
   configTab: {
     borderRadius: 999,
     borderWidth: 1,
