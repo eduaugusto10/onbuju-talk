@@ -3544,67 +3544,65 @@ export default function App() {
             )}
 
             {configRoute === 'aparencia' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Perfil de uso</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>Ajuste densidade visual conforme preferencia do usuário.</Text>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Escala da interface</Text>
-                <View style={styles.settingActions}>
-                  <OptionChip label="Compacto" active={uiScale === 'compacto'} highContrast={isHighContrast} onPress={() => setUiScale('compacto')} />
-                  <OptionChip label="Padrão" active={uiScale === 'padrao'} highContrast={isHighContrast} onPress={() => setUiScale('padrao')} />
-                  <OptionChip label="Confortável" active={uiScale === 'confortavel'} highContrast={isHighContrast} onPress={() => setUiScale('confortavel')} />
+              <>
+                <Text style={styles.drillSectionTitle}>ESCALA DA INTERFACE</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldHint}>Ajuste a densidade visual conforme a preferência da criança.</Text>
+                  <View style={styles.drillChipRow}>
+                    <OptionChip label="Compacto"    active={uiScale === 'compacto'}    onPress={() => setUiScale('compacto')} />
+                    <OptionChip label="Padrão"      active={uiScale === 'padrao'}      onPress={() => setUiScale('padrao')} />
+                    <OptionChip label="Confortável" active={uiScale === 'confortavel'} onPress={() => setUiScale('confortavel')} />
+                  </View>
                 </View>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Imagens por linha</Text>
-                <View style={styles.settingActions}>
-                  {GRID_COLUMNS_OPTIONS.map(option => (
-                    <OptionChip
-                      key={`grid-col-${option}`}
-                      label={`${option} col`}
-                      active={gridColumns === option}
-                      highContrast={isHighContrast}
-                      onPress={() => setGridColumns(option)}
-                    />
-                  ))}
+
+                <Text style={styles.drillSectionTitle}>IMAGENS POR LINHA</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldHint}>Quantos pictogramas aparecem por linha na grade principal.</Text>
+                  <View style={styles.drillChipRow}>
+                    {GRID_COLUMNS_OPTIONS.map(option => (
+                      <OptionChip
+                        key={`grid-col-${option}`}
+                        label={`${option} col`}
+                        active={gridColumns === option}
+                        onPress={() => setGridColumns(option)}
+                      />
+                    ))}
+                  </View>
                 </View>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>As mudanças são aplicadas e salvas automaticamente.</Text>
-              </View>
+              </>
             )}
 
             {configRoute === 'acessibilidade' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Acessibilidade</Text>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Tema do aplicativo</Text>
-                <View style={styles.settingActions}>
-                  <OptionChip
-                    label="Salvia & Creme"
-                    active={themeName === 'default'}
-                    highContrast={isHighContrast}
-                    onPress={() => setThemeName('default')}
-                  />
-                  <OptionChip
-                    label="Terracota"
-                    active={themeName === 'terracota'}
-                    highContrast={isHighContrast}
-                    onPress={() => setThemeName('terracota')}
-                  />
-                  <OptionChip
-                    label="Sereno Escuro"
-                    active={themeName === 'sereno-escuro'}
-                    highContrast={isHighContrast}
-                    onPress={() => setThemeName('sereno-escuro')}
-                  />
+              <>
+                <Text style={styles.drillSectionTitle}>TEMA DO APLICATIVO</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldHint}>
+                    O tema muda as cores do aplicativo. Sereno Escuro é um modo escuro calmo para uso noturno ou crianças sensíveis a brilho.
+                  </Text>
+                  <View style={styles.drillChipRow}>
+                    <OptionChip label="Sálvia & Creme" active={themeName === 'default'}        onPress={() => setThemeName('default')} />
+                    <OptionChip label="Terracota"      active={themeName === 'terracota'}      onPress={() => setThemeName('terracota')} />
+                    <OptionChip label="Sereno Escuro"  active={themeName === 'sereno-escuro'}  onPress={() => setThemeName('sereno-escuro')} />
+                  </View>
                 </View>
-                <View style={styles.iosToggleRow}>
-                  <Text style={[styles.iosToggleLabel, isHighContrast && styles.textHighContrast]}>Feedback visual</Text>
-                  <Switch
-                    value={visualFeedbackEnabled}
-                    onValueChange={setVisualFeedbackEnabled}
-                    trackColor={{ false: '#D1D1D6', true: theme.colors.primary }}
-                    thumbColor="#FFFFFF"
-                    accessibilityLabel="Alternar feedback visual"
-                  />
+
+                <Text style={styles.drillSectionTitle}>FEEDBACK</Text>
+                <View style={styles.drillSectionCard}>
+                  <View style={styles.drillToggleRow}>
+                    <Text style={styles.drillFieldLabel}>Feedback visual ao tocar</Text>
+                    <Switch
+                      value={visualFeedbackEnabled}
+                      onValueChange={setVisualFeedbackEnabled}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel="Alternar feedback visual"
+                    />
+                  </View>
+                  <Text style={styles.drillFieldHint}>
+                    Quando ativado, um halo discreto aparece ao redor das figuras tocadas.
+                  </Text>
                 </View>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>O tema muda as cores do aplicativo. Sereno Escuro é um modo escuro calmo para uso noturno ou crianças sensíveis a brilho.</Text>
-              </View>
+              </>
             )}
 
             {configRoute === 'voz' && (
