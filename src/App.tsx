@@ -2628,14 +2628,57 @@ export default function App() {
         }}
       >
         <View style={[styles.configSheet, isHighContrast && styles.modalCardHighContrast]}>
-            <View style={styles.configSubheader}>
-              <Text style={[styles.configHeaderSubtitle, isHighContrast && styles.textMutedHighContrast]}>
-                {isAdmin ? 'Você está no modo cuidador.' : 'Área protegida por senha.'}
-              </Text>
-            </View>
-
-                    <ScrollView
-                      ref={configScrollRef}
+          {configRoute === 'home' ? (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.configHomeContent}
+            >
+              {/* Grupo APP — sempre clicavel */}
+              <View style={styles.sGroupBlock}>
+                <Text style={styles.sGroupTitle}>APP</Text>
+                <View style={styles.sCard}>
+                  <ConfigGroupRow icon="🔊" label="Voz" onPress={() => openConfigRoute('voz')} first />
+                  <ConfigGroupRow icon="👁" label="Acessibilidade" onPress={() => openConfigRoute('acessibilidade')} />
+                  <ConfigGroupRow icon="⚙" label="Aparência" onPress={() => openConfigRoute('aparencia')} />
+                </View>
+              </View>
+              {/* Grupo CONTEUDO DA CRIANCA — gated por senha */}
+              <View style={styles.sGroupBlock}>
+                <Text style={styles.sGroupTitle}>CONTEÚDO DA CRIANÇA</Text>
+                <View style={styles.sCard}>
+                  <ConfigGroupRow icon="🗣" label="Vocabulário core" locked={!isAdmin} onPress={() => openConfigRoute('vocabulario')} first />
+                  <ConfigGroupRow icon="💬" label="Frases prontas" locked={!isAdmin} onPress={() => openConfigRoute('frases')} />
+                  <ConfigGroupRow icon="📷" label="Símbolos pessoais" locked={!isAdmin} onPress={() => openConfigRoute('simbolos')} />
+                  <ConfigGroupRow icon="🗂" label="Categorias" locked={!isAdmin} onPress={() => openConfigRoute('categorias')} />
+                  <ConfigGroupRow icon="📅" label="Rotina do dia" locked={!isAdmin} onPress={() => openConfigRoute('rotina')} />
+                  <ConfigGroupRow icon="🏠" label="Cenas visuais" locked={!isAdmin} onPress={() => openConfigRoute('cenas')} />
+                </View>
+              </View>
+              {/* Grupo CUIDADOR — gated; opcoes mudam por estado */}
+              <View style={styles.sGroupBlock}>
+                <Text style={styles.sGroupTitle}>CUIDADOR</Text>
+                <View style={styles.sCard}>
+                  <ConfigGroupRow
+                    icon="🔐"
+                    label={isAdmin ? 'Senha' : (needsAdminSetup ? 'Criar senha' : 'Entrar como cuidador')}
+                    onPress={() => openConfigRoute('senha')}
+                    first
+                  />
+                  <ConfigGroupRow icon="🔑" label="Chave da IA" locked={!isAdmin} onPress={() => openConfigRoute('chave-ia')} />
+                  {isAdmin ? (
+                    <ConfigGroupRow
+                      icon="🚪"
+                      label="Sair do modo cuidador"
+                      danger
+                      onPress={() => { handleAdminLogout(); resetConfigFields(); }}
+                    />
+                  ) : null}
+                </View>
+              </View>
+            </ScrollView>
+          ) : (
+            <ScrollView
+              ref={configScrollRef}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.configModalContent}
@@ -3692,6 +3735,7 @@ export default function App() {
               </View>
             )}
             </ScrollView>
+          )}
         </View>
       </IOSBottomSheet>
 
@@ -3764,6 +3808,37 @@ function ConfigTab({ label, active, onPress, highContrast = false }: { label: st
   return (
     <Pressable onPress={onPress} style={[styles.configTab, highContrast && styles.configTabHighContrast, active && styles.configTabActive]}>
       <Text style={[styles.configTabText, highContrast && styles.configTabTextHighContrast, active && styles.configTabTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function ConfigGroupRow({
+  icon,
+  label,
+  onPress,
+  locked = false,
+  danger = false,
+  first = false
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  locked?: boolean;
+  danger?: boolean;
+  first?: boolean;
+}) {
+  const styles = moduleStyles;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.sRow, !first && styles.sRowDivider, pressed && { opacity: 0.6 }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}${locked ? ' (bloqueado)' : ''}`}
+    >
+      <View style={styles.sIcon}><Text style={styles.sIconEmoji}>{icon}</Text></View>
+      <Text style={[styles.sLabel, danger && styles.sLabelDanger]} numberOfLines={1}>{label}</Text>
+      {locked ? <Text style={styles.sLockBadge}>🔒</Text> : null}
+      {!danger ? <Text style={styles.sChevron}>›</Text> : null}
     </Pressable>
   );
 }
@@ -5904,6 +5979,72 @@ function makeStyles(theme: Theme) {
   configSectionCardHighContrast: {
     backgroundColor: '#111827',
     borderColor: '#334155'
+  },
+  // ============================================================================
+  // Shell agrupado de Ajustes (Phase 24 — Salvia & Creme)
+  // ============================================================================
+  configHomeContent: {
+    padding: theme.spacing.lg,
+    gap: theme.spacing.xl
+  },
+  sGroupBlock: {
+    gap: theme.spacing.sm
+  },
+  sGroupTitle: {
+    ...theme.typography.caption1,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    paddingHorizontal: theme.spacing.sm,
+    paddingBottom: 6
+  },
+  sCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: 'hidden',
+    ...theme.shadows.sm
+  },
+  sRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14
+  },
+  sRowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border
+  },
+  sIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: theme.colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sIconEmoji: {
+    fontSize: 20
+  },
+  sLabel: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.text
+  },
+  sLabelDanger: {
+    color: theme.colors.danger
+  },
+  sChevron: {
+    ...theme.typography.headline,
+    color: theme.colors.textMuted,
+    marginLeft: 4
+  },
+  sLockBadge: {
+    ...theme.typography.caption1,
+    color: theme.colors.textMuted,
+    marginLeft: 4
   },
   configTab: {
     borderRadius: 999,
