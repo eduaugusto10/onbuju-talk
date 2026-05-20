@@ -3166,17 +3166,15 @@ export default function App() {
             )}
 
             {configRoute === 'rotina' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Rotina do dia</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Cada passo é uma imagem (símbolo, foto ou da galeria). A criança vê a imagem grande e ouve o passo ao tocar.
-                </Text>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador em "Cuidador" para editar a rotina.
-                  </Text>
-                ) : (
-                  <>
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para editar a rotina do dia.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>PASSOS DO DIA</Text>
+                  <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      Cada passo é uma imagem (símbolo, foto ou da galeria). A criança vê a imagem grande e ouve o passo ao tocar.
+                    </Text>
                     <View style={styles.phraseEditorList}>
                       {routineSteps.length === 0 && (
                         <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
@@ -3423,23 +3421,21 @@ export default function App() {
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
                       Maximo de {ROUTINE_STEPS_MAX} passos. O progresso reinicia automaticamente no proximo dia.
                     </Text>
-                  </>
-                )}
-              </View>
+                  </View>
+                </>
+              )
             )}
 
             {configRoute === 'cenas' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Cenas visuais</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Tire fotos de ambientes (cozinha, quarto) e marque os itens. A criança toca em cada item e ouve o nome.
-                </Text>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador em "Cuidador" para criar e editar cenas.
-                  </Text>
-                ) : (
-                  <>
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para gerenciar cenas visuais.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>CENAS</Text>
+                  <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      Tire fotos de ambientes (cozinha, quarto) e marque os itens. A criança toca em cada item e ouve o nome.
+                    </Text>
                     <View style={styles.routinePickerSourceRow}>
                       <Pressable
                         onPress={() => void pickScenePhotoFromCamera()}
@@ -3506,9 +3502,9 @@ export default function App() {
                     <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
                       Máximo de {VISUAL_SCENES_MAX} cenas com até {HOTSPOTS_PER_SCENE_MAX} marcadores cada.
                     </Text>
-                  </>
-                )}
-              </View>
+                  </View>
+                </>
+              )
             )}
 
             {configRoute === 'aparencia' && (
