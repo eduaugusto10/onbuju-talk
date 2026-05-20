@@ -2,9 +2,9 @@
 
 ## Current Position
 - Milestone: v6 - Redesign Visual Calmo
-- Phase: Phase 24 - Configuracoes Agrupadas com Drill-down (2/4 planos)
-- Status: Phase 23 concluida (4/4 planos). Phase 24 em andamento: 24-01 (shell agrupado + drill-down) + 24-02 (grupo App restilizado) concluidos. Proximo: 24-03 (grupo Conteudo da crianca) e 24-04 (grupo Cuidador).
-- Last activity: 2026-05-20 - Plano 24-02 concluido. Sub-telas Voz / Acessibilidade / Aparencia restilizadas com novos tokens drill* (drillSectionTitle/Card, drillFieldLabel/Hint, drillChipRow, drillToggleRow, drillPrimary/Secondary/DangerButton). Handlers verbatim preservados; isHighContrast removido das 3 sub-telas (Sereno Escuro cobre via tokens).
+- Phase: Phase 24 - Configuracoes Agrupadas com Drill-down (3/4 planos)
+- Status: Phase 23 concluida (4/4 planos). Phase 24 em andamento: 24-01 (shell agrupado + drill-down) + 24-02 (grupo App restilizado) + 24-03 (grupo Conteudo da crianca restilizado) concluidos. Proximo: 24-04 (grupo Cuidador).
+- Last activity: 2026-05-20 - Plano 24-03 concluido. As 6 sub-telas do grupo "Conteudo da crianca" (Vocabulario, Frases, Simbolos, Categorias, Rotina, Cenas) restilizadas com 11 novos tokens drillItem* (drillItemRow/Divider/Label/SubLabel, drillIconButton/Danger/Text/TextDanger, drillInlineInput, drillAddRow, drillEmptyHint, drillListCard). Listas densas eliminadas em Vocabulario/Frases/Categorias (chips 32x32 com gap). Galeria de simbolos pessoais preserva EXATAMENTE os 3 handlers reais (openAudioRecorderFor sempre / clearSymbolAudio condicional / removePersonalSymbol sempre); Camera/Galeria mantem disabled={pickerBusy}+opacity 0.6; estado newPhraseInput reusado sem duplicacao. Rotina e Cenas recebem apenas wrapper drillSectionCard (corpos verbatim — Deferred).
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
@@ -26,9 +26,14 @@
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
 ## Proximo Comando Recomendado
-- Executar plano 24-03 (grupo Conteudo da crianca: Vocabulario / Frases / Simbolos / Categorias / Rotina / Cenas) — eliminar as listas densas "rotulo + 3 botoes" usando os tokens drill* da Phase 24-02. Em seguida 24-04 (grupo Cuidador: Senha 3 estados + Chave IA + Sair).
+- Executar plano 24-04 (grupo Cuidador: Senha 3 estados + Chave IA + Sair). Apos isso, Phase 24 completa (4/4) e o checkpoint humano para a fase pode ser disparado se desejado.
 
 ## Decisoes Recentes
+- 24-03: `drillListCard` separado de `drillSectionCard` para listas com hairlines internas (overflow:'hidden' respeita o borderRadius); `drillSectionCard` continua sem overflow:'hidden' para hospedar inputs/chips/buttons que respiram via gap.
+- 24-03: Galeria de simbolos pessoais SEM botao "editar (lapis)" — handler nao existe no codigo; caregiver renomeia apagando (✕) e recriando. EXATAMENTE 3 acoes reais por linha (🎙 sempre / 🔇 condicional hasAudio / ✕ sempre danger).
+- 24-03: Botoes Camera/Galeria reescritos com flex:1 lado a lado preservando o contrato critico `disabled={pickerBusy}` + style array `pickerBusy && { opacity: 0.6 }` — bloqueio de duplo-toque durante captura mantido literalmente.
+- 24-03: Rotina e Cenas recebem apenas o wrapper `drillSectionCard` externo — internals dos editores (chips de dias, draft de passo, sceneListRow, etc.) preservados VERBATIM porque seu redesenho esta em Deferred Ideas (24-CONTEXT.md). Hint principal migra para `drillFieldHint`; titulo da sub-tela vira `drillSectionTitle` UPPERCASE.
+- 24-03: Modo edicao inline (frases/categorias) usa `drillInlineInput` + chip neutro "OK" + chip danger "✕" — eliminado o sufixo `phraseEditorButtonPrimary` (cor neutra + texto "OK" comunica confirmacao suficientemente).
 - 24-02: OptionChip nas sub-telas do grupo App sem prop `highContrast` — tema Sereno Escuro cobre o caso noturno via tokens internos, eliminando o branch binario legado e mantendo a paleta Salvia & Creme coerente em todos os temas.
 - 24-02: Cada secao do drill-down vira seu proprio `drillSectionCard` titulado em UPPERCASE muted (`drillSectionTitle`) — substitui o `configSectionCard` externo que adicionava padding/borda redundantes ao redor de varios controles agrupados.
 - 24-02: Switch tematizado via `theme.colors.border` (track off) em vez de `#D1D1D6` hardcoded — Sereno Escuro recebe `#423F36` automaticamente.
@@ -44,6 +49,7 @@
 - 22-02: Tokens legacy em estilos nao-shell foram inlinados como valores literais (nao tokenizados) para garantir zero regressao visual; restyling tela a tela fica para as fases 23/24.
 
 ## Ultima Atualizacao
+- 2026-05-20: Plano 24-03 concluido. As 6 sub-telas do grupo "Conteudo da crianca" restilizadas com 11 novos tokens drillItem* (drillItemRow/Divider/Label/SubLabel/IconButton[Danger]/IconButtonText[Danger]/InlineInput/AddRow/EmptyHint/ListCard). Vocabulario: PALAVRAS ATUAIS (drillListCard) + ADICIONAR + Restaurar padrao. Frases: FRASES SALVAS (modo edicao inline) + ADICIONAR + HISTORICO. Simbolos: FONTES (Camera/Galeria flex:1 com disabled={pickerBusy}+opacity 0.6 preservados) + draft preservado + GALERIA com 3 handlers reais (🎙 sempre / 🔇 condicional / ✕ danger; NENHUM "lapis" inventado). Categorias: CATEGORIAS ATUAIS (modo edicao inline) + ADICIONAR. Rotina e Cenas: wrapper drillSectionCard + drillFieldHint, internals do editor preservados verbatim (Deferred). Estado newPhraseInput reusado sem duplicacao (grep -c retorna 1). Lint limpo; test 22/26 (sem novas falhas). CFG-01 e CFG-02 avancando muito. Phase 24: 3/4 planos.
 - 2026-05-20: Plano 24-02 concluido. Sub-telas Voz / Acessibilidade / Aparencia do grupo App restilizadas com 9 novos tokens drill* (drillSectionTitle / drillSectionCard / drillFieldLabel / drillFieldHint / drillChipRow / drillToggleRow / drillPrimary/Secondary/DangerButton). Voz: cards VELOCIDADE + TOM + botao Testar voz salvia. Acessibilidade: card TEMA DO APLICATIVO (3 chips) + card FEEDBACK (Switch tematizado). Aparencia: card ESCALA + card IMAGENS POR LINHA. Handlers preservados verbatim; isHighContrast removido. Lint limpo; test 22/26 (sem novas falhas). CFG-01 e CFG-02 avancando. Phase 24: 2/4 planos.
 - 2026-05-19: Plano 23-03 concluido. SymbolCard refeito (sketch 002 variante D): cor da categoria em tile arredondado atras do pictograma via categoryColorFamily, card em surface com borda/sombra de tema, estrela de favorito como overlay circular. Vocabulario core deixou de ser barra separada e virou a primeira linha fixa da grade (ListHeaderComponent); estilos coreVocabBar* orfaos removidos. emptyText/symbolLabel migrados para theme.typography (Nunito) — VIS-02 avancando. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). TELA-01 e TELA-02 concluidos. Phase 23: 3/4 planos.
 - 2026-05-19: Plano 23-02 concluido. Barra de categorias com pills salvia (ativo) / bgSoft neutro (inativo) e raio full; campo de busca com fundo surface2, raio sm e fonte Nunito (typography.callout); searchButton em salvia; listCard sobre bgSoft com raio lg; ActivityIndicator tokenizado. Azul iOS (#007AFF) e cinza iOS (#F2F2F7) removidos dessas regioes. VIS-02 avancando (grep theme.typography subiu para 5). Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 23: 2/4 planos.

@@ -351,7 +351,7 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
   - **Plans:** 4 plans (4 waves)
   - [x] 24-01-PLAN.md -- Shell agrupado + drill-down (home 3 grupos, ConfigRoute, openConfigRoute com gating, ConfigGroupRow)
   - [x] 24-02-PLAN.md -- Grupo App restilizado (Voz, Acessibilidade, Aparencia)
-  - [ ] 24-03-PLAN.md -- Grupo Conteudo da crianca (Vocabulario, Frases, Simbolos, Categorias, Rotina, Cenas) sem listas densas
+  - [x] 24-03-PLAN.md -- Grupo Conteudo da crianca (Vocabulario, Frases, Simbolos, Categorias, Rotina, Cenas) sem listas densas
   - [ ] 24-04-PLAN.md -- Grupo Cuidador (Senha 3 estados, Chave IA) + checkpoint humano da Phase 24
 - [ ] **Phase 25: Regressao e Release** - Regressao dos fluxos v1-v4 sem quebras e preparacao de release.
 
@@ -361,5 +361,5 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 |-------|----------------|--------|-----------|
 | 22. Sistema de Tema "Salvia & Creme" | 3/3 | Complete | 2026-05-19 |
 | 23. Tela Principal Redesenhada | 4/4 | Complete | 2026-05-19 |
-| 24. Configuracoes Agrupadas com Drill-down | 2/4 | In progress | - |
+| 24. Configuracoes Agrupadas com Drill-down | 3/4 | In progress | - |
 | 25. Regressao e Release | 0/0 | Not started | - |
