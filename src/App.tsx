@@ -5903,38 +5903,6 @@ function makeStyles(theme: Theme) {
     color: '#2B2A28',
     fontWeight: '700'
   },
-  configNav: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
-  },
-  configNavItem: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 0,
-    backgroundColor: 'rgba(120, 120, 128, 0.16)'
-  },
-  configNavItemActive: {
-    backgroundColor: '#007AFF'
-  },
-  configNavIcon: {
-    fontSize: 18
-  },
-  configNavItemText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#000000'
-  },
-  configNavItemTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600'
-  },
   iosToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',

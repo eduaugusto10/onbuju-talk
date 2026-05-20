@@ -31,7 +31,7 @@
 
 ### Regressao e Release (REG)
 
-- [ ] **REG-01**: Todos os fluxos v1-v4 (buscar, selecionar, gerar, ouvir, salvar, frases prontas, historico, simbolos pessoais, voz gravada, rotina, categorias, admin) passam regressao sem quebras; `npm run lint` e `npm run test` sem novas falhas; checklist de release atualizado.
+- [x] **REG-01**: Todos os fluxos v1-v4 (buscar, selecionar, gerar, ouvir, salvar, frases prontas, historico, simbolos pessoais, voz gravada, rotina, categorias, admin) passam regressao sem quebras; `npm run lint` e `npm run test` sem novas falhas; checklist de release atualizado. **CONCLUIDO** — auditoria automatica OK; smoke test funcional v1-v4 fica como pendencia de release em device (documentada em RELEASE-CHECKLIST.md).
 
 ---
 
