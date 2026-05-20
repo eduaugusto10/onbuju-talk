@@ -3608,33 +3608,38 @@ export default function App() {
             )}
 
             {configRoute === 'voz' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Voz</Text>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Velocidade: {rate.toFixed(1)}</Text>
-                <View style={styles.settingActions}>
-                  <OptionChip label="0.8" active={rate === 0.8} highContrast={isHighContrast} onPress={() => setRate(0.8)} />
-                  <OptionChip label="1.0" active={rate === 1} highContrast={isHighContrast} onPress={() => setRate(1)} />
-                  <OptionChip label="1.2" active={rate === 1.2} highContrast={isHighContrast} onPress={() => setRate(1.2)} />
+              <>
+                <Text style={styles.drillSectionTitle}>VELOCIDADE</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldLabel}>Velocidade da fala: {rate.toFixed(1)}</Text>
+                  <View style={styles.drillChipRow}>
+                    <OptionChip label="0.8" active={rate === 0.8} onPress={() => setRate(0.8)} />
+                    <OptionChip label="1.0" active={rate === 1}   onPress={() => setRate(1)} />
+                    <OptionChip label="1.2" active={rate === 1.2} onPress={() => setRate(1.2)} />
+                  </View>
                 </View>
-                <Text style={[styles.settingLabel, isHighContrast && styles.textHighContrast]}>Tom: {pitch.toFixed(1)}</Text>
-                <View style={styles.settingActions}>
-                  <OptionChip label="0.8" active={pitch === 0.8} highContrast={isHighContrast} onPress={() => setPitch(0.8)} />
-                  <OptionChip label="1.0" active={pitch === 1} highContrast={isHighContrast} onPress={() => setPitch(1)} />
-                  <OptionChip label="1.2" active={pitch === 1.2} highContrast={isHighContrast} onPress={() => setPitch(1.2)} />
+
+                <Text style={styles.drillSectionTitle}>TOM</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldLabel}>Tom da voz: {pitch.toFixed(1)}</Text>
+                  <View style={styles.drillChipRow}>
+                    <OptionChip label="0.8" active={pitch === 0.8} onPress={() => setPitch(0.8)} />
+                    <OptionChip label="1.0" active={pitch === 1}   onPress={() => setPitch(1)} />
+                    <OptionChip label="1.2" active={pitch === 1.2} onPress={() => setPitch(1.2)} />
+                  </View>
                 </View>
+
                 <Pressable
-                  style={styles.modalButtonPrimary}
+                  style={styles.drillPrimaryButton}
                   onPress={() =>
-                    Speech.speak('Olá, esta é a voz do aplicativo.', {
-                      language: 'pt-BR',
-                      rate,
-                      pitch
-                    })
+                    Speech.speak('Olá, esta é a voz do aplicativo.', { language: 'pt-BR', rate, pitch })
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel="Testar voz"
                 >
-                  <Text style={styles.modalButtonPrimaryText}>Testar voz</Text>
+                  <Text style={styles.drillPrimaryButtonText}>Testar voz</Text>
                 </Pressable>
-              </View>
+              </>
             )}
 
             {configRoute === 'senha' && (
