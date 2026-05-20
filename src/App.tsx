@@ -2899,213 +2899,196 @@ export default function App() {
             )}
 
             {configRoute === 'simbolos' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Simbolos pessoais</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Adicione fotos familiares como simbolos. Escolha da camera ou da galeria.
-                </Text>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador em "Cuidador" para adicionar simbolos pessoais.
-                  </Text>
-                ) : (
-                  <>
-                    <View style={styles.personalSymbolAddRow}>
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para gerenciar símbolos pessoais.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>FONTES</Text>
+                  <View style={styles.drillSectionCard}>
+                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                       <Pressable
                         onPress={() => void pickFromCamera()}
                         disabled={pickerBusy}
-                        style={[styles.modalButtonPrimary, styles.personalSymbolAddButton, pickerBusy && styles.personalSymbolAddButtonBusy]}
+                        style={[styles.drillPrimaryButton, { flex: 1 }, pickerBusy && { opacity: 0.6 }]}
                         accessibilityRole="button"
-                        accessibilityLabel="Tirar foto para novo simbolo"
+                        accessibilityLabel="Tirar foto para novo símbolo"
                       >
-                        <Text style={styles.modalButtonPrimaryText}>📷 Tirar foto</Text>
+                        <Text style={styles.drillPrimaryButtonText}>📷 Câmera</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => void pickFromGallery()}
                         disabled={pickerBusy}
-                        style={[styles.modalButtonPrimary, styles.personalSymbolAddButton, pickerBusy && styles.personalSymbolAddButtonBusy]}
+                        style={[styles.drillPrimaryButton, { flex: 1 }, pickerBusy && { opacity: 0.6 }]}
                         accessibilityRole="button"
                         accessibilityLabel="Escolher imagem da galeria"
                       >
-                        <Text style={styles.modalButtonPrimaryText}>🖼 Galeria</Text>
+                        <Text style={styles.drillPrimaryButtonText}>🖼 Galeria</Text>
                       </Pressable>
                     </View>
-
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Maximo de {PERSONAL_SYMBOLS_MAX} simbolos pessoais.
+                    <Text style={styles.drillFieldHint}>
+                      Tire uma foto familiar ou escolha da galeria. Você pode dar um rótulo e gravar a voz do cuidador para o novo símbolo. Máximo de {PERSONAL_SYMBOLS_MAX} símbolos pessoais.
                     </Text>
+                  </View>
 
-                    {pendingSymbolImage && (
-                      <View style={[styles.symbolDraftCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                        <Image
-                          source={{ uri: pendingSymbolImage }}
-                          style={styles.symbolDraftPreview}
-                          resizeMode="cover"
-                          accessibilityLabel="Previsualizacao da imagem do simbolo"
-                        />
-                        <TextInput
-                          value={pendingSymbolLabel}
-                          onChangeText={setPendingSymbolLabel}
-                          placeholder="Rotulo (ex: vovo)"
-                          placeholderTextColor={theme.colors.textSoft}
-                          style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                          maxLength={40}
-                        />
-                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>Categoria (opcional):</Text>
-                        <View style={styles.symbolDraftCategoryRow}>
-                          <Pressable
-                            onPress={() => setPendingSymbolCategoryId(null)}
-                            style={[styles.symbolDraftCategoryChip, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipActive]}
-                            accessibilityRole="button"
-                            accessibilityLabel="Sem categoria"
-                          >
-                            <Text style={[styles.symbolDraftCategoryChipText, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipTextActive]}>
-                              Sem categoria
-                            </Text>
-                          </Pressable>
-                          {customCategories.map(cat => {
-                            const selected = pendingSymbolCategoryId === cat.id;
-                            return (
-                              <Pressable
-                                key={`draft-inline-cat-${cat.id}`}
-                                onPress={() => setPendingSymbolCategoryId(cat.id)}
-                                style={[styles.symbolDraftCategoryChip, selected && styles.symbolDraftCategoryChipActive]}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Categoria ${cat.name}`}
-                              >
-                                <Text style={[styles.symbolDraftCategoryChipText, selected && styles.symbolDraftCategoryChipTextActive]}>
-                                  {cat.name}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                        <View style={styles.personalSymbolAddRow}>
-                          <Pressable
-                            onPress={() => void savePendingSymbol()}
-                            style={[styles.modalButtonPrimary, styles.personalSymbolAddButton]}
-                            accessibilityRole="button"
-                            accessibilityLabel="Salvar novo simbolo"
-                          >
-                            <Text style={styles.modalButtonPrimaryText}>Salvar símbolo</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={cancelPendingSymbol}
-                            style={[styles.modalButtonLight, styles.personalSymbolAddButton]}
-                            accessibilityRole="button"
-                            accessibilityLabel="Cancelar novo simbolo"
-                          >
-                            <Text>Cancelar</Text>
-                          </Pressable>
-                        </View>
+                  {pendingSymbolImage && (
+                    <View style={styles.drillSectionCard}>
+                      <Image
+                        source={{ uri: pendingSymbolImage }}
+                        style={styles.symbolDraftPreview}
+                        resizeMode="cover"
+                        accessibilityLabel="Previsualizacao da imagem do simbolo"
+                      />
+                      <TextInput
+                        value={pendingSymbolLabel}
+                        onChangeText={setPendingSymbolLabel}
+                        placeholder="Rótulo (ex: vovó)"
+                        placeholderTextColor={theme.colors.textMuted}
+                        style={styles.drillInlineInput}
+                        maxLength={40}
+                      />
+                      <Text style={styles.drillFieldHint}>Categoria (opcional):</Text>
+                      <View style={styles.symbolDraftCategoryRow}>
+                        <Pressable
+                          onPress={() => setPendingSymbolCategoryId(null)}
+                          style={[styles.symbolDraftCategoryChip, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipActive]}
+                          accessibilityRole="button"
+                          accessibilityLabel="Sem categoria"
+                        >
+                          <Text style={[styles.symbolDraftCategoryChipText, pendingSymbolCategoryId === null && styles.symbolDraftCategoryChipTextActive]}>
+                            Sem categoria
+                          </Text>
+                        </Pressable>
+                        {customCategories.map(cat => {
+                          const selected = pendingSymbolCategoryId === cat.id;
+                          return (
+                            <Pressable
+                              key={`draft-inline-cat-${cat.id}`}
+                              onPress={() => setPendingSymbolCategoryId(cat.id)}
+                              style={[styles.symbolDraftCategoryChip, selected && styles.symbolDraftCategoryChipActive]}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Categoria ${cat.name}`}
+                            >
+                              <Text style={[styles.symbolDraftCategoryChipText, selected && styles.symbolDraftCategoryChipTextActive]}>
+                                {cat.name}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
                       </View>
-                    )}
+                      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                        <Pressable
+                          onPress={() => void savePendingSymbol()}
+                          style={[styles.drillPrimaryButton, { flex: 1 }]}
+                          accessibilityRole="button"
+                          accessibilityLabel="Salvar novo símbolo"
+                        >
+                          <Text style={styles.drillPrimaryButtonText}>Salvar símbolo</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={cancelPendingSymbol}
+                          style={[styles.drillSecondaryButton, { flex: 1 }]}
+                          accessibilityRole="button"
+                          accessibilityLabel="Cancelar novo símbolo"
+                        >
+                          <Text style={styles.drillSecondaryButtonText}>Cancelar</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
 
-                    <View style={styles.personalSymbolList}>
-                      {personalSymbols.length === 0 && (
-                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                          Nenhum simbolo pessoal ainda.
-                        </Text>
-                      )}
-                      {personalSymbols.map(symbol => {
+                  <Text style={styles.drillSectionTitle}>GALERIA DE SÍMBOLOS PESSOAIS</Text>
+                  <View style={styles.drillListCard}>
+                    {personalSymbols.length === 0 ? (
+                      <Text style={styles.drillEmptyHint}>Nenhum símbolo pessoal ainda.</Text>
+                    ) : (
+                      personalSymbols.map((symbol, index) => {
                         const category = customCategories.find(c => c.id === symbol.categoryId);
                         const hasAudio = !!symbol.audioUri;
                         return (
                           <View
                             key={`personal-row-${symbol.id}`}
-                            style={[styles.personalSymbolRow, isHighContrast && styles.personalSymbolRowHighContrast]}
+                            style={[styles.drillItemRow, index > 0 && styles.drillItemRowDivider]}
                           >
                             <Image source={{ uri: symbol.imageUri }} style={styles.personalSymbolThumb} resizeMode="cover" />
-                            <View style={styles.personalSymbolInfo}>
-                              <Text
-                                style={[styles.personalSymbolLabel, isHighContrast && styles.textHighContrast]}
-                                numberOfLines={1}
-                              >
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.drillItemLabel} numberOfLines={1}>
                                 {symbol.label}
                                 {hasAudio ? ' 🔊' : ''}
                               </Text>
-                              <Text style={[styles.personalSymbolCategory, isHighContrast && styles.textMutedHighContrast]} numberOfLines={1}>
+                              <Text style={styles.drillItemSubLabel} numberOfLines={1}>
                                 {category ? category.name : 'Sem categoria'}
                               </Text>
                             </View>
                             <Pressable
                               onPress={() => void openAudioRecorderFor(symbol.id)}
-                              style={styles.phraseEditorButton}
+                              style={styles.drillIconButton}
                               accessibilityRole="button"
-                              accessibilityLabel={hasAudio ? `Regravar voz do simbolo ${symbol.label}` : `Gravar voz para ${symbol.label}`}
+                              accessibilityLabel={hasAudio ? `Regravar voz do símbolo ${symbol.label}` : `Gravar voz para ${symbol.label}`}
                             >
-                              <Text style={styles.phraseEditorButtonText}>🎙</Text>
+                              <Text style={styles.drillIconButtonText}>🎙</Text>
                             </Pressable>
                             {hasAudio && (
                               <Pressable
                                 onPress={() => void clearSymbolAudio(symbol.id)}
-                                style={styles.phraseEditorButton}
+                                style={styles.drillIconButton}
                                 accessibilityRole="button"
-                                accessibilityLabel={`Remover voz do simbolo ${symbol.label}`}
+                                accessibilityLabel={`Remover voz do símbolo ${symbol.label}`}
                               >
-                                <Text style={styles.phraseEditorButtonText}>🔇</Text>
+                                <Text style={styles.drillIconButtonText}>🔇</Text>
                               </Pressable>
                             )}
                             <Pressable
                               onPress={() => void removePersonalSymbol(symbol.id)}
-                              style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                              style={[styles.drillIconButton, styles.drillIconButtonDanger]}
                               accessibilityRole="button"
-                              accessibilityLabel={`Remover simbolo ${symbol.label}`}
+                              accessibilityLabel={`Remover símbolo ${symbol.label}`}
                             >
-                              <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                              <Text style={[styles.drillIconButtonText, styles.drillIconButtonTextDanger]}>✕</Text>
                             </Pressable>
                           </View>
                         );
-                      })}
-                    </View>
-                  </>
-                )}
-              </View>
+                      })
+                    )}
+                  </View>
+                </>
+              )
             )}
 
             {configRoute === 'categorias' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Categorias customizadas</Text>
-                <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                  Organize seus simbolos pessoais em categorias proprias.
-                </Text>
-                {!isAdmin ? (
-                  <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                    Entre como cuidador em "Cuidador" para gerenciar categorias.
-                  </Text>
-                ) : (
-                  <>
-                    <View style={styles.phraseEditorList}>
-                      {customCategories.length === 0 && (
-                        <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                          Nenhuma categoria customizada ainda.
-                        </Text>
-                      )}
-                      {customCategories.map(cat => {
+              !isAdmin ? (
+                <Text style={styles.drillEmptyHint}>Entre como cuidador para gerenciar categorias.</Text>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>CATEGORIAS ATUAIS</Text>
+                  <View style={styles.drillListCard}>
+                    {customCategories.length === 0 ? (
+                      <Text style={styles.drillEmptyHint}>Nenhuma categoria customizada ainda.</Text>
+                    ) : (
+                      customCategories.map((cat, index) => {
                         const count = personalSymbols.filter(ps => ps.categoryId === cat.id).length;
                         const isEditing = editingCategoryId === cat.id;
                         return (
                           <View
                             key={`cat-edit-${cat.id}`}
-                            style={[styles.phraseEditorRow, isHighContrast && styles.phraseEditorRowHighContrast]}
+                            style={[styles.drillItemRow, index > 0 && styles.drillItemRowDivider]}
                           >
                             {isEditing ? (
                               <TextInput
                                 value={editingCategoryName}
                                 onChangeText={setEditingCategoryName}
-                                style={[styles.phraseEditorInput, isHighContrast && styles.inputHighContrast]}
+                                style={styles.drillInlineInput}
                                 autoFocus
                                 onSubmitEditing={commitEditCategory}
                                 placeholder="Nome da categoria"
-                                placeholderTextColor="#94a3b8"
+                                placeholderTextColor={theme.colors.textMuted}
                               />
                             ) : (
                               <View style={{ flex: 1 }}>
-                                <Text style={[styles.phraseEditorLabel, isHighContrast && styles.textHighContrast]} numberOfLines={1}>
+                                <Text style={styles.drillItemLabel} numberOfLines={1}>
                                   {cat.name}
                                 </Text>
-                                <Text style={[styles.personalSymbolCategory, isHighContrast && styles.textMutedHighContrast]}>
-                                  {count} simbolo{count === 1 ? '' : 's'}
+                                <Text style={styles.drillItemSubLabel}>
+                                  {count} símbolo{count === 1 ? '' : 's'}
                                 </Text>
                               </View>
                             )}
@@ -3113,71 +3096,73 @@ export default function App() {
                               <>
                                 <Pressable
                                   onPress={commitEditCategory}
-                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonPrimary]}
+                                  style={styles.drillIconButton}
                                   accessibilityRole="button"
                                   accessibilityLabel="Salvar categoria"
                                 >
-                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextPrimary]}>OK</Text>
+                                  <Text style={styles.drillIconButtonText}>OK</Text>
                                 </Pressable>
                                 <Pressable
                                   onPress={cancelEditCategory}
-                                  style={styles.phraseEditorButton}
+                                  style={[styles.drillIconButton, styles.drillIconButtonDanger]}
                                   accessibilityRole="button"
-                                  accessibilityLabel="Cancelar edicao"
+                                  accessibilityLabel="Cancelar edição"
                                 >
-                                  <Text style={styles.phraseEditorButtonText}>✕</Text>
+                                  <Text style={[styles.drillIconButtonText, styles.drillIconButtonTextDanger]}>✕</Text>
                                 </Pressable>
                               </>
                             ) : (
                               <>
                                 <Pressable
                                   onPress={() => startEditCategory(cat)}
-                                  style={styles.phraseEditorButton}
+                                  style={styles.drillIconButton}
                                   accessibilityRole="button"
                                   accessibilityLabel={`Renomear ${cat.name}`}
                                 >
-                                  <Text style={styles.phraseEditorButtonText}>✎</Text>
+                                  <Text style={styles.drillIconButtonText}>✎</Text>
                                 </Pressable>
                                 <Pressable
                                   onPress={() => removeCustomCategory(cat.id)}
-                                  style={[styles.phraseEditorButton, styles.phraseEditorButtonDanger]}
+                                  style={[styles.drillIconButton, styles.drillIconButtonDanger]}
                                   accessibilityRole="button"
                                   accessibilityLabel={`Remover ${cat.name}`}
                                 >
-                                  <Text style={[styles.phraseEditorButtonText, styles.phraseEditorButtonTextDanger]}>✕</Text>
+                                  <Text style={[styles.drillIconButtonText, styles.drillIconButtonTextDanger]}>✕</Text>
                                 </Pressable>
                               </>
                             )}
                           </View>
                         );
-                      })}
-                    </View>
+                      })
+                    )}
+                  </View>
 
-                    <View style={styles.phraseEditorAddRow}>
+                  <Text style={styles.drillSectionTitle}>ADICIONAR</Text>
+                  <View style={styles.drillSectionCard}>
+                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                       <TextInput
                         value={newCustomCategoryName}
                         onChangeText={setNewCustomCategoryName}
                         placeholder="Nova categoria (ex: Casa)"
-                        placeholderTextColor="#94a3b8"
-                        style={[styles.modalInput, styles.phraseEditorAddInput, isHighContrast && styles.inputHighContrast]}
+                        placeholderTextColor={theme.colors.textMuted}
+                        style={styles.drillInlineInput}
                         onSubmitEditing={addCustomCategory}
                       />
                       <Pressable
                         onPress={addCustomCategory}
-                        style={styles.modalButtonPrimary}
+                        style={styles.drillPrimaryButton}
                         accessibilityRole="button"
                         accessibilityLabel="Adicionar categoria"
                       >
-                        <Text style={styles.modalButtonPrimaryText}>Adicionar</Text>
+                        <Text style={styles.drillPrimaryButtonText}>Adicionar</Text>
                       </Pressable>
                     </View>
-
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Remover uma categoria nao apaga os simbolos — eles ficam como "Sem categoria".
+                    <Text style={styles.drillFieldHint}>
+                      Remover uma categoria não apaga os símbolos — eles ficam como "Sem categoria".
                     </Text>
-                  </>
-                )}
-              </View>
+                  </View>
+                </>
+              )
             )}
 
             {configRoute === 'rotina' && (
