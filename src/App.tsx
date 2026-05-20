@@ -3605,98 +3605,125 @@ export default function App() {
             )}
 
             {configRoute === 'senha' && (
-              <View style={[styles.configSectionCard, isHighContrast && styles.configSectionCardHighContrast]}>
-                {needsAdminSetup ? (
-                  <>
-                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Criar senha do cuidador</Text>
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Defina uma senha para proteger configurações e personalizar a experiência da criança.
+              needsAdminSetup ? (
+                <>
+                  <Text style={styles.drillSectionTitle}>CRIAR SENHA DO CUIDADOR</Text>
+                  <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      Defina uma senha para proteger as configurações da criança. Apenas o cuidador deve saber.
                     </Text>
                     <TextInput
                       value={newAdminPassword}
                       onChangeText={setNewAdminPassword}
                       placeholder="Nova senha"
+                      placeholderTextColor={theme.colors.textMuted}
                       secureTextEntry
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                       autoFocus
                     />
                     <TextInput
                       value={confirmAdminPassword}
                       onChangeText={setConfirmAdminPassword}
                       placeholder="Confirmar senha"
+                      placeholderTextColor={theme.colors.textMuted}
                       secureTextEntry
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                     />
-                    <Pressable style={styles.modalButtonPrimary} onPress={() => void handleSaveAdminPassword()}>
-                      <Text style={styles.modalButtonPrimaryText}>Criar senha e entrar</Text>
+                    <Pressable
+                      style={styles.drillPrimaryButton}
+                      onPress={() => void handleSaveAdminPassword()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Criar senha e entrar"
+                    >
+                      <Text style={styles.drillPrimaryButtonText}>Criar senha e entrar</Text>
                     </Pressable>
-                  </>
-                ) : !isAdmin ? (
-                  <>
-                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Entrar como cuidador</Text>
-                    <Text style={[styles.modalHint, isHighContrast && styles.textMutedHighContrast]}>
-                      Informe a senha para gerenciar favoritos, grupos e configurações avançadas.
+                  </View>
+                </>
+              ) : !isAdmin ? (
+                <>
+                  <Text style={styles.drillSectionTitle}>ENTRAR COMO CUIDADOR</Text>
+                  <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      Informe a senha para gerenciar favoritos, símbolos pessoais, frases e configurações avançadas.
                     </Text>
                     <TextInput
                       value={adminPassword}
                       onChangeText={setAdminPassword}
                       placeholder="Senha do cuidador"
+                      placeholderTextColor={theme.colors.textMuted}
                       secureTextEntry
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                       autoFocus
+                      onSubmitEditing={handleAdminLogin}
                     />
-                    <Pressable style={styles.modalButtonPrimary} onPress={handleAdminLogin}>
-                      <Text style={styles.modalButtonPrimaryText}>Entrar</Text>
-                    </Pressable>
-                  </>
-                ) : (
-                  <>
-                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Você está como cuidador</Text>
                     <Pressable
-                      style={styles.modalButtonDanger}
-                      onPress={() => {
-                        handleAdminLogout();
-                        setIsConfigModalOpen(false);
-                        resetConfigFields();
-                      }}
+                      style={styles.drillPrimaryButton}
+                      onPress={handleAdminLogin}
+                      accessibilityRole="button"
+                      accessibilityLabel="Entrar como cuidador"
                     >
-                      <Text style={styles.modalButtonDangerText}>Sair do modo cuidador</Text>
+                      <Text style={styles.drillPrimaryButtonText}>Entrar</Text>
                     </Pressable>
-
-                    <Text style={[styles.modalSectionTitle, isHighContrast && styles.textHighContrast]}>Alterar senha</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.drillSectionTitle}>ALTERAR SENHA</Text>
+                  <View style={styles.drillSectionCard}>
                     <TextInput
                       value={adminPassword}
                       onChangeText={setAdminPassword}
                       placeholder="Senha atual"
+                      placeholderTextColor={theme.colors.textMuted}
                       secureTextEntry
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                     />
                     <TextInput
                       value={newAdminPassword}
                       onChangeText={setNewAdminPassword}
                       placeholder="Nova senha"
+                      placeholderTextColor={theme.colors.textMuted}
                       secureTextEntry
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                     />
                     <TextInput
                       value={confirmAdminPassword}
                       onChangeText={setConfirmAdminPassword}
                       placeholder="Confirmar nova senha"
+                      placeholderTextColor={theme.colors.textMuted}
                       secureTextEntry
-                      style={[styles.modalInput, isHighContrast && styles.inputHighContrast]}
-                      placeholderTextColor="#94a3b8"
+                      style={styles.drillPasswordInput}
                     />
-                    <Pressable style={styles.modalButtonPrimary} onPress={() => void handleUpdateAdminPassword()}>
-                      <Text style={styles.modalButtonPrimaryText}>Atualizar senha</Text>
+                    <Pressable
+                      style={styles.drillPrimaryButton}
+                      onPress={() => void handleUpdateAdminPassword()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Atualizar senha"
+                    >
+                      <Text style={styles.drillPrimaryButtonText}>Atualizar senha</Text>
                     </Pressable>
-                  </>
-                )}
-              </View>
+                  </View>
+
+                  <Text style={styles.drillSectionTitle}>SESSÃO</Text>
+                  <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      Você está como cuidador. Para devolver o controle à criança, encerre a sessão.
+                    </Text>
+                    <Pressable
+                      style={styles.drillDangerButton}
+                      onPress={() => {
+                        handleAdminLogout();
+                        setIsConfigModalOpen(false);
+                        resetConfigFields();
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Sair do modo cuidador"
+                    >
+                      <Text style={styles.drillDangerButtonText}>Sair do modo cuidador</Text>
+                    </Pressable>
+                  </View>
+                </>
+              )
             )}
 
             {configRoute === 'chave-ia' && (
@@ -6235,6 +6262,16 @@ function makeStyles(theme: Theme) {
     borderColor: theme.colors.border,
     overflow: 'hidden',
     ...theme.shadows.sm
+  },
+  drillPasswordInput: {
+    ...theme.typography.body,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface2,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md
   },
   configTab: {
     borderRadius: 999,
