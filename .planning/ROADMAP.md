@@ -341,16 +341,16 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
   - [x] 22-01-PLAN.md -- Reescrever src/theme.ts com 3 temas Salvia & Creme + instalar fonte Nunito
   - [x] 22-02-PLAN.md -- Integrar tema em App.tsx: estado themeName, makeStyles factory, fonte no boot, shell
   - [x] 22-03-PLAN.md -- Seletor de 3 temas na config (verificacao humana adiada pelo usuario)
-- [ ] **Phase 23: Tela Principal Redesenhada** - Layout enxuto, cards com cor de categoria, compositor Ouvir-heroi, apagar em 1 toque.
+- [x] **Phase 23: Tela Principal Redesenhada** - Layout enxuto, cards com cor de categoria, compositor Ouvir-heroi, apagar em 1 toque.
   - **Plans:** 4 plans (4 waves)
   - [x] 23-01-PLAN.md -- Remover slogan + reestilizar header; criar src/categoryColors.ts
   - [x] 23-02-PLAN.md -- Reestilizar barra de categorias, busca e container da lista
   - [x] 23-03-PLAN.md -- SymbolCard com tile de cor de categoria + vocabulario core na grade
-  - [ ] 23-04-PLAN.md -- Compositor Ouvir-heroi + apagar figura em 1 toque
+  - [x] 23-04-PLAN.md -- Compositor Ouvir-heroi + apagar figura em 1 toque
 - [ ] **Phase 24: Configuracoes Agrupadas com Drill-down** - 10 abas planas viram 3 grupos com navegacao drill-down e gating claro.
   - **Plans:** 4 plans (4 waves)
-  - [ ] 24-01-PLAN.md -- Shell agrupado + drill-down (home 3 grupos, ConfigRoute, openConfigRoute com gating, ConfigGroupRow)
-  - [ ] 24-02-PLAN.md -- Grupo App restilizado (Voz, Acessibilidade, Aparencia)
+  - [x] 24-01-PLAN.md -- Shell agrupado + drill-down (home 3 grupos, ConfigRoute, openConfigRoute com gating, ConfigGroupRow)
+  - [x] 24-02-PLAN.md -- Grupo App restilizado (Voz, Acessibilidade, Aparencia)
   - [ ] 24-03-PLAN.md -- Grupo Conteudo da crianca (Vocabulario, Frases, Simbolos, Categorias, Rotina, Cenas) sem listas densas
   - [ ] 24-04-PLAN.md -- Grupo Cuidador (Senha 3 estados, Chave IA) + checkpoint humano da Phase 24
 - [ ] **Phase 25: Regressao e Release** - Regressao dos fluxos v1-v4 sem quebras e preparacao de release.
@@ -360,6 +360,6 @@ Fonte de design: decisoes validadas e empacotadas no skill `sketch-findings-fala
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 22. Sistema de Tema "Salvia & Creme" | 3/3 | Complete | 2026-05-19 |
-| 23. Tela Principal Redesenhada | 2/4 | In progress | - |
-| 24. Configuracoes Agrupadas com Drill-down | 0/4 | Not started | - |
+| 23. Tela Principal Redesenhada | 4/4 | Complete | 2026-05-19 |
+| 24. Configuracoes Agrupadas com Drill-down | 2/4 | In progress | - |
 | 25. Regressao e Release | 0/0 | Not started | - |

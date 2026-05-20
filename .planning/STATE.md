@@ -2,9 +2,9 @@
 
 ## Current Position
 - Milestone: v6 - Redesign Visual Calmo
-- Phase: Phase 24 - Configuracoes Agrupadas com Drill-down (nao iniciada)
-- Status: Phase 23 concluida (4/4 planos). Proximo: smart discuss + planejamento + execucao da Phase 24.
-- Last activity: 2026-05-19 - Phase 23 concluida com 4/4 planos: tela principal inteira reestilizada (header, categorias, busca, card+core, compositor); VIS-02 fechado (Nunito aplicada via theme.typography); checkpoint humano aceito pelo usuario.
+- Phase: Phase 24 - Configuracoes Agrupadas com Drill-down (2/4 planos)
+- Status: Phase 23 concluida (4/4 planos). Phase 24 em andamento: 24-01 (shell agrupado + drill-down) + 24-02 (grupo App restilizado) concluidos. Proximo: 24-03 (grupo Conteudo da crianca) e 24-04 (grupo Cuidador).
+- Last activity: 2026-05-20 - Plano 24-02 concluido. Sub-telas Voz / Acessibilidade / Aparencia restilizadas com novos tokens drill* (drillSectionTitle/Card, drillFieldLabel/Hint, drillChipRow, drillToggleRow, drillPrimary/Secondary/DangerButton). Handlers verbatim preservados; isHighContrast removido das 3 sub-telas (Sereno Escuro cobre via tokens).
 
 ## Status
 - Milestones arquivadas: v1 (Estabilizacao Mobile), v3 (Experiencia de Abertura), v5 (Refatoracao iOS).
@@ -26,9 +26,12 @@
 - Restricao dura preservada: simplicidade acima de riqueza de features (publico autista).
 
 ## Proximo Comando Recomendado
-- Iniciar a Phase 24 (Configuracoes Agrupadas com Drill-down — CFG-01/02/03): 10 abas planas viram 3 grupos (App / Conteudo da crianca / Cuidador) com drill-down e gating por grupo. Design contract: `sketch-findings-fala/references/configuracoes.md`.
+- Executar plano 24-03 (grupo Conteudo da crianca: Vocabulario / Frases / Simbolos / Categorias / Rotina / Cenas) — eliminar as listas densas "rotulo + 3 botoes" usando os tokens drill* da Phase 24-02. Em seguida 24-04 (grupo Cuidador: Senha 3 estados + Chave IA + Sair).
 
 ## Decisoes Recentes
+- 24-02: OptionChip nas sub-telas do grupo App sem prop `highContrast` — tema Sereno Escuro cobre o caso noturno via tokens internos, eliminando o branch binario legado e mantendo a paleta Salvia & Creme coerente em todos os temas.
+- 24-02: Cada secao do drill-down vira seu proprio `drillSectionCard` titulado em UPPERCASE muted (`drillSectionTitle`) — substitui o `configSectionCard` externo que adicionava padding/borda redundantes ao redor de varios controles agrupados.
+- 24-02: Switch tematizado via `theme.colors.border` (track off) em vez de `#D1D1D6` hardcoded — Sereno Escuro recebe `#423F36` automaticamente.
 - 23-03: Tile do pictograma com raio fixo (18/14/12 por densidade), mais arredondado que o card (theme.radii.md=16) — efeito 'tapete' do sketch 002 variante D.
 - 23-03: Estilos coreVocabBar* e variantes high-contrast removidos — barra de vocabulario separada eliminada (anti-padrao do skill); core agora e ListHeaderComponent da grade.
 - 23-02: categoryButtonTextActive / searchButtonText mantem texto branco literal (#FFFFFF) sobre salvia — salvia e escura o suficiente para contraste; tokens de tema nao tem 'onPrimary' dedicado.
@@ -41,6 +44,7 @@
 - 22-02: Tokens legacy em estilos nao-shell foram inlinados como valores literais (nao tokenizados) para garantir zero regressao visual; restyling tela a tela fica para as fases 23/24.
 
 ## Ultima Atualizacao
+- 2026-05-20: Plano 24-02 concluido. Sub-telas Voz / Acessibilidade / Aparencia do grupo App restilizadas com 9 novos tokens drill* (drillSectionTitle / drillSectionCard / drillFieldLabel / drillFieldHint / drillChipRow / drillToggleRow / drillPrimary/Secondary/DangerButton). Voz: cards VELOCIDADE + TOM + botao Testar voz salvia. Acessibilidade: card TEMA DO APLICATIVO (3 chips) + card FEEDBACK (Switch tematizado). Aparencia: card ESCALA + card IMAGENS POR LINHA. Handlers preservados verbatim; isHighContrast removido. Lint limpo; test 22/26 (sem novas falhas). CFG-01 e CFG-02 avancando. Phase 24: 2/4 planos.
 - 2026-05-19: Plano 23-03 concluido. SymbolCard refeito (sketch 002 variante D): cor da categoria em tile arredondado atras do pictograma via categoryColorFamily, card em surface com borda/sombra de tema, estrela de favorito como overlay circular. Vocabulario core deixou de ser barra separada e virou a primeira linha fixa da grade (ListHeaderComponent); estilos coreVocabBar* orfaos removidos. emptyText/symbolLabel migrados para theme.typography (Nunito) — VIS-02 avancando. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). TELA-01 e TELA-02 concluidos. Phase 23: 3/4 planos.
 - 2026-05-19: Plano 23-02 concluido. Barra de categorias com pills salvia (ativo) / bgSoft neutro (inativo) e raio full; campo de busca com fundo surface2, raio sm e fonte Nunito (typography.callout); searchButton em salvia; listCard sobre bgSoft com raio lg; ActivityIndicator tokenizado. Azul iOS (#007AFF) e cinza iOS (#F2F2F7) removidos dessas regioes. VIS-02 avancando (grep theme.typography subiu para 5). Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 23: 2/4 planos.
 - 2026-05-19: Plano 23-01 concluido. Header da tela principal sem o slogan 'Comunicação assistiva' (headerTagline removido; introSubtitle da intro intacta); estilos do header migrados para tokens theme.colors/theme.typography (fonte Nunito aplicada em title e adminBadgeText — VIS-02 parcialmente fechado). Novo modulo src/categoryColors.ts com categoryColorFamily (categoria ARASAAC -> 5 familias de cor + neutro), pronto para o card da fase 23-03. Lint limpo; test 22/26 (4 pre-existentes, sem novas falhas). Phase 23: 1/4 planos.

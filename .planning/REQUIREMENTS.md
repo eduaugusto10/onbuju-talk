@@ -61,9 +61,9 @@
 | TELA-02 | Tela Principal  | Phase 23 | Concluido (23-03) — card com tile de cor de categoria atras do pictograma |
 | TELA-03 | Tela Principal  | Phase 23 | Concluido (23-04) — Ouvir dominante (terracota, flex:1.9), Gerar rotulado menor (ouro, flex:1) |
 | TELA-04 | Tela Principal  | Phase 23 | Concluido (23-04) — tocar na figura remove (1 toque); link "limpar" contextual |
-| CFG-01  | Configuracoes   | Phase 24 | Inicio agrupado em 3 grupos |
-| CFG-02  | Configuracoes   | Phase 24 | Navegacao drill-down |
-| CFG-03  | Configuracoes   | Phase 24 | Gating por grupo |
+| CFG-01  | Configuracoes   | Phase 24 | Inicio agrupado em 3 grupos — shell completo desde 24-01; grupo App restilizado em 24-02; aguardando 24-03 (Conteudo da crianca) e 24-04 (Cuidador) |
+| CFG-02  | Configuracoes   | Phase 24 | Navegacao drill-down — sistema de rotas + tokens drill* prontos; sub-telas App tokenizadas (24-02); restam grupos Conteudo da crianca (24-03) e Cuidador (24-04) |
+| CFG-03  | Configuracoes   | Phase 24 | Gating por grupo — implementado em 24-01 (openConfigRoute redireciona deslogados para 'senha' em rotas nao-APP; cadeados nos grupos bloqueados) |
 | REG-01  | Regressao       | Phase 25 | Regressao dos fluxos v1-v4 |
 
 ---
