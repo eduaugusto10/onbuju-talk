@@ -71,15 +71,31 @@ export const arasaacService = {
   },
 
   async getBestSymbols(locale: string = 'pt'): Promise<SymbolItem[]> {
-    const cacheKey = `best_symbols_${locale}`;
+    // v2: one representative pictogram per term. ARASAAC returns dozens of
+    // distinct pictograms sharing the same label (e.g. many drawings of "eu"),
+    // so deduping by id alone flooded the grid with near-identical "eu" cards —
+    // confusing for the autistic audience. Pick the top match per term and
+    // dedupe by label so each concept shows up exactly once.
+    const cacheKey = `best_symbols_v2_${locale}`;
     const cached = await getFromCache<SymbolItem[]>(cacheKey);
     if (cached) return cached;
 
     const results = await Promise.all(COMMON_TERMS.map(term => this.searchSymbols(term, locale)));
-    const flattened = results.flat();
-    const unique = Array.from(new Map(flattened.map(item => [item.id, item])).values());
-    const finalResults = unique.slice(0, 24);
-    
+    const seenIds = new Set<string>();
+    const seenLabels = new Set<string>();
+    const finalResults: SymbolItem[] = [];
+    for (const termResults of results) {
+      const pick = termResults.find(item => {
+        const label = item.label.trim().toLowerCase();
+        return !seenIds.has(item.id) && !seenLabels.has(label);
+      });
+      if (pick) {
+        seenIds.add(pick.id);
+        seenLabels.add(pick.label.trim().toLowerCase());
+        finalResults.push(pick);
+      }
+    }
+
     await saveToCache(cacheKey, finalResults, true);
     return finalResults;
   },

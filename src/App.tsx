@@ -44,7 +44,7 @@ import {
   VisualScene,
   VisualSceneHotspot
 } from './types';
-import { CHILD_GRID_COLUMNS, NUNITO_FONT_MAP, resolveTheme, type Theme, type ThemeName } from './theme';
+import { NUNITO_FONT_MAP, resolveTheme, type Theme, type ThemeName } from './theme';
 import { useFonts } from 'expo-font';
 import { IOSBottomSheet } from './ui';
 import { triggerHaptic } from './services/hapticsService';
@@ -360,6 +360,25 @@ function normalizeGridColumns(value: string | null): GridColumns {
   return clamped as GridColumns;
 }
 
+const GRID_FILLER_PREFIX = '__grid_filler__';
+
+// Pads a grid's data so the last row is always full. Without this, a lone card
+// on an incomplete last row stretches to full width (flex: 1) and breaks the
+// column alignment. Fillers carry a sentinel id and render as invisible spacers
+// (see styles.gridFiller).
+function padToColumns<T extends { id: string }>(
+  data: T[],
+  columns: number,
+  makeFiller: (id: string) => T
+): T[] {
+  const remainder = data.length % columns;
+  if (remainder === 0) return data;
+  const fillers = Array.from({ length: columns - remainder }, (_, i) =>
+    makeFiller(`${GRID_FILLER_PREFIX}${i}`)
+  );
+  return [...data, ...fillers];
+}
+
 export default function App() {
   const hasPrimedExtendedCache = useRef(false);
   const searchInputRef = useRef<TextInput>(null);
@@ -441,7 +460,7 @@ export default function App() {
   const uiScaleFactor = uiScale === 'compacto' ? 0.92 : uiScale === 'confortavel' ? 1.08 : 1;
   const isDarkTheme = theme.isDark;
   const isHighContrast = isDarkTheme;
-  const effectiveGridColumns: GridColumns = isAdmin ? gridColumns : (CHILD_GRID_COLUMNS as GridColumns);
+  const effectiveGridColumns: GridColumns = gridColumns;
   const androidTopInset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
 
   const phraseText = useMemo(() => {
@@ -2070,41 +2089,12 @@ export default function App() {
             >
               <Text style={styles.menuIcon}>⚙</Text>
             </Pressable>
-            <View style={styles.headerTextBlock}>
-              <Text style={[styles.title, { fontSize: 17 * uiScaleFactor }, isHighContrast && styles.textHighContrast]}>ONBUJU TALK</Text>
-            </View>
-            <View style={styles.headerActions}>
-              {isAdmin && (
-                <Pressable
-                  style={[styles.searchToggleButton, (isSearchOpen || searchTerm.trim()) && styles.searchToggleButtonActive]}
-                  onPress={() => {
-                    if (isSearchOpen) {
-                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                      setIsSearchOpen(false);
-                      Keyboard.dismiss();
-                      return;
-                    }
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setIsSearchOpen(true);
-                    setTimeout(() => searchInputRef.current?.focus(), 40);
-                  }}
-                >
-                  <Text style={styles.searchToggleIcon}>🔍</Text>
-                </Pressable>
-              )}
-              {isAdmin && (
-                <View style={[styles.adminBadge, styles.adminBadgeOn]}>
-                  <Text style={styles.adminBadgeText}>ADMIN</Text>
-                </View>
-              )}
-            </View>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoriesScroll}
-            contentContainerStyle={styles.categoriesRow}
-          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScroll}
+              contentContainerStyle={styles.categoriesRow}
+            >
             <CategoryButton
               label={CATEGORIES.favorites}
               active={activeCategory === CATEGORIES.favorites}
@@ -2167,7 +2157,31 @@ export default function App() {
                 onPress={() => void handleCategoryClick(category)}
               />
             ))}
-          </ScrollView>
+            </ScrollView>
+            {isAdmin && (
+              <View style={styles.headerActions}>
+                <Pressable
+                  style={[styles.searchToggleButton, (isSearchOpen || searchTerm.trim()) && styles.searchToggleButtonActive]}
+                  onPress={() => {
+                    if (isSearchOpen) {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setIsSearchOpen(false);
+                      Keyboard.dismiss();
+                      return;
+                    }
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setIsSearchOpen(true);
+                    setTimeout(() => searchInputRef.current?.focus(), 40);
+                  }}
+                >
+                  <Text style={styles.searchToggleIcon}>🔍</Text>
+                </Pressable>
+                <View style={[styles.adminBadge, styles.adminBadgeOn]}>
+                  <Text style={styles.adminBadgeText}>ADMIN</Text>
+                </View>
+              </View>
+            )}
+          </View>
 
           {isSearchOpen && (
             <View style={styles.searchRow}>
@@ -2334,13 +2348,20 @@ export default function App() {
             />
           ) : customCategories.some(c => c.id === activeCategory) ? (
             <FlatList
-              data={personalSymbols.filter(ps => ps.categoryId === activeCategory)}
+              data={padToColumns(
+                personalSymbols.filter(ps => ps.categoryId === activeCategory),
+                effectiveGridColumns,
+                id => ({ id, label: '', categoryId: null, imageUri: '', createdAt: '' })
+              )}
               keyExtractor={item => item.id}
               key={`personal-${activeCategory}-${effectiveGridColumns}`}
               numColumns={effectiveGridColumns}
               accessibilityLabel={`Grade de simbolos pessoais ${effectiveGridColumns} colunas`}
               contentContainerStyle={styles.grid}
               renderItem={({ item }) => {
+                if (item.id.startsWith(GRID_FILLER_PREFIX)) {
+                  return <View style={styles.gridFiller} />;
+                }
                 const symbolItem: SymbolItem = {
                   id: item.id,
                   label: item.label,
@@ -2370,7 +2391,7 @@ export default function App() {
             />
           ) : (
             <FlatList
-              data={symbolsToRender}
+              data={padToColumns(symbolsToRender, effectiveGridColumns, id => ({ id, label: '', imageUrl: '', category: '' }))}
               keyExtractor={item => item.id}
               key={`symbols-${effectiveGridColumns}`}
               numColumns={effectiveGridColumns}
@@ -2402,16 +2423,20 @@ export default function App() {
                   </ScrollView>
                 ) : null
               }
-              renderItem={({ item }) => (
-                <SymbolCard
-                  item={item}
-                  columns={effectiveGridColumns}
-                  favorite={isFavorite(item)}
-                  onPress={() => addSymbol(item)}
-                  onFavoritePress={() => toggleFavorite(item)}
-                  isAdmin={isAdmin}
-                />
-              )}
+              renderItem={({ item }) =>
+                item.id.startsWith(GRID_FILLER_PREFIX) ? (
+                  <View style={styles.gridFiller} />
+                ) : (
+                  <SymbolCard
+                    item={item}
+                    columns={effectiveGridColumns}
+                    favorite={isFavorite(item)}
+                    onPress={() => addSymbol(item)}
+                    onFavoritePress={() => toggleFavorite(item)}
+                    isAdmin={isAdmin}
+                  />
+                )
+              }
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyText, isHighContrast && styles.textMutedHighContrast]}>Nenhum símbolo encontrado.</Text>
@@ -4514,22 +4539,12 @@ function makeStyles(theme: Theme) {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 4
   },
   cardHighContrast: {
     backgroundColor: '#0f172a',
     borderColor: '#334155'
-  },
-  title: {
-    ...theme.typography.title2,
-    color: theme.colors.text
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-    marginTop: 2
   },
   textHighContrast: {
     color: '#f8fafc'
@@ -4547,9 +4562,6 @@ function makeStyles(theme: Theme) {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6
-  },
-  headerTextBlock: {
-    flex: 1
   },
   menuButton: {
     width: 40,
@@ -4662,6 +4674,7 @@ function makeStyles(theme: Theme) {
     marginBottom: 6
   },
   categoriesScroll: {
+    flex: 1,
     minHeight: 46,
     maxHeight: 46
   },
@@ -4721,6 +4734,10 @@ function makeStyles(theme: Theme) {
     paddingTop: 44,
     paddingHorizontal: 16,
     alignItems: 'center'
+  },
+  gridFiller: {
+    flex: 1,
+    margin: 6
   },
   symbolCard: {
     flex: 1,
