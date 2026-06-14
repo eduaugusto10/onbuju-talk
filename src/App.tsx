@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   LayoutAnimation,
   Modal,
   Platform,
@@ -2110,7 +2111,10 @@ export default function App() {
         barStyle={theme.isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.bg}
       />
-      <View style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10 }]}>
+      <KeyboardAvoidingView
+        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10 }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={[styles.headerCard, isHighContrast && styles.cardHighContrast]}>
           <View style={styles.headerRow}>
             <Pressable
@@ -2556,7 +2560,7 @@ export default function App() {
           </View>
         </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
 
       <IOSBottomSheet
         visible={isNamingModalOpen}
@@ -4600,8 +4604,8 @@ function makeStyles(theme: Theme) {
     gap: 6
   },
   menuButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: theme.radii.full,
     backgroundColor: theme.colors.primarySoft,
     alignItems: 'center',
@@ -4730,7 +4734,7 @@ function makeStyles(theme: Theme) {
     borderRadius: theme.radii.full,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    minHeight: 32,
+    minHeight: 36,
     justifyContent: 'center',
     alignSelf: 'flex-start'
   },
