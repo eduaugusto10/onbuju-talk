@@ -61,6 +61,7 @@ jest.mock('expo-audio', () => {
   const player = { play: jest.fn(), pause: jest.fn(), remove: jest.fn() };
   return {
     createAudioPlayer: jest.fn(() => player),
+    setAudioModeAsync: jest.fn(async () => undefined),
     requestRecordingPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted' })),
     useAudioRecorder: jest.fn(() => ({
       uri: 'file:///tmp/fake-recording.m4a',

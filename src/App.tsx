@@ -27,6 +27,7 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   createAudioPlayer,
   requestRecordingPermissionsAsync,
+  setAudioModeAsync,
   useAudioRecorder,
   useAudioRecorderState,
   RecordingPresets
@@ -85,6 +86,7 @@ const STORAGE_KEYS = {
   adminPasswordHash: 'admin_password_hash',
   uiScale: 'ui_scale',
   themeName: 'theme_name',
+  themeDarkReset: 'theme_dark_reset_v1',
   visualFeedback: 'visual_feedback',
   introSkipEnabled: 'intro_skip_enabled',
   gridColumns: 'grid_columns',
@@ -305,6 +307,23 @@ const CATEGORIES = {
   routine: 'Rotina',
   scenes: 'Cenas'
 };
+
+const CATEGORY_ICONS: Record<string, string> = {
+  [CATEGORIES.favorites]: '⭐',
+  [CATEGORIES.all]: '🔣',
+  [CATEGORIES.custom]: '✏️',
+  [CATEGORIES.savedPhrases]: '💬',
+  [CATEGORIES.history]: '🕐',
+  [CATEGORIES.routine]: '📅',
+  [CATEGORIES.scenes]: '🖼️'
+};
+
+// Non-readers can't act on text-only labels, so every category tab carries an
+// icon next to its word. Known tabs map to a specific emoji; dynamic ARASAAC or
+// custom categories fall back to a generic tag.
+function categoryIcon(label: string): string {
+  return CATEGORY_ICONS[label] ?? '🏷️';
+}
 
 const getTodayIso = () => {
   const d = new Date();
@@ -595,6 +614,7 @@ export default function App() {
           savedUiScale,
           savedThemeName,
           savedLegacyContrast,
+          savedThemeDarkReset,
           savedVisualFeedback,
           savedIntroSkipEnabled,
           savedGridColumns,
@@ -615,6 +635,7 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.uiScale),
           AsyncStorage.getItem(STORAGE_KEYS.themeName),
           AsyncStorage.getItem('contrast_mode'),
+          AsyncStorage.getItem(STORAGE_KEYS.themeDarkReset),
           AsyncStorage.getItem(STORAGE_KEYS.visualFeedback),
           AsyncStorage.getItem(STORAGE_KEYS.introSkipEnabled),
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
@@ -647,18 +668,26 @@ export default function App() {
           setUiScale(savedUiScale);
         }
         if (
+          savedThemeDarkReset !== '1' &&
+          (savedThemeName === 'sereno-escuro' || savedLegacyContrast === 'alto')
+        ) {
+          // One-time reset: dark mode here was almost always an accidental
+          // carry-over from the legacy 'alto contraste' migration, not a
+          // deliberate choice — and it landed users on a cold, half-broken dark
+          // screen. Reset to the calm light default once. After this, the theme
+          // picker is fully respected (re-selecting Sereno Escuro sticks).
+          setThemeName('default');
+          void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'default');
+          void AsyncStorage.setItem(STORAGE_KEYS.themeDarkReset, '1');
+          void AsyncStorage.removeItem('contrast_mode');
+        } else if (
           savedThemeName === 'default' ||
           savedThemeName === 'terracota' ||
           savedThemeName === 'sereno-escuro'
         ) {
           setThemeName(savedThemeName);
-        } else if (savedLegacyContrast === 'alto') {
-          // Migracao: alto contraste legado -> tema Sereno Escuro.
-          setThemeName('sereno-escuro');
-          void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'sereno-escuro');
-          void AsyncStorage.removeItem('contrast_mode');
         } else {
-          // 'padrao' ou ausente -> tema padrao.
+          // 'padrao' ou ausente -> tema padrao claro.
           setThemeName('default');
           void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'default');
           void AsyncStorage.removeItem('contrast_mode');
@@ -771,6 +800,13 @@ export default function App() {
 
     void loadLocalData();
     void loadInitialSymbols();
+  }, []);
+
+  useEffect(() => {
+    // iOS silences audio when the device's ring switch is on silent; play TTS
+    // and recordings anyway so the app works without asking the user to flip
+    // the physical switch (was previously surfaced as a red toast on every play).
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -1842,9 +1878,6 @@ export default function App() {
       }
     });
     recordPhraseHistory(text);
-    if (Platform.OS === 'ios') {
-      showToast('No iPhone, desative o modo silencioso para ouvir.', 'error');
-    }
   }, [isPlaying, normalizedPhrase, pitch, rate, recordPhraseHistory, selectedSymbols, showToast]);
 
   const handleGenerate = useCallback(async () => {
@@ -3845,6 +3878,7 @@ function CategoryButton({
   const styles = moduleStyles;
   return (
     <Pressable onPress={onPress} style={[styles.categoryButton, highContrast && styles.categoryButtonHighContrast, active && styles.categoryButtonActive]}>
+      <Text style={styles.categoryButtonIcon}>{categoryIcon(label)}</Text>
       <Text numberOfLines={1} style={[styles.categoryButtonText, active && styles.categoryButtonTextActive]}>
         {label}
       </Text>
@@ -4536,11 +4570,13 @@ function makeStyles(theme: Theme) {
   },
   headerCard: {
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderRadius: theme.radii.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    gap: 4
+    gap: 4,
+    ...theme.shadows.sm
   },
   cardHighContrast: {
     backgroundColor: '#0f172a',
@@ -4687,6 +4723,9 @@ function makeStyles(theme: Theme) {
     paddingLeft: 2
   },
   categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: theme.colors.bgSoft,
     borderRadius: theme.radii.full,
     paddingHorizontal: 14,
@@ -4694,6 +4733,9 @@ function makeStyles(theme: Theme) {
     minHeight: 32,
     justifyContent: 'center',
     alignSelf: 'flex-start'
+  },
+  categoryButtonIcon: {
+    fontSize: 15
   },
   categoryButtonHighContrast: {
     backgroundColor: theme.colors.surface2
