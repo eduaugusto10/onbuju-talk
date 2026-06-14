@@ -71,12 +71,14 @@ export const arasaacService = {
   },
 
   async getBestSymbols(locale: string = 'pt'): Promise<SymbolItem[]> {
-    // v2: one representative pictogram per term. ARASAAC returns dozens of
-    // distinct pictograms sharing the same label (e.g. many drawings of "eu"),
-    // so deduping by id alone flooded the grid with near-identical "eu" cards —
-    // confusing for the autistic audience. Pick the top match per term and
-    // dedupe by label so each concept shows up exactly once.
-    const cacheKey = `best_symbols_v2_${locale}`;
+    // v3: one representative pictogram per term, tagged with its search term as
+    // category. ARASAAC returns dozens of distinct pictograms sharing the same
+    // label (e.g. many drawings of "eu"), so deduping by id alone flooded the
+    // grid with near-identical "eu" cards — confusing for the autistic audience.
+    // Pick the top match per term and dedupe by label so each concept shows up
+    // exactly once. The term-as-category lets the card tile pick a soft category
+    // color (search results are otherwise category-less / 'General').
+    const cacheKey = `best_symbols_v3_${locale}`;
     const cached = await getFromCache<SymbolItem[]>(cacheKey);
     if (cached) return cached;
 
@@ -84,7 +86,8 @@ export const arasaacService = {
     const seenIds = new Set<string>();
     const seenLabels = new Set<string>();
     const finalResults: SymbolItem[] = [];
-    for (const termResults of results) {
+    results.forEach((termResults, idx) => {
+      const term = COMMON_TERMS[idx];
       const pick = termResults.find(item => {
         const label = item.label.trim().toLowerCase();
         return !seenIds.has(item.id) && !seenLabels.has(label);
@@ -92,9 +95,9 @@ export const arasaacService = {
       if (pick) {
         seenIds.add(pick.id);
         seenLabels.add(pick.label.trim().toLowerCase());
-        finalResults.push(pick);
+        finalResults.push({ ...pick, category: term });
       }
-    }
+    });
 
     await saveToCache(cacheKey, finalResults, true);
     return finalResults;

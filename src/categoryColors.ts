@@ -28,11 +28,11 @@ export type CategoryColorFamily = keyof typeof CATEGORY_COLOR_FAMILIES;
  * aparece aqui — e o fallback quando nenhum termo casa.
  */
 const FAMILY_KEYWORDS: Record<Exclude<CategoryColorFamily, 'neutro'>, string[]> = {
-  acoes: ['acoes', 'acao', 'verbos', 'verbo', 'fazer'],
+  acoes: ['acoes', 'acao', 'verbos', 'verbo', 'fazer', 'querer', 'ajuda', 'apoio'],
   comida: ['alimentacao', 'comida', 'comer', 'beber', 'bebida', 'lanche', 'fruta', 'frutas'],
-  pessoas: ['pessoas', 'pessoa', 'familia', 'pessoal', 'gente', 'eu'],
-  lazer: ['lazer', 'brincar', 'brinquedo', 'brinquedos', 'jogo', 'jogos', 'escola', 'diversao'],
-  rotina: ['rotina', 'higiene', 'saude', 'casa', 'lugares', 'lugar', 'sentimentos', 'sentimento', 'dia']
+  pessoas: ['pessoas', 'pessoa', 'familia', 'pessoal', 'gente', 'eu', 'mae', 'pai', 'mamae', 'papai'],
+  lazer: ['lazer', 'brincar', 'brinquedo', 'brinquedos', 'jogo', 'jogos', 'jogar', 'escola', 'diversao'],
+  rotina: ['rotina', 'higiene', 'saude', 'casa', 'lugares', 'lugar', 'sentimentos', 'sentimento', 'dia', 'banheiro', 'dormir']
 };
 
 /** Normaliza texto: minusculo, sem acentos, sem espacos nas pontas. */
