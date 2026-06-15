@@ -70,7 +70,40 @@ type ConfigRoute =
   | 'home'
   | 'voz' | 'acessibilidade' | 'aparencia'
   | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina' | 'cenas'
+  | 'secoes'
   | 'senha' | 'chave-ia';
+
+type SectionVisibility = {
+  frases: boolean;
+  historico: boolean;
+  rotina: boolean;
+  cenas: boolean;
+};
+
+// Frases, Histórico, Rotina e Cenas começam OCULTAS — o cuidador liga o que
+// quiser em Configurações → Abas visíveis. Mantém a tela principal enxuta para
+// o público autista (menos abas competindo por atenção).
+const DEFAULT_SECTION_VISIBILITY: SectionVisibility = {
+  frases: false,
+  historico: false,
+  rotina: false,
+  cenas: false
+};
+
+function sanitizeSectionVisibility(raw: string | null): SectionVisibility {
+  if (!raw) return DEFAULT_SECTION_VISIBILITY;
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      frases: typeof parsed?.frases === 'boolean' ? parsed.frases : false,
+      historico: typeof parsed?.historico === 'boolean' ? parsed.historico : false,
+      rotina: typeof parsed?.rotina === 'boolean' ? parsed.rotina : false,
+      cenas: typeof parsed?.cenas === 'boolean' ? parsed.cenas : false
+    };
+  } catch {
+    return DEFAULT_SECTION_VISIBILITY;
+  }
+}
 type GridColumns = 2 | 3 | 4 | 5;
 
 const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
@@ -89,6 +122,7 @@ const STORAGE_KEYS = {
   themeName: 'theme_name',
   themeDarkReset: 'theme_dark_reset_v1',
   visualFeedback: 'visual_feedback',
+  sectionVisibility: 'section_visibility',
   introSkipEnabled: 'intro_skip_enabled',
   gridColumns: 'grid_columns',
   coreVocabulary: 'core_vocabulary',
@@ -422,6 +456,7 @@ export default function App() {
   const [uiScale, setUiScale] = useState<UiScale>('padrao');
   const [themeName, setThemeName] = useState<ThemeName>('default');
   const [visualFeedbackEnabled, setVisualFeedbackEnabled] = useState(true);
+  const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(DEFAULT_SECTION_VISIBILITY);
   const [gridColumns, setGridColumns] = useState<GridColumns>(DEFAULT_GRID_COLUMNS);
   const [coreVocabulary, setCoreVocabulary] = useState<string[]>(() => sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
   const [newCoreWord, setNewCoreWord] = useState('');
@@ -591,6 +626,22 @@ export default function App() {
     setConfigRoute(route);
   }, [isAdmin]);
 
+  const SECTION_TO_CATEGORY: Record<keyof SectionVisibility, string> = {
+    frases: CATEGORIES.savedPhrases,
+    historico: CATEGORIES.history,
+    rotina: CATEGORIES.routine,
+    cenas: CATEGORIES.scenes
+  };
+
+  const toggleSection = useCallback((key: keyof SectionVisibility) => {
+    // If turning a section OFF while it's the open tab, fall back to "Tudo" so
+    // the main screen never shows a section whose tab no longer exists.
+    if (sectionVisibility[key] && activeCategory === SECTION_TO_CATEGORY[key]) {
+      setActiveCategory(CATEGORIES.all);
+    }
+    setSectionVisibility(prev => ({ ...prev, [key]: !prev[key] }));
+  }, [sectionVisibility, activeCategory]);
+
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 2500);
@@ -617,6 +668,7 @@ export default function App() {
           savedLegacyContrast,
           savedThemeDarkReset,
           savedVisualFeedback,
+          savedSectionVisibility,
           savedIntroSkipEnabled,
           savedGridColumns,
           savedCoreVocabulary,
@@ -638,6 +690,7 @@ export default function App() {
           AsyncStorage.getItem('contrast_mode'),
           AsyncStorage.getItem(STORAGE_KEYS.themeDarkReset),
           AsyncStorage.getItem(STORAGE_KEYS.visualFeedback),
+          AsyncStorage.getItem(STORAGE_KEYS.sectionVisibility),
           AsyncStorage.getItem(STORAGE_KEYS.introSkipEnabled),
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
           AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary),
@@ -696,6 +749,7 @@ export default function App() {
         if (savedVisualFeedback) {
           setVisualFeedbackEnabled(savedVisualFeedback === '1');
         }
+        setSectionVisibility(sanitizeSectionVisibility(savedSectionVisibility));
         setGridColumns(normalizeGridColumns(savedGridColumns));
 
         if (savedCoreVocabulary) {
@@ -837,6 +891,10 @@ export default function App() {
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.visualFeedback, visualFeedbackEnabled ? '1' : '0');
   }, [visualFeedbackEnabled]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.sectionVisibility, JSON.stringify(sectionVisibility));
+  }, [sectionVisibility]);
 
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.gridColumns, String(gridColumns));
@@ -2144,30 +2202,38 @@ export default function App() {
               highContrast={isHighContrast}
               onPress={() => void handleCategoryClick(CATEGORIES.all)}
             />
-            <CategoryButton
-              label={CATEGORIES.savedPhrases}
-              active={activeCategory === CATEGORIES.savedPhrases}
-              highContrast={isHighContrast}
-              onPress={() => void handleCategoryClick(CATEGORIES.savedPhrases)}
-            />
-            <CategoryButton
-              label={CATEGORIES.history}
-              active={activeCategory === CATEGORIES.history}
-              highContrast={isHighContrast}
-              onPress={() => void handleCategoryClick(CATEGORIES.history)}
-            />
-            <CategoryButton
-              label={CATEGORIES.routine}
-              active={activeCategory === CATEGORIES.routine}
-              highContrast={isHighContrast}
-              onPress={() => void handleCategoryClick(CATEGORIES.routine)}
-            />
-            <CategoryButton
-              label={CATEGORIES.scenes}
-              active={activeCategory === CATEGORIES.scenes}
-              highContrast={isHighContrast}
-              onPress={() => void handleCategoryClick(CATEGORIES.scenes)}
-            />
+            {sectionVisibility.frases && (
+              <CategoryButton
+                label={CATEGORIES.savedPhrases}
+                active={activeCategory === CATEGORIES.savedPhrases}
+                highContrast={isHighContrast}
+                onPress={() => void handleCategoryClick(CATEGORIES.savedPhrases)}
+              />
+            )}
+            {sectionVisibility.historico && (
+              <CategoryButton
+                label={CATEGORIES.history}
+                active={activeCategory === CATEGORIES.history}
+                highContrast={isHighContrast}
+                onPress={() => void handleCategoryClick(CATEGORIES.history)}
+              />
+            )}
+            {sectionVisibility.rotina && (
+              <CategoryButton
+                label={CATEGORIES.routine}
+                active={activeCategory === CATEGORIES.routine}
+                highContrast={isHighContrast}
+                onPress={() => void handleCategoryClick(CATEGORIES.routine)}
+              />
+            )}
+            {sectionVisibility.cenas && (
+              <CategoryButton
+                label={CATEGORIES.scenes}
+                active={activeCategory === CATEGORIES.scenes}
+                highContrast={isHighContrast}
+                onPress={() => void handleCategoryClick(CATEGORIES.scenes)}
+              />
+            )}
             {customSymbols.length > 0 && (
               <CategoryButton
                 label={CATEGORIES.custom}
@@ -2714,6 +2780,7 @@ export default function App() {
                   <ConfigGroupRow icon="🗂" label="Categorias" locked={!isAdmin} onPress={() => openConfigRoute('categorias')} />
                   <ConfigGroupRow icon="📅" label="Rotina do dia" locked={!isAdmin} onPress={() => openConfigRoute('rotina')} />
                   <ConfigGroupRow icon="🏠" label="Cenas visuais" locked={!isAdmin} onPress={() => openConfigRoute('cenas')} />
+                  <ConfigGroupRow icon="🧩" label="Abas visíveis" locked={!isAdmin} onPress={() => openConfigRoute('secoes')} />
                 </View>
               </View>
               {/* Grupo CUIDADOR — gated; opcoes mudam por estado */}
@@ -3631,6 +3698,59 @@ export default function App() {
               </>
             )}
 
+            {configRoute === 'secoes' && (
+              <>
+                <Text style={styles.drillSectionTitle}>ABAS NA TELA PRINCIPAL</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldHint}>
+                    Ative só as abas que a criança vai usar. Menos abas deixam a tela mais simples e focada. Elas vêm desativadas por padrão.
+                  </Text>
+                </View>
+                <View style={styles.drillSectionCard}>
+                  <View style={styles.drillToggleRow}>
+                    <Text style={styles.drillFieldLabel}>💬 Frases</Text>
+                    <Switch
+                      value={sectionVisibility.frases}
+                      onValueChange={() => toggleSection('frases')}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel="Alternar aba Frases"
+                    />
+                  </View>
+                  <View style={styles.drillToggleRow}>
+                    <Text style={styles.drillFieldLabel}>🕐 Histórico</Text>
+                    <Switch
+                      value={sectionVisibility.historico}
+                      onValueChange={() => toggleSection('historico')}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel="Alternar aba Histórico"
+                    />
+                  </View>
+                  <View style={styles.drillToggleRow}>
+                    <Text style={styles.drillFieldLabel}>📅 Rotina</Text>
+                    <Switch
+                      value={sectionVisibility.rotina}
+                      onValueChange={() => toggleSection('rotina')}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel="Alternar aba Rotina"
+                    />
+                  </View>
+                  <View style={styles.drillToggleRow}>
+                    <Text style={styles.drillFieldLabel}>🏠 Cenas</Text>
+                    <Switch
+                      value={sectionVisibility.cenas}
+                      onValueChange={() => toggleSection('cenas')}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel="Alternar aba Cenas"
+                    />
+                  </View>
+                </View>
+              </>
+            )}
+
             {configRoute === 'voz' && (
               <>
                 <Text style={styles.drillSectionTitle}>VELOCIDADE</Text>
@@ -3909,6 +4029,7 @@ const CONFIG_ROUTE_TITLES: Record<Exclude<ConfigRoute, 'home'>, string> = {
   categorias: 'Categorias',
   rotina: 'Rotina do dia',
   cenas: 'Cenas visuais',
+  secoes: 'Abas visíveis',
   senha: 'Senha do cuidador',
   'chave-ia': 'Chave da IA'
 };

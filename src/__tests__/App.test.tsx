@@ -132,7 +132,11 @@ describe('App', () => {
   });
 
   it('abre direto na home quando preferencia de pular intro estiver ativa', async () => {
-    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
+      return null;
+    });
     render(<App />);
 
     await waitFor(() => {
@@ -167,7 +171,11 @@ describe('App', () => {
   });
 
   it('mostra vocabulario core padrao apos iniciar', async () => {
-    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
+      return null;
+    });
     render(<App />);
 
     await waitFor(() => {
@@ -178,7 +186,11 @@ describe('App', () => {
   });
 
   it('adiciona palavra do core a selecao e persiste vocabulario', async () => {
-    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
+      return null;
+    });
     render(<App />);
 
     const queroButton = await screen.findByLabelText('Adicionar palavra quero');
@@ -208,7 +220,11 @@ describe('App', () => {
   });
 
   it('mostra frases prontas padrao na categoria Frases', async () => {
-    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
+      return null;
+    });
     render(<App />);
 
     await waitFor(() => expect(screen.getByText('Tudo')).toBeTruthy());
@@ -221,7 +237,11 @@ describe('App', () => {
   });
 
   it('falar frase pronta registra no historico e persiste', async () => {
-    asyncStorageMock.getItem.mockImplementation(async key => (key === 'intro_skip_enabled' ? '1' : null));
+    asyncStorageMock.getItem.mockImplementation(async key => {
+      if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
+      return null;
+    });
     render(<App />);
 
     await waitFor(() => expect(screen.getByText('Frases')).toBeTruthy());
@@ -248,6 +268,7 @@ describe('App', () => {
   it('restaura historico de frases salvo no boot', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
       if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_phrase_history')
         return JSON.stringify([
           { id: 'h-1', text: 'bom dia', spokenAt: new Date().toISOString() }
@@ -409,6 +430,7 @@ describe('App', () => {
     })();
     asyncStorageMock.getItem.mockImplementation(async key => {
       if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_routine_steps')
         return JSON.stringify([
           { id: 'step-a', label: 'Acordar', createdAt: new Date().toISOString() },
@@ -435,6 +457,7 @@ describe('App', () => {
   it('tap em passo da rotina marca como concluido e persiste', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
       if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_routine_steps')
         return JSON.stringify([{ id: 'step-x', label: 'Tomar cafe', createdAt: new Date().toISOString() }]);
       return null;
@@ -460,6 +483,7 @@ describe('App', () => {
   it('progresso de rotina de dia antigo e resetado no boot', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
       if (key === 'intro_skip_enabled') return '1';
+      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_routine_steps')
         return JSON.stringify([{ id: 'step-old', label: 'Passo antigo', createdAt: new Date().toISOString() }]);
       if (key === 'arasaac_routine_progress')
