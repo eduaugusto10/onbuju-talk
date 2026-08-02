@@ -5,6 +5,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F1EBDD"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,7 +25,11 @@
       "url": "https://u.expo.dev/5f12ea26-156a-4789-ae97-a1e5e3d44a32"
     },
     "android": {
-      "package": "com.eduaugusto10.falamobile"
+      "package": "com.eduaugusto10.falamobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F1EBDD"
+      }
     },
     "ios": {
       "bundleIdentifier": "com.eduaugusto10.falamobile"
