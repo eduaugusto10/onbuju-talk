@@ -273,6 +273,8 @@ type ThemeColors = {
   accent: string;
   accentHover: string;
   accentSoft: string;
+  /** Tinta sobre `accent` — escura o suficiente para contraste WCAG AA (≥4.5:1). */
+  accentInk: string;
   /** Status. */
   danger: string;
   dangerSoft: string;
@@ -451,10 +453,11 @@ const defaultTheme: Theme = {
     generate: '#E0A24E',
     generateHover: '#CD9140',
     generateSoft: '#F6E6C7',
-    generateInk: '#5B3F12',
+    generateInk: '#4A330E',
     accent: '#D08A63',
     accentHover: '#BC7853',
     accentSoft: '#F0DCCE',
+    accentInk: '#42250F',
     danger: '#C57E6F',
     dangerSoft: '#EFDBD4',
     success: '#7FA982',
@@ -490,10 +493,11 @@ const terracotaTheme: Theme = {
     generate: '#DDA04B',
     generateHover: '#CA8F3E',
     generateSoft: '#F5E4C3',
-    generateInk: '#5B3F12',
+    generateInk: '#4A330E',
     accent: '#6F9D86',
     accentHover: '#5C8872',
     accentSoft: '#DBE6DE',
+    accentInk: '#16291F',
     danger: '#BF6A5C',
     dangerSoft: '#EFD6CF',
     success: '#7FA982',
@@ -529,10 +533,11 @@ const serenoEscuroTheme: Theme = {
     generate: '#E8B468',
     generateHover: '#F0C17E',
     generateSoft: '#4A3B22',
-    generateInk: '#FBEFD6',
+    generateInk: '#4A330E',
     accent: '#E0A07C',
     accentHover: '#EBAE8C',
     accentSoft: '#46362C',
+    accentInk: '#3A2213',
     danger: '#D89384',
     dangerSoft: '#45302B',
     success: '#8FBBA3',

@@ -123,7 +123,6 @@ const STORAGE_KEYS = {
   themeDarkReset: 'theme_dark_reset_v1',
   visualFeedback: 'visual_feedback',
   sectionVisibility: 'section_visibility',
-  introSkipEnabled: 'intro_skip_enabled',
   gridColumns: 'grid_columns',
   coreVocabulary: 'core_vocabulary',
   savedPhrases: 'arasaac_saved_phrases',
@@ -489,9 +488,6 @@ export default function App() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const [isBootHydrating, setIsBootHydrating] = useState(true);
-  const [showIntroScreen, setShowIntroScreen] = useState(false);
-  const [skipIntroNextOpen, setSkipIntroNextOpen] = useState(false);
-  const [isStartingApp, setIsStartingApp] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -669,7 +665,6 @@ export default function App() {
           savedThemeDarkReset,
           savedVisualFeedback,
           savedSectionVisibility,
-          savedIntroSkipEnabled,
           savedGridColumns,
           savedCoreVocabulary,
           savedPhrasesRaw,
@@ -691,7 +686,6 @@ export default function App() {
           AsyncStorage.getItem(STORAGE_KEYS.themeDarkReset),
           AsyncStorage.getItem(STORAGE_KEYS.visualFeedback),
           AsyncStorage.getItem(STORAGE_KEYS.sectionVisibility),
-          AsyncStorage.getItem(STORAGE_KEYS.introSkipEnabled),
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
           AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary),
           AsyncStorage.getItem(STORAGE_KEYS.savedPhrases),
@@ -830,10 +824,6 @@ export default function App() {
             /* keep empty */
           }
         }
-
-        const introShouldBeSkipped = savedIntroSkipEnabled === '1';
-        setSkipIntroNextOpen(introShouldBeSkipped);
-        setShowIntroScreen(!introShouldBeSkipped);
       } finally {
         setIsBootHydrating(false);
       }
@@ -2100,65 +2090,12 @@ export default function App() {
     });
   }, [customSymbols, favorites, symbols]);
 
-  const handleStartFromIntro = useCallback(async () => {
-    if (isStartingApp) return;
-    setIsStartingApp(true);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.introSkipEnabled, skipIntroNextOpen ? '1' : '0');
-      setShowIntroScreen(false);
-    } finally {
-      setIsStartingApp(false);
-    }
-  }, [isStartingApp, skipIntroNextOpen]);
-
   if (!fontsLoaded || isBootHydrating) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.bootLoadingState}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (showIntroScreen) {
-    return (
-      <SafeAreaView style={[styles.safeArea, isHighContrast && styles.safeAreaHighContrast]}>
-        <View style={[styles.introContainer, { paddingHorizontal: 14 * uiScaleFactor }]}>
-          <View style={[styles.introCard, isHighContrast && styles.cardHighContrast]}>
-            <Text style={[styles.introTitle, isHighContrast && styles.textHighContrast]}>ONBUJU TALK</Text>
-            <Text style={[styles.introSubtitle, isHighContrast && styles.textMutedHighContrast]}>
-              Comunicação assistiva para montar frases com rapidez.
-            </Text>
-
-            <Pressable
-              style={[styles.introToggleRow, isHighContrast && styles.introToggleRowHighContrast]}
-              onPress={() => setSkipIntroNextOpen(prev => !prev)}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: skipIntroNextOpen }}
-            >
-              <View style={[styles.introCheckbox, isHighContrast && styles.introCheckboxHighContrast, skipIntroNextOpen && styles.introCheckboxActive]}>
-                {skipIntroNextOpen ? <Text style={styles.introCheckboxIcon}>✓</Text> : null}
-              </View>
-              <Text style={[styles.introToggleText, isHighContrast && styles.textHighContrast]}>Nao mostrar novamente</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.introStartButton, isStartingApp && styles.introStartButtonDisabled]}
-              onPress={() => void handleStartFromIntro()}
-              disabled={isStartingApp}
-              accessibilityRole="button"
-            >
-              <Text style={styles.introStartButtonText}>{isStartingApp ? 'Abrindo...' : 'Comecar'}</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {toast && (
-          <View style={[styles.toast, toast.type === 'success' ? styles.toastSuccess : styles.toastError]}>
-            <Text style={styles.toastText}>{toast.message}</Text>
-          </View>
-        )}
       </SafeAreaView>
     );
   }
@@ -2558,10 +2495,7 @@ export default function App() {
               style={styles.phraseChipsScroll}
               contentContainerStyle={styles.selectedList}
             >
-              {selectedSymbols.length === 0 && visualFeedbackEnabled ? (
-                <Text style={styles.emptyChipHint}>Selecione símbolos para montar a frase.</Text>
-              ) : (
-                selectedSymbols.map((symbol, index) => (
+              {selectedSymbols.map((symbol, index) => (
                   <Pressable
                     key={`${symbol.id}-${index}`}
                     onPress={() => {
@@ -2582,8 +2516,7 @@ export default function App() {
                       </View>
                     )}
                   </Pressable>
-                ))
-              )}
+              ))}
             </ScrollView>
             {selectedSymbols.length > 0 && (
               <Pressable style={styles.clearLink} onPress={clearSymbols} accessibilityRole="button" accessibilityLabel="Limpar frase">
@@ -4608,91 +4541,6 @@ function makeStyles(theme: Theme) {
     justifyContent: 'center',
     alignItems: 'center'
   },
-  introContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  introCard: {
-    width: '100%',
-    maxWidth: 460,
-    backgroundColor: '#ffffff',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#E8E1D2',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    gap: 14
-  },
-  introTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a'
-  },
-  introSubtitle: {
-    color: '#475569',
-    fontSize: 14,
-    lineHeight: 20
-  },
-  introToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 12,
-    paddingVertical: 10
-  },
-  introToggleRowHighContrast: {
-    borderColor: '#475569',
-    backgroundColor: '#111827'
-  },
-  introCheckbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#94a3b8',
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  introCheckboxHighContrast: {
-    backgroundColor: '#0f172a',
-    borderColor: '#64748b'
-  },
-  introCheckboxActive: {
-    backgroundColor: '#5B8C7A',
-    borderColor: '#5B8C7A'
-  },
-  introCheckboxIcon: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800'
-  },
-  introToggleText: {
-    fontSize: 14,
-    color: '#1e293b',
-    fontWeight: '600',
-    flexShrink: 1
-  },
-  introStartButton: {
-    borderRadius: 12,
-    backgroundColor: '#5B8C7A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12
-  },
-  introStartButtonDisabled: {
-    opacity: 0.7
-  },
-  introStartButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 15
-  },
   headerCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radii.lg,
@@ -5042,10 +4890,6 @@ function makeStyles(theme: Theme) {
     gap: 4,
     minHeight: 32,
     alignItems: 'center'
-  },
-  emptyChipHint: {
-    ...theme.typography.footnote,
-    color: theme.colors.textMuted
   },
   selectedImage: {
     width: 30,
@@ -5978,7 +5822,7 @@ function makeStyles(theme: Theme) {
   },
   playButtonLabel: {
     ...theme.typography.subheadline,
-    color: '#FFFFFF',
+    color: theme.colors.accentInk,
     letterSpacing: 0.2
   },
   actionPrimary: {

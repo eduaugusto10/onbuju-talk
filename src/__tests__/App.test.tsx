@@ -84,11 +84,9 @@ describe('App', () => {
     asyncStorageMock.setItem.mockImplementation(async () => undefined);
   });
 
-  it('mostra intro no primeiro acesso e segue fluxo de gerar frase', async () => {
+  it('segue fluxo de gerar frase', async () => {
     render(<App />);
 
-    expect(await screen.findByText('Comecar')).toBeTruthy();
-    fireEvent.press(screen.getByText('Comecar'));
     await waitFor(() => expect(screen.getByText('Tudo')).toBeTruthy());
     fireEvent.press(screen.getByText('Tudo'));
     const symbol = await screen.findByText('agua');
@@ -97,33 +95,30 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('IA indisponivel no momento.')).toBeTruthy();
-      expect(screen.getByDisplayValue('eu quero agua')).toBeTruthy();
+      expect(screen.getByDisplayValue('EU QUERO AGUA')).toBeTruthy();
     });
   });
 
   it('abre configuracao e navega para secao de acessibilidade', async () => {
     render(<App />);
 
-    fireEvent.press(await screen.findByText('Comecar'));
     await waitFor(() => expect(screen.getByText('Tudo')).toBeTruthy());
-    fireEvent.press(screen.getByText('☰'));
-    fireEvent.press(screen.getByText('Configuração'));
-    fireEvent.press(screen.getByText('Acessibilidade'));
+    fireEvent.press(screen.getByLabelText('Abrir configurações do cuidador'));
+    fireEvent.press(await screen.findByText('Acessibilidade'));
 
     await waitFor(() => {
-      expect(screen.getByText('Feedback visual')).toBeTruthy();
-      expect(screen.getByText('Contraste')).toBeTruthy();
+      expect(screen.getByText('Feedback visual ao tocar')).toBeTruthy();
+      expect(screen.getByText('Sálvia & Creme')).toBeTruthy();
     });
   });
 
   it('permite ajustar imagens por linha e persiste a preferencia', async () => {
     render(<App />);
 
-    fireEvent.press(await screen.findByText('Comecar'));
     await waitFor(() => expect(screen.getByText('Tudo')).toBeTruthy());
-    fireEvent.press(screen.getByText('☰'));
-    fireEvent.press(screen.getByText('Configuração'));
-    fireEvent.press(screen.getByText('4 col'));
+    fireEvent.press(screen.getByLabelText('Abrir configurações do cuidador'));
+    fireEvent.press(await screen.findByText('Aparência'));
+    fireEvent.press(await screen.findByText('4 col'));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Grade de simbolos 4 colunas')).toBeTruthy();
@@ -131,23 +126,8 @@ describe('App', () => {
     });
   });
 
-  it('abre direto na home quando preferencia de pular intro estiver ativa', async () => {
-    asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
-      if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
-      return null;
-    });
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Tudo')).toBeTruthy();
-      expect(screen.queryByText('Comecar')).toBeNull();
-    });
-  });
-
   it('restaura densidade de grid salva no boot', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'grid_columns') return '5';
       return null;
     });
@@ -158,21 +138,8 @@ describe('App', () => {
     });
   });
 
-  it('persiste opcao de nao mostrar novamente ao iniciar app', async () => {
-    render(<App />);
-
-    fireEvent.press(await screen.findByText('Nao mostrar novamente'));
-    fireEvent.press(screen.getByText('Comecar'));
-
-    await waitFor(() => {
-      expect(asyncStorageMock.setItem).toHaveBeenCalledWith('intro_skip_enabled', '1');
-      expect(screen.getByText('Tudo')).toBeTruthy();
-    });
-  });
-
   it('mostra vocabulario core padrao apos iniciar', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       return null;
     });
@@ -187,7 +154,6 @@ describe('App', () => {
 
   it('adiciona palavra do core a selecao e persiste vocabulario', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       return null;
     });
@@ -206,7 +172,6 @@ describe('App', () => {
 
   it('restaura vocabulario core salvo no boot', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'core_vocabulary') return JSON.stringify(['agua', 'banheiro']);
       return null;
     });
@@ -221,7 +186,6 @@ describe('App', () => {
 
   it('mostra frases prontas padrao na categoria Frases', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       return null;
     });
@@ -238,7 +202,6 @@ describe('App', () => {
 
   it('falar frase pronta registra no historico e persiste', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       return null;
     });
@@ -267,7 +230,6 @@ describe('App', () => {
 
   it('restaura historico de frases salvo no boot', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_phrase_history')
         return JSON.stringify([
@@ -287,7 +249,6 @@ describe('App', () => {
 
   it('restaura simbolos pessoais salvos no boot e mostra na categoria custom', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'arasaac_custom_categories')
         return JSON.stringify([{ id: 'cat-1', name: 'Casa', createdAt: new Date().toISOString() }]);
       if (key === 'arasaac_personal_symbols')
@@ -314,7 +275,6 @@ describe('App', () => {
 
   it('simbolos pessoais sem categoria nao aparecem em categorias custom', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'arasaac_custom_categories')
         return JSON.stringify([{ id: 'cat-3', name: 'Familia', createdAt: new Date().toISOString() }]);
       if (key === 'arasaac_personal_symbols')
@@ -342,7 +302,6 @@ describe('App', () => {
 
   it('hydrata e persiste categorias customizadas', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'arasaac_custom_categories')
         return JSON.stringify([{ id: 'cat-4', name: 'Escola', createdAt: new Date().toISOString() }]);
       return null;
@@ -361,7 +320,6 @@ describe('App', () => {
 
   it('preserva audioUri ao hidratar simbolos pessoais', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'arasaac_custom_categories')
         return JSON.stringify([{ id: 'cat-voz', name: 'Familia', createdAt: new Date().toISOString() }]);
       if (key === 'arasaac_personal_symbols')
@@ -391,7 +349,6 @@ describe('App', () => {
 
   it('long press em simbolo com audio aciona createAudioPlayer', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'arasaac_custom_categories')
         return JSON.stringify([{ id: 'cat-lp', name: 'Casa', createdAt: new Date().toISOString() }]);
       if (key === 'arasaac_personal_symbols')
@@ -429,7 +386,6 @@ describe('App', () => {
       return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
     })();
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_routine_steps')
         return JSON.stringify([
@@ -456,7 +412,6 @@ describe('App', () => {
 
   it('tap em passo da rotina marca como concluido e persiste', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_routine_steps')
         return JSON.stringify([{ id: 'step-x', label: 'Tomar cafe', createdAt: new Date().toISOString() }]);
@@ -482,7 +437,6 @@ describe('App', () => {
 
   it('progresso de rotina de dia antigo e resetado no boot', async () => {
     asyncStorageMock.getItem.mockImplementation(async key => {
-      if (key === 'intro_skip_enabled') return '1';
       if (key === 'section_visibility') return JSON.stringify({ frases: true, historico: true, rotina: true, cenas: true });
       if (key === 'arasaac_routine_steps')
         return JSON.stringify([{ id: 'step-old', label: 'Passo antigo', createdAt: new Date().toISOString() }]);
