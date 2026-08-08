@@ -2538,12 +2538,12 @@ export default function App() {
           <View style={styles.iconActionRow}>
             <Pressable
               onPress={() => void handleGenerate()}
-              style={[styles.generateButton, isGenerating && styles.generateButtonBusy]}
+              style={({ pressed }) => [styles.generateButton, pressed && styles.generateButtonPressed, isGenerating && styles.generateButtonBusy]}
               accessibilityRole="button"
               accessibilityLabel="Gerar frase com IA"
               disabled={isGenerating}
             >
-              <Text style={styles.iconGlyph}>{isGenerating ? '…' : '✨'}</Text>
+              <Text style={styles.generateGlyph}>{isGenerating ? '…' : '✦'}</Text>
               <Text style={styles.generateButtonLabel}>Gerar</Text>
             </Pressable>
             {isAdmin && (
@@ -2552,8 +2552,13 @@ export default function App() {
                 <Text style={styles.saveGroupButtonLabel}>Salvar</Text>
               </Pressable>
             )}
-            <Pressable onPress={handlePlay} style={styles.playButton} accessibilityRole="button" accessibilityLabel="Ouvir a frase">
-              <Text style={styles.iconGlyph}>{isPlaying ? '🔊' : '▶'}</Text>
+            <Pressable
+              onPress={handlePlay}
+              style={({ pressed }) => [styles.playButton, pressed && styles.playButtonPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Ouvir a frase"
+            >
+              <Text style={styles.playGlyph}>{isPlaying ? '◼' : '▶'}</Text>
               <Text style={styles.playButtonLabel}>Ouvir</Text>
             </Pressable>
           </View>
@@ -5775,34 +5780,45 @@ function makeStyles(theme: Theme) {
   },
   generateButton: {
     flex: 1,
+    flexDirection: 'row',
     backgroundColor: theme.colors.generate,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.full,
     paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 64,
-    gap: 2
+    gap: 8,
+    ...theme.shadows.sm
+  },
+  generateGlyph: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: theme.colors.generateInk
   },
   generateButtonLabel: {
-    ...theme.typography.footnote,
+    ...theme.typography.headline,
     color: theme.colors.generateInk,
     letterSpacing: 0.2
+  },
+  generateButtonPressed: {
+    backgroundColor: theme.colors.generateHover
   },
   generateButtonBusy: {
     opacity: 0.6
   },
   saveGroupButton: {
     flex: 1,
+    flexDirection: 'row',
     backgroundColor: theme.colors.bgSoft,
     borderWidth: 0,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.full,
     paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 64,
-    gap: 2
+    gap: 8
   },
   saveGroupButtonLabel: {
     ...theme.typography.footnote,
@@ -5811,19 +5827,29 @@ function makeStyles(theme: Theme) {
   },
   playButton: {
     flex: 1.9,
+    flexDirection: 'row',
     backgroundColor: theme.colors.accent,
-    borderRadius: theme.radii.md,
+    borderRadius: theme.radii.full,
     paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 64,
-    gap: 2
+    gap: 10,
+    ...theme.shadows.md
+  },
+  playGlyph: {
+    fontSize: 20,
+    lineHeight: 24,
+    color: theme.colors.accentInk
   },
   playButtonLabel: {
-    ...theme.typography.subheadline,
+    ...theme.typography.title3,
     color: theme.colors.accentInk,
     letterSpacing: 0.2
+  },
+  playButtonPressed: {
+    backgroundColor: theme.colors.accentHover
   },
   actionPrimary: {
     backgroundColor: '#5B8C7A'
