@@ -63,7 +63,12 @@ import {
 } from './constants';
 import { deletePersonalSymbolImage, savePersonalSymbolImage } from './services/personalSymbolsService';
 import { deletePersonalAudioFile, savePersonalAudioFile } from './services/personalAudioService';
-import { categoryColorFamily, wordClassColor, type WordClass } from './categoryColors';
+import {
+  categoryColorFamily,
+  wordClassColor,
+  type WordClass,
+  type WordClassColorStrength
+} from './categoryColors';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
@@ -127,6 +132,7 @@ const STORAGE_KEYS = {
   gridColumns: 'grid_columns',
   coreVocabulary: 'core_vocabulary',
   coreSymbolImages: 'core_symbol_images_v3',
+  symbolColorStrength: 'symbol_color_strength_v1',
   savedPhrases: 'arasaac_saved_phrases',
   phraseHistory: 'arasaac_phrase_history',
   personalSymbols: 'arasaac_personal_symbols',
@@ -471,6 +477,8 @@ function FalaApp() {
   const [coreSymbolImages, setCoreSymbolImages] = useState<
     Record<string, { uri: string; wordClass?: WordClass }>
   >({});
+  // Intensidade das cores por funcao gramatical (Fitzgerald): lavada ou forte.
+  const [symbolColorStrength, setSymbolColorStrength] = useState<WordClassColorStrength>('suave');
   // Palavras ja buscadas nesta sessao. Evita repetir a busca em loop; como e um
   // ref (nao persiste), uma falha por estar offline e tentada de novo no proximo
   // boot em vez de virar "sem pictograma" para sempre.
@@ -693,7 +701,8 @@ function FalaApp() {
           savedCustomCategories,
           savedRoutineSteps,
           savedRoutineProgress,
-          savedVisualScenes
+          savedVisualScenes,
+          savedSymbolColorStrength
         ] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.favorites),
           AsyncStorage.getItem(STORAGE_KEYS.customSymbols),
@@ -715,8 +724,13 @@ function FalaApp() {
           AsyncStorage.getItem(STORAGE_KEYS.customCategories),
           AsyncStorage.getItem(STORAGE_KEYS.routineSteps),
           AsyncStorage.getItem(STORAGE_KEYS.routineProgress),
-          AsyncStorage.getItem(STORAGE_KEYS.visualScenes)
+          AsyncStorage.getItem(STORAGE_KEYS.visualScenes),
+          AsyncStorage.getItem(STORAGE_KEYS.symbolColorStrength)
         ]);
+
+        if (savedSymbolColorStrength === 'forte') {
+          setSymbolColorStrength('forte');
+        }
 
         if (savedFavorites) {
           setFavorites(JSON.parse(savedFavorites));
@@ -986,6 +1000,10 @@ function FalaApp() {
     if (Object.keys(coreSymbolImages).length === 0) return;
     void AsyncStorage.setItem(STORAGE_KEYS.coreSymbolImages, JSON.stringify(coreSymbolImages));
   }, [coreSymbolImages]);
+
+  useEffect(() => {
+    void AsyncStorage.setItem(STORAGE_KEYS.symbolColorStrength, symbolColorStrength);
+  }, [symbolColorStrength]);
 
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.savedPhrases, JSON.stringify(savedPhrases));
@@ -2379,7 +2397,7 @@ function FalaApp() {
                   const pictogram = coreEntry?.uri;
                   // Fitzgerald na tecla; negacao mantem o terracota (mais forte
                   // que a cor de classe), sem classe fica o verde-salvia padrao.
-                  const classColor = wordClassColor(coreEntry?.wordClass);
+                  const classColor = wordClassColor(coreEntry?.wordClass, symbolColorStrength);
                   return (
                     <Pressable
                       key={`core-word-${word}`}
@@ -2598,6 +2616,7 @@ function FalaApp() {
                     onLongPress={item.audioUri ? () => playAudioFromUri(item.audioUri!) : undefined}
                     hasAudio={!!item.audioUri}
                     isAdmin={isAdmin}
+                    colorStrength={symbolColorStrength}
                   />
                 );
               }}
@@ -2628,6 +2647,7 @@ function FalaApp() {
                     onPress={() => addSymbol(item)}
                     onFavoritePress={() => toggleFavorite(item)}
                     isAdmin={isAdmin}
+                    colorStrength={symbolColorStrength}
                   />
                 )
               }
@@ -3757,6 +3777,17 @@ function FalaApp() {
                     ))}
                   </View>
                 </View>
+
+                <Text style={styles.drillSectionTitle}>CORES POR FUNÇÃO</Text>
+                <View style={styles.drillSectionCard}>
+                  <Text style={styles.drillFieldHint}>
+                    A cor de cada cartão indica a função da palavra (amarelo pessoas, verde ações, laranja coisas, azul qualidades, rosa sociais). Suaves acompanham o clima calmo do app; Fortes dão distinção mais óbvia.
+                  </Text>
+                  <View style={styles.drillChipRow}>
+                    <OptionChip label="Suaves" active={symbolColorStrength === 'suave'} onPress={() => setSymbolColorStrength('suave')} />
+                    <OptionChip label="Fortes" active={symbolColorStrength === 'forte'} onPress={() => setSymbolColorStrength('forte')} />
+                  </View>
+                </View>
               </>
             )}
 
@@ -4240,7 +4271,8 @@ function SymbolCard({
   onFavoritePress,
   onLongPress,
   hasAudio = false,
-  isAdmin
+  isAdmin,
+  colorStrength = 'suave'
 }: {
   item: SymbolItem;
   columns: GridColumns;
@@ -4250,13 +4282,14 @@ function SymbolCard({
   onLongPress?: () => void;
   hasAudio?: boolean;
   isAdmin: boolean;
+  colorStrength?: WordClassColorStrength;
 }) {
   const styles = moduleStyles;
   const isDense = columns >= 4;
   const isUltraDense = columns >= 5;
   // Codigo Fitzgerald primeiro (cor = funcao gramatical); cor tematica da
   // categoria como fallback para itens sem classe (pessoais, customizados).
-  const tileColor = wordClassColor(item.wordClass) ?? categoryColorFamily(item.category);
+  const tileColor = wordClassColor(item.wordClass, colorStrength) ?? categoryColorFamily(item.category);
   return (
     <Pressable
       style={[styles.symbolCard, isDense && styles.symbolCardDense, isUltraDense && styles.symbolCardUltraDense]}

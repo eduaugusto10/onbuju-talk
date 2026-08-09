@@ -74,8 +74,24 @@ export const WORD_CLASS_COLORS = {
   sociais: '#F2DBD3'
 } as const;
 
+/**
+ * Variante saturada das mesmas familias — mais proxima dos tons do Fitzgerald
+ * classico. O cuidador escolhe em Ajustes > Aparencia; util para criancas que
+ * precisam de distincao de cor mais obvia (ex.: baixa visao).
+ */
+export const WORD_CLASS_COLORS_STRONG = {
+  pessoas: '#F2CE4B',
+  acoes: '#8FBF9A',
+  coisas: '#EFA663',
+  descritores: '#8FB2CC',
+  sociais: '#E59AA4'
+} as const;
+
 /** Classe gramatical de uma palavra no codigo Fitzgerald. */
 export type WordClass = keyof typeof WORD_CLASS_COLORS;
+
+/** Intensidade das cores por funcao: lavada (padrao) ou saturada. */
+export type WordClassColorStrength = 'suave' | 'forte';
 
 /**
  * Tags do ARASAAC que identificam cada classe. A ordem define a prioridade:
@@ -125,9 +141,13 @@ export function classifyWordClass(tags: unknown, keywordType?: unknown): WordCla
   return null;
 }
 
-/** Cor hex da classe, ou null sem classe (caller decide o fallback). */
-export function wordClassColor(wordClass: WordClass | null | undefined): string | null {
-  return wordClass ? WORD_CLASS_COLORS[wordClass] : null;
+/** Cor hex da classe na intensidade pedida, ou null sem classe (caller decide o fallback). */
+export function wordClassColor(
+  wordClass: WordClass | null | undefined,
+  strength: WordClassColorStrength = 'suave'
+): string | null {
+  if (!wordClass) return null;
+  return strength === 'forte' ? WORD_CLASS_COLORS_STRONG[wordClass] : WORD_CLASS_COLORS[wordClass];
 }
 
 /**
