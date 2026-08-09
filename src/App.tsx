@@ -126,6 +126,7 @@ const STORAGE_KEYS = {
   sectionVisibility: 'section_visibility',
   gridColumns: 'grid_columns',
   coreVocabulary: 'core_vocabulary',
+  coreSymbolImages: 'core_symbol_images_v1',
   savedPhrases: 'arasaac_saved_phrases',
   phraseHistory: 'arasaac_phrase_history',
   personalSymbols: 'arasaac_personal_symbols',
@@ -416,6 +417,10 @@ function normalizeGridColumns(value: string | null): GridColumns {
 
 const GRID_FILLER_PREFIX = '__grid_filler__';
 
+// Palavras do core que negam/interrompem. Ganham fundo terracota lavado na
+// coluna fixa — a cor informa (positivo x negativo) sem virar vermelho saturado.
+const NEGATIVE_CORE_WORDS = new Set(['nao', 'não', 'parar']);
+
 // Pads a grid's data so the last row is always full. Without this, a lone card
 // on an incomplete last row stretches to full width (flex: 1) and breaks the
 // column alignment. Fillers carry a sentinel id and render as invisible spacers
@@ -460,6 +465,13 @@ function FalaApp() {
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(DEFAULT_SECTION_VISIBILITY);
   const [gridColumns, setGridColumns] = useState<GridColumns>(DEFAULT_GRID_COLUMNS);
   const [coreVocabulary, setCoreVocabulary] = useState<string[]>(() => sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
+  // palavra do core -> pictograma ARASAAC. A maioria das criancas ainda nao le:
+  // a tecla precisa do desenho, nao so da palavra.
+  const [coreSymbolImages, setCoreSymbolImages] = useState<Record<string, string>>({});
+  // Palavras ja buscadas nesta sessao. Evita repetir a busca em loop; como e um
+  // ref (nao persiste), uma falha por estar offline e tentada de novo no proximo
+  // boot em vez de virar "sem pictograma" para sempre.
+  const coreSymbolLookups = useRef<Set<string>>(new Set());
   const [newCoreWord, setNewCoreWord] = useState('');
   const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>(() => buildDefaultSavedPhrases());
   const [phraseHistory, setPhraseHistory] = useState<HistoryPhrase[]>([]);
@@ -671,6 +683,7 @@ function FalaApp() {
           savedSectionVisibility,
           savedGridColumns,
           savedCoreVocabulary,
+          savedCoreSymbolImages,
           savedPhrasesRaw,
           savedPhraseHistory,
           savedPersonalSymbols,
@@ -692,6 +705,7 @@ function FalaApp() {
           AsyncStorage.getItem(STORAGE_KEYS.sectionVisibility),
           AsyncStorage.getItem(STORAGE_KEYS.gridColumns),
           AsyncStorage.getItem(STORAGE_KEYS.coreVocabulary),
+          AsyncStorage.getItem(STORAGE_KEYS.coreSymbolImages),
           AsyncStorage.getItem(STORAGE_KEYS.savedPhrases),
           AsyncStorage.getItem(STORAGE_KEYS.phraseHistory),
           AsyncStorage.getItem(STORAGE_KEYS.personalSymbols),
@@ -761,6 +775,22 @@ function FalaApp() {
             }
           } catch {
             /* keep default */
+          }
+        }
+
+        if (savedCoreSymbolImages) {
+          try {
+            const parsed = JSON.parse(savedCoreSymbolImages);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              const entries = Object.entries(parsed as Record<string, unknown>).filter(
+                ([word, uri]) => typeof word === 'string' && typeof uri === 'string' && uri.length > 0
+              ) as [string, string][];
+              if (entries.length > 0) {
+                setCoreSymbolImages(Object.fromEntries(entries));
+              }
+            }
+          } catch {
+            /* segue sem pictograma; a busca resolve depois */
           }
         }
 
@@ -898,6 +928,46 @@ function FalaApp() {
     void AsyncStorage.setItem(STORAGE_KEYS.coreVocabulary, JSON.stringify(coreVocabulary));
   }, [coreVocabulary]);
 
+  // Busca o pictograma de cada palavra do core que ainda nao tem um. O cuidador
+  // pode cadastrar qualquer palavra, entao nao da para mapear icone fixo — o
+  // desenho vem do ARASAAC, uma busca por palavra, resultado guardado em disco.
+  useEffect(() => {
+    // So depois da hidratacao: senao todo boot refaria as buscas antes de saber
+    // que os pictogramas ja estao em disco.
+    if (isBootHydrating) return;
+    const missing = coreVocabulary.filter(
+      word => !coreSymbolImages[word] && !coreSymbolLookups.current.has(word)
+    );
+    if (missing.length === 0) return;
+    missing.forEach(word => coreSymbolLookups.current.add(word));
+
+    let cancelled = false;
+    void (async () => {
+      const found = await Promise.all(
+        missing.map(async word => {
+          const results = await arasaacService.searchSymbols(word);
+          return [word, results[0]?.imageUrl ?? ''] as const;
+        })
+      );
+      if (cancelled) return;
+      const resolved = found.filter(([, uri]) => uri.length > 0);
+      if (resolved.length === 0) return;
+      setCoreSymbolImages(prev => ({ ...prev, ...Object.fromEntries(resolved) }));
+      void warmImageCache(resolved.map(([, uri]) => uri));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coreVocabulary, coreSymbolImages, isBootHydrating]);
+
+  useEffect(() => {
+    // Nao grava mapa vazio: senao um boot offline apagaria os pictogramas ja
+    // resolvidos antes da hidratacao terminar.
+    if (Object.keys(coreSymbolImages).length === 0) return;
+    void AsyncStorage.setItem(STORAGE_KEYS.coreSymbolImages, JSON.stringify(coreSymbolImages));
+  }, [coreSymbolImages]);
+
   useEffect(() => {
     void AsyncStorage.setItem(STORAGE_KEYS.savedPhrases, JSON.stringify(savedPhrases));
   }, [savedPhrases]);
@@ -959,10 +1029,11 @@ function FalaApp() {
     addSymbol({
       id: `core-${slug}-${Date.now()}`,
       label: normalized,
-      imageUrl: '',
+      // Leva o pictograma junto: na frase montada o chip vira desenho, nao texto.
+      imageUrl: coreSymbolImages[normalized] || '',
       category: 'core'
     });
-  }, [addSymbol]);
+  }, [addSymbol, coreSymbolImages]);
 
   const addCoreVocabularyWord = useCallback(() => {
     const normalized = normalizeCoreWord(newCoreWord);
@@ -2269,6 +2340,64 @@ function FalaApp() {
           )}
         </View>
 
+        <View style={styles.listRow}>
+          {/* Coluna fixa do vocabulario essencial: nunca rola com a grade, posicao
+              sempre igual (memoria motora). Editavel em Ajustes > Vocabulario. */}
+          {activeCategory !== CATEGORIES.scenes &&
+            activeCategory !== CATEGORIES.routine &&
+            coreVocabulary.length > 0 && (
+              <ScrollView
+                style={[styles.coreColumn, { width: 78 * uiScaleFactor }]}
+                contentContainerStyle={styles.coreColumnContent}
+                showsVerticalScrollIndicator={false}
+                accessibilityLabel="Vocabulario essencial"
+              >
+                {coreVocabulary.map(word => {
+                  const negative = NEGATIVE_CORE_WORDS.has(word);
+                  const pictogram = coreSymbolImages[word];
+                  return (
+                    <Pressable
+                      key={`core-word-${word}`}
+                      onPress={() => addCoreWord(word)}
+                      style={({ pressed }) => [
+                        styles.coreKey,
+                        { minHeight: (pictogram ? 86 : 64) * uiScaleFactor },
+                        negative && styles.coreKeyNegative,
+                        isHighContrast && styles.coreKeyHighContrast,
+                        pressed && styles.coreKeyPressed
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Adicionar palavra ${word}`}
+                    >
+                      {pictogram ? (
+                        <CachedImage
+                          uri={pictogram}
+                          style={[
+                            styles.coreKeyImage,
+                            { width: 46 * uiScaleFactor, height: 46 * uiScaleFactor }
+                          ]}
+                          resizeMode="contain"
+                        />
+                      ) : null}
+                      <Text
+                        style={[
+                          styles.coreKeyText,
+                          { fontSize: 15 * uiScaleFactor },
+                          negative && styles.coreKeyTextNegative,
+                          isHighContrast && styles.textHighContrast
+                        ]}
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}
+                      >
+                        {word.toUpperCase()}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+
         <View style={[styles.listCard, isHighContrast && styles.cardHighContrast]}>
           {isLoading ? (
             <View style={styles.loadingState}>
@@ -2462,32 +2591,6 @@ function FalaApp() {
               numColumns={effectiveGridColumns}
               accessibilityLabel={`Grade de simbolos ${effectiveGridColumns} colunas`}
               contentContainerStyle={styles.grid}
-              ListHeaderComponent={
-                activeCategory !== CATEGORIES.scenes &&
-                activeCategory !== CATEGORIES.routine &&
-                coreVocabulary.length > 0 ? (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.coreVocabRow}
-                    accessibilityLabel="Vocabulario essencial"
-                  >
-                    {coreVocabulary.map(word => (
-                      <Pressable
-                        key={`core-word-${word}`}
-                        onPress={() => addCoreWord(word)}
-                        style={styles.coreVocabButton}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Adicionar palavra ${word}`}
-                      >
-                        <Text style={[styles.coreVocabButtonText, { fontSize: 14 * uiScaleFactor }]}>
-                          {word.toUpperCase()}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                ) : null
-              }
               renderItem={({ item }) =>
                 item.id.startsWith(GRID_FILLER_PREFIX) ? (
                   <View style={styles.gridFiller} />
@@ -2509,6 +2612,7 @@ function FalaApp() {
               }
             />
           )}
+        </View>
         </View>
 
         {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && (
@@ -4766,6 +4870,11 @@ function makeStyles(theme: Theme) {
     justifyContent: 'center',
     alignItems: 'center'
   },
+  listRow: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8
+  },
   listCard: {
     flex: 1,
     backgroundColor: theme.colors.bgSoft,
@@ -4960,26 +5069,50 @@ function makeStyles(theme: Theme) {
     color: theme.colors.primaryInk,
     letterSpacing: 0.4
   },
-  coreVocabRow: {
-    flexDirection: 'row',
+  coreColumn: {
+    flexGrow: 0,
+    flexShrink: 0
+  },
+  coreColumnContent: {
     gap: 8,
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.sm,
-    paddingBottom: theme.spacing.sm
+    paddingBottom: 4
   },
-  coreVocabButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: theme.radii.full,
+  coreKey: {
+    borderRadius: theme.radii.md,
     backgroundColor: theme.colors.primarySoft,
-    minWidth: 64,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    gap: 2,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...theme.shadows.sm
   },
-  coreVocabButtonText: {
-    ...theme.typography.caption1,
+  coreKeyImage: {
+    // Fundo claro atras do pictograma: os desenhos do ARASAAC tem traco escuro e
+    // somem sobre a salvia/terracota das teclas.
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.surface
+  },
+  coreKeyNegative: {
+    backgroundColor: theme.colors.dangerSoft
+  },
+  coreKeyPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.96 }]
+  },
+  coreKeyHighContrast: {
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#facc15'
+  },
+  coreKeyText: {
+    ...theme.typography.headline,
     color: theme.colors.primaryInk,
-    letterSpacing: 0.3
+    letterSpacing: 0.4,
+    textAlign: 'center'
+  },
+  coreKeyTextNegative: {
+    color: theme.colors.text
   },
   coreVocabEditorList: {
     gap: 8,
