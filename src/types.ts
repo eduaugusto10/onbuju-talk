@@ -1,9 +1,13 @@
+import type { WordClass } from './categoryColors';
+
 export interface SymbolItem {
   id: string;
   label: string;
   imageUrl: string;
   category: string;
   colorClass?: string;
+  /** Classe gramatical Fitzgerald vinda das tags do ARASAAC; ausente = neutro. */
+  wordClass?: WordClass;
 }
 
 export interface CustomSymbol {

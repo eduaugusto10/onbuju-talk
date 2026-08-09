@@ -63,7 +63,7 @@ import {
 } from './constants';
 import { deletePersonalSymbolImage, savePersonalSymbolImage } from './services/personalSymbolsService';
 import { deletePersonalAudioFile, savePersonalAudioFile } from './services/personalAudioService';
-import { categoryColorFamily } from './categoryColors';
+import { categoryColorFamily, wordClassColor, type WordClass } from './categoryColors';
 
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 type UiScale = 'compacto' | 'padrao' | 'confortavel';
@@ -126,7 +126,7 @@ const STORAGE_KEYS = {
   sectionVisibility: 'section_visibility',
   gridColumns: 'grid_columns',
   coreVocabulary: 'core_vocabulary',
-  coreSymbolImages: 'core_symbol_images_v1',
+  coreSymbolImages: 'core_symbol_images_v3',
   savedPhrases: 'arasaac_saved_phrases',
   phraseHistory: 'arasaac_phrase_history',
   personalSymbols: 'arasaac_personal_symbols',
@@ -465,9 +465,12 @@ function FalaApp() {
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(DEFAULT_SECTION_VISIBILITY);
   const [gridColumns, setGridColumns] = useState<GridColumns>(DEFAULT_GRID_COLUMNS);
   const [coreVocabulary, setCoreVocabulary] = useState<string[]>(() => sanitizeCoreVocabulary(DEFAULT_CORE_VOCABULARY));
-  // palavra do core -> pictograma ARASAAC. A maioria das criancas ainda nao le:
-  // a tecla precisa do desenho, nao so da palavra.
-  const [coreSymbolImages, setCoreSymbolImages] = useState<Record<string, string>>({});
+  // palavra do core -> pictograma ARASAAC + classe Fitzgerald. A maioria das
+  // criancas ainda nao le: a tecla precisa do desenho, nao so da palavra; a
+  // classe pinta a tecla com a cor da funcao gramatical.
+  const [coreSymbolImages, setCoreSymbolImages] = useState<
+    Record<string, { uri: string; wordClass?: WordClass }>
+  >({});
   // Palavras ja buscadas nesta sessao. Evita repetir a busca em loop; como e um
   // ref (nao persiste), uma falha por estar offline e tentada de novo no proximo
   // boot em vez de virar "sem pictograma" para sempre.
@@ -783,8 +786,17 @@ function FalaApp() {
             const parsed = JSON.parse(savedCoreSymbolImages);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               const entries = Object.entries(parsed as Record<string, unknown>).filter(
-                ([word, uri]) => typeof word === 'string' && typeof uri === 'string' && uri.length > 0
-              ) as [string, string][];
+                (pair): pair is [string, { uri: string; wordClass?: WordClass }] => {
+                  const [word, value] = pair;
+                  return (
+                    typeof word === 'string' &&
+                    typeof value === 'object' &&
+                    value !== null &&
+                    typeof (value as { uri?: unknown }).uri === 'string' &&
+                    ((value as { uri: string }).uri.length > 0)
+                  );
+                }
+              );
               if (entries.length > 0) {
                 setCoreSymbolImages(Object.fromEntries(entries));
               }
@@ -946,14 +958,21 @@ function FalaApp() {
       const found = await Promise.all(
         missing.map(async word => {
           const results = await arasaacService.searchSymbols(word);
-          return [word, results[0]?.imageUrl ?? ''] as const;
+          const top = results[0];
+          return { word, uri: top?.imageUrl ?? '', wordClass: top?.wordClass };
         })
       );
       if (cancelled) return;
-      const resolved = found.filter(([, uri]) => uri.length > 0);
+      const resolved = found.filter(entry => entry.uri.length > 0);
       if (resolved.length === 0) return;
-      setCoreSymbolImages(prev => ({ ...prev, ...Object.fromEntries(resolved) }));
-      void warmImageCache(resolved.map(([, uri]) => uri));
+      setCoreSymbolImages(prev => {
+        const next = { ...prev };
+        resolved.forEach(({ word, uri, wordClass }) => {
+          next[word] = { uri, wordClass };
+        });
+        return next;
+      });
+      void warmImageCache(resolved.map(entry => entry.uri));
     })();
 
     return () => {
@@ -1026,12 +1045,14 @@ function FalaApp() {
     const normalized = normalizeCoreWord(word);
     if (!normalized) return;
     const slug = normalized.replace(/\s+/g, '-');
+    const coreEntry = coreSymbolImages[normalized];
     addSymbol({
       id: `core-${slug}-${Date.now()}`,
       label: normalized,
       // Leva o pictograma junto: na frase montada o chip vira desenho, nao texto.
-      imageUrl: coreSymbolImages[normalized] || '',
-      category: 'core'
+      imageUrl: coreEntry?.uri || '',
+      category: 'core',
+      wordClass: coreEntry?.wordClass
     });
   }, [addSymbol, coreSymbolImages]);
 
@@ -2354,7 +2375,11 @@ function FalaApp() {
               >
                 {coreVocabulary.map(word => {
                   const negative = NEGATIVE_CORE_WORDS.has(word);
-                  const pictogram = coreSymbolImages[word];
+                  const coreEntry = coreSymbolImages[word];
+                  const pictogram = coreEntry?.uri;
+                  // Fitzgerald na tecla; negacao mantem o terracota (mais forte
+                  // que a cor de classe), sem classe fica o verde-salvia padrao.
+                  const classColor = wordClassColor(coreEntry?.wordClass);
                   return (
                     <Pressable
                       key={`core-word-${word}`}
@@ -2362,6 +2387,7 @@ function FalaApp() {
                       style={({ pressed }) => [
                         styles.coreKey,
                         { minHeight: (pictogram ? 86 : 64) * uiScaleFactor },
+                        classColor != null && { backgroundColor: classColor },
                         negative && styles.coreKeyNegative,
                         isHighContrast && styles.coreKeyHighContrast,
                         pressed && styles.coreKeyPressed
@@ -4228,7 +4254,9 @@ function SymbolCard({
   const styles = moduleStyles;
   const isDense = columns >= 4;
   const isUltraDense = columns >= 5;
-  const tileColor = categoryColorFamily(item.category);
+  // Codigo Fitzgerald primeiro (cor = funcao gramatical); cor tematica da
+  // categoria como fallback para itens sem classe (pessoais, customizados).
+  const tileColor = wordClassColor(item.wordClass) ?? categoryColorFamily(item.category);
   return (
     <Pressable
       style={[styles.symbolCard, isDense && styles.symbolCardDense, isUltraDense && styles.symbolCardUltraDense]}

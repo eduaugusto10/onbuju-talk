@@ -1,6 +1,7 @@
 import { SymbolItem } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COMMON_TERMS, FALLBACK_CATEGORIES } from '../constants';
+import { classifyWordClass } from '../categoryColors';
 
 const API_BASE_URL = 'https://api.arasaac.org/api';
 const STATIC_BASE_URL = 'https://static.arasaac.org/pictograms';
@@ -53,6 +54,19 @@ function dedupeByLabel(items: SymbolItem[]): SymbolItem[] {
   });
 }
 
+// Mapeia um pictograma cru da API para SymbolItem, incluindo a classe
+// gramatical Fitzgerald derivada das tags/keyword — a UI pinta o cartao com ela.
+function mapPictogram(item: any, category: string): SymbolItem {
+  const primaryKeyword = item.keywords?.find((k: any) => k.type === 1) || item.keywords?.[0];
+  return {
+    id: item._id.toString(),
+    label: primaryKeyword?.keyword || 'Símbolo',
+    imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
+    category,
+    wordClass: classifyWordClass(item.tags, primaryKeyword?.type) ?? undefined
+  };
+}
+
 async function fetchWithCache(url: string, persistent: boolean = false) {
   const cached = await getFromCache<unknown>(url);
   if (cached) return cached;
@@ -71,12 +85,7 @@ export const arasaacService = {
       const data = await fetchWithCache(url);
       if (!data) return [];
 
-      return dedupeByLabel(data.map((item: any) => ({
-        id: item._id.toString(),
-        label: item.keywords.find((k: any) => k.type === 1)?.keyword || item.keywords[0]?.keyword || 'Símbolo',
-        imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
-        category: 'General',
-      })));
+      return dedupeByLabel(data.map((item: any) => mapPictogram(item, 'General')));
     } catch (error) {
       console.error('Error searching ARASAAC symbols:', error);
       return [];
@@ -91,7 +100,7 @@ export const arasaacService = {
     // Pick the top match per term and dedupe by label so each concept shows up
     // exactly once. The term-as-category lets the card tile pick a soft category
     // color (search results are otherwise category-less / 'General').
-    const cacheKey = `best_symbols_v3_${locale}`;
+    const cacheKey = `best_symbols_v5_${locale}`;
     const cached = await getFromCache<SymbolItem[]>(cacheKey);
     if (cached) return cached;
 
@@ -150,7 +159,8 @@ export const arasaacService = {
 
   async getSymbolsByCategory(category: string, locale: string = 'pt'): Promise<SymbolItem[]> {
     try {
-      const cacheKey = `category_v2_${category}_${locale}`;
+      // v4: inclui wordClass (codigo de cores Fitzgerald) no item mapeado
+      const cacheKey = `category_v4_${category}_${locale}`;
       const cached = await getFromCache<SymbolItem[]>(cacheKey);
       if (cached) return cached;
 
@@ -158,12 +168,7 @@ export const arasaacService = {
       const catData = await fetchWithCache(catUrl);
       
       if (catData && Array.isArray(catData) && catData.length > 0) {
-        const results = dedupeByLabel(catData.map((item: any) => ({
-          id: item._id.toString(),
-          label: item.keywords.find((k: any) => k.type === 1)?.keyword || item.keywords[0]?.keyword || 'Símbolo',
-          imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
-          category: category,
-        })));
+        const results = dedupeByLabel(catData.map((item: any) => mapPictogram(item, category)));
         await saveToCache(cacheKey, results);
         return results;
       }
@@ -172,12 +177,7 @@ export const arasaacService = {
       const tagData = await fetchWithCache(tagUrl);
       
       if (tagData && Array.isArray(tagData) && tagData.length > 0) {
-        const results = dedupeByLabel(tagData.map((item: any) => ({
-          id: item._id.toString(),
-          label: item.keywords.find((k: any) => k.type === 1)?.keyword || item.keywords[0]?.keyword || 'Símbolo',
-          imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
-          category: category,
-        })));
+        const results = dedupeByLabel(tagData.map((item: any) => mapPictogram(item, category)));
         await saveToCache(cacheKey, results);
         return results;
       }

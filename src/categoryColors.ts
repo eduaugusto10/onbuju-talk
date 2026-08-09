@@ -54,6 +54,83 @@ function tokenize(s: string): string[] {
 }
 
 /**
+ * Familias de cor por classe gramatical (Fitzgerald Key, versao lavada).
+ *
+ * Codigo de cores classico de CAA: a cor do cartao indica a funcao da palavra
+ * na frase (pessoa, acao, coisa...), ensinando a ordem sujeito-verbo-objeto
+ * pela sequencia de cores. Tons dessaturados para manter o baixo estimulo da
+ * paleta Salvia & Creme.
+ */
+export const WORD_CLASS_COLORS = {
+  /** Amarelo manteiga — pessoas e pronomes (eu, voce, mae). */
+  pessoas: '#F5E7BA',
+  /** Verde salvia lavado — verbos (querer, comer, ir). */
+  acoes: '#DBE6DE',
+  /** Pessego — substantivos (agua, bola, casa). */
+  coisas: '#F6DEC2',
+  /** Azul acinzentado lavado — adjetivos (grande, feliz). */
+  descritores: '#D8E3E8',
+  /** Rosa queimado lavado — sociais, expressoes e advérbios (sim, nao, oi). */
+  sociais: '#F2DBD3'
+} as const;
+
+/** Classe gramatical de uma palavra no codigo Fitzgerald. */
+export type WordClass = keyof typeof WORD_CLASS_COLORS;
+
+/**
+ * Tags do ARASAAC que identificam cada classe. A ordem define a prioridade:
+ * tags de funcao gramatical (pronoun/verb/adjective/adverb) decidem primeiro —
+ * "comer" vem com "verb" E "person" (o desenho tem uma pessoa) e precisa ser
+ * verde. "family" fica por ultimo: pega substantivos de gente (mae, pai) sem
+ * capturar todo pictograma que desenha uma pessoa.
+ */
+const WORD_CLASS_TAGS: [WordClass, string[]][] = [
+  ['pessoas', ['pronoun', 'personal pronoun']],
+  ['acoes', ['verb', 'usual verbs']],
+  ['descritores', ['adjective', 'qualifying adjective']],
+  ['sociais', ['adverb', 'expression', 'interjection', 'polite set expression']],
+  ['pessoas', ['family']]
+];
+
+/**
+ * Fallback pelo campo `keywords[].type` do ARASAAC quando as tags nao decidem.
+ * Mapa levantado empiricamente na API pt-BR: 1=pronome, 2=substantivo,
+ * 3=verbo, 4=adjetivo/adverbio, 5=expressao.
+ */
+const KEYWORD_TYPE_CLASS: Record<number, WordClass> = {
+  1: 'pessoas',
+  2: 'coisas',
+  3: 'acoes',
+  4: 'descritores',
+  5: 'sociais'
+};
+
+/**
+ * Classifica um pictograma ARASAAC na familia Fitzgerald a partir das `tags`
+ * e, em ultimo caso, do `type` da keyword principal. Retorna null quando nao
+ * ha como saber (o caller cai na cor de categoria tematica ou no neutro).
+ */
+export function classifyWordClass(tags: unknown, keywordType?: unknown): WordClass | null {
+  const tagSet = new Set(
+    Array.isArray(tags) ? tags.filter((t): t is string => typeof t === 'string') : []
+  );
+  for (const [wordClass, classTags] of WORD_CLASS_TAGS) {
+    if (classTags.some(tag => tagSet.has(tag))) {
+      return wordClass;
+    }
+  }
+  if (typeof keywordType === 'number' && KEYWORD_TYPE_CLASS[keywordType]) {
+    return KEYWORD_TYPE_CLASS[keywordType];
+  }
+  return null;
+}
+
+/** Cor hex da classe, ou null sem classe (caller decide o fallback). */
+export function wordClassColor(wordClass: WordClass | null | undefined): string | null {
+  return wordClass ? WORD_CLASS_COLORS[wordClass] : null;
+}
+
+/**
  * Resolve um nome de categoria ARASAAC para a cor hex da sua familia.
  *
  * Normaliza a entrada, quebra em tokens de palavra e procura a primeira
