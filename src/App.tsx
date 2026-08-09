@@ -438,6 +438,7 @@ function FalaApp() {
   const searchInputRef = useRef<TextInput>(null);
   const configScrollRef = useRef<ScrollView>(null);
   const [selectedSymbols, setSelectedSymbols] = useState<SymbolItem[]>([]);
+  const [typedWord, setTypedWord] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(CATEGORIES.favorites);
   const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1904,7 +1905,28 @@ function FalaApp() {
     triggerHaptic('warning');
     setSelectedSymbols([]);
     setNormalizedPhrase('');
+    setTypedWord('');
   }, []);
+
+  const commitTypedWord = useCallback((raw: string) => {
+    const word = raw.trim();
+    setTypedWord('');
+    if (!word) return;
+    setSelectedSymbols(prev => [
+      ...prev,
+      { id: `typed-${prev.length}-${word}`, label: word, imageUrl: '', category: '' }
+    ]);
+    setNormalizedPhrase('');
+  }, []);
+
+  const handleTypedWordChange = useCallback((text: string) => {
+    // Espaço confirma a palavra como chip, misturada às figuras da frase.
+    if (text.endsWith(' ')) {
+      commitTypedWord(text);
+    } else {
+      setTypedWord(text);
+    }
+  }, [commitTypedWord]);
 
   const handlePlay = useCallback(() => {
     if (isPlaying) return;
@@ -2110,8 +2132,8 @@ function FalaApp() {
         backgroundColor={theme.colors.bg}
       />
       <KeyboardAvoidingView
-        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10, paddingBottom: androidBottomInset + 8 }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10, paddingBottom: androidBottomInset + 16 }]}
+        behavior="padding"
       >
         <View style={[styles.headerCard, isHighContrast && styles.cardHighContrast]}>
           <View style={styles.headerRow}>
@@ -2490,81 +2512,86 @@ function FalaApp() {
         </View>
 
         {activeCategory !== CATEGORIES.scenes && activeCategory !== CATEGORIES.routine && (
-        <View style={[styles.composerCard, isHighContrast && styles.cardHighContrast]}>
-          <View style={styles.phraseChipsRow}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.phraseChipsScroll}
-              contentContainerStyle={styles.selectedList}
+        <View style={styles.dockRow}>
+          <View style={[styles.dockBar, isHighContrast && styles.cardHighContrast]}>
+            <Pressable
+              onPress={() => void handleGenerate()}
+              style={({ pressed }) => [styles.dockGenerate, pressed && styles.dockGeneratePressed, isGenerating && styles.generateButtonBusy]}
+              accessibilityRole="button"
+              accessibilityLabel="Gerar frase com IA"
+              disabled={isGenerating}
             >
-              {selectedSymbols.map((symbol, index) => (
+              <Text style={styles.dockGenerateIcon}>{isGenerating ? '…' : '✦'}</Text>
+            </Pressable>
+
+            <View style={styles.dockMiddle}>
+              <View style={styles.dockChipsWrap}>
+                {selectedSymbols.map((symbol, index) => (
                   <Pressable
                     key={`${symbol.id}-${index}`}
                     onPress={() => {
                       setSelectedSymbols(prev => prev.filter((_, i) => i !== index));
                       setNormalizedPhrase('');
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remover ${symbol.label}`}
                   >
                     {symbol.imageUrl ? (
-                      <CachedImage uri={symbol.imageUrl} style={styles.selectedImage} resizeMode="contain" />
+                      <CachedImage uri={symbol.imageUrl} style={styles.dockThumb} resizeMode="contain" />
                     ) : (
-                      <View style={[styles.selectedTextChip, isHighContrast && styles.selectedTextChipHighContrast]}>
-                        <Text
-                          style={[styles.selectedTextChipText, isHighContrast && styles.selectedTextChipTextHighContrast]}
-                          numberOfLines={1}
-                        >
+                      <View style={[styles.dockWordChip, isHighContrast && styles.selectedTextChipHighContrast]}>
+                        <Text style={styles.dockWordChipText} numberOfLines={1}>
                           {symbol.label.toUpperCase()}
                         </Text>
                       </View>
                     )}
                   </Pressable>
-              ))}
-            </ScrollView>
-            {selectedSymbols.length > 0 && (
-              <Pressable style={styles.clearLink} onPress={clearSymbols} accessibilityRole="button" accessibilityLabel="Limpar frase">
-                <Text style={styles.clearLinkText}>limpar</Text>
-              </Pressable>
-            )}
-          </View>
+                ))}
+                <TextInput
+                  value={typedWord}
+                  onChangeText={handleTypedWordChange}
+                  onSubmitEditing={() => commitTypedWord(typedWord)}
+                  placeholder={selectedSymbols.length ? '' : 'Toque nos símbolos ou escreva'}
+                  placeholderTextColor={theme.colors.textSoft}
+                  style={[styles.dockTypeInput, { fontSize: 15 * uiScaleFactor }, isHighContrast && styles.textHighContrast]}
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                  accessibilityLabel="Escrever palavra para a frase"
+                />
+              </View>
+              {normalizedPhrase !== '' && (
+                <TextInput
+                  value={normalizedPhrase}
+                  onChangeText={setNormalizedPhrase}
+                  style={[styles.dockGenLine, { fontSize: 15 * uiScaleFactor }, isHighContrast && styles.textHighContrast]}
+                  returnKeyType="done"
+                  blurOnSubmit
+                  onSubmitEditing={() => Keyboard.dismiss()}
+                  accessibilityLabel="Frase gerada, toque para editar"
+                />
+              )}
+            </View>
 
-          <TextInput
-            value={phraseText}
-            onChangeText={setNormalizedPhrase}
-            placeholder="Toque nos símbolos para começar"
-            style={[styles.phraseText, { fontSize: 14 * uiScaleFactor }, isHighContrast && styles.inputHighContrast]}
-            returnKeyType="done"
-            blurOnSubmit
-            onSubmitEditing={() => Keyboard.dismiss()}
-          />
-
-          <View style={styles.iconActionRow}>
-            <Pressable
-              onPress={() => void handleGenerate()}
-              style={({ pressed }) => [styles.generateButton, pressed && styles.generateButtonPressed, isGenerating && styles.generateButtonBusy]}
-              accessibilityRole="button"
-              accessibilityLabel="Gerar frase com IA"
-              disabled={isGenerating}
-            >
-              <Text style={styles.generateGlyph}>{isGenerating ? '…' : '✦'}</Text>
-              <Text style={styles.generateButtonLabel}>Gerar</Text>
-            </Pressable>
             {isAdmin && (
-              <Pressable onPress={saveCustomSymbol} style={styles.saveGroupButton} accessibilityRole="button" accessibilityLabel="Salvar grupo">
-                <Text style={styles.iconGlyph}>💾</Text>
-                <Text style={styles.saveGroupButtonLabel}>Salvar</Text>
+              <Pressable onPress={saveCustomSymbol} style={styles.dockRoundAction} accessibilityRole="button" accessibilityLabel="Salvar grupo">
+                <Text style={styles.dockRoundActionIcon}>💾</Text>
               </Pressable>
             )}
-            <Pressable
-              onPress={handlePlay}
-              style={({ pressed }) => [styles.playButton, pressed && styles.playButtonPressed]}
-              accessibilityRole="button"
-              accessibilityLabel="Ouvir a frase"
-            >
-              <Text style={styles.playGlyph}>{isPlaying ? '◼' : '▶'}</Text>
-              <Text style={styles.playButtonLabel}>Ouvir</Text>
-            </Pressable>
+            {selectedSymbols.length > 0 && (
+              <Pressable onPress={clearSymbols} style={styles.dockRoundAction} accessibilityRole="button" accessibilityLabel="Limpar frase">
+                <Text style={styles.dockRoundActionIcon}>✕</Text>
+              </Pressable>
+            )}
           </View>
+
+          <Pressable
+            onPress={handlePlay}
+            style={({ pressed }) => [styles.dockPlay, pressed && styles.dockPlayPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Ouvir a frase"
+          >
+            <Text style={styles.dockPlayIcon}>{isPlaying ? '◼' : '▶'}</Text>
+          </Pressable>
         </View>
         )}
       </KeyboardAvoidingView>
@@ -3947,7 +3974,7 @@ function CategoryButton({
   const styles = moduleStyles;
   return (
     <Pressable onPress={onPress} style={[styles.categoryButton, highContrast && styles.categoryButtonHighContrast, active && styles.categoryButtonActive]}>
-      <Text style={styles.categoryButtonIcon}>{categoryIcon(label)}</Text>
+      {label === CATEGORIES.favorites && <Text style={styles.categoryButtonIcon}>{categoryIcon(label)}</Text>}
       <Text numberOfLines={1} style={[styles.categoryButtonText, active && styles.categoryButtonTextActive]}>
         {label}
       </Text>
@@ -4554,14 +4581,10 @@ function makeStyles(theme: Theme) {
     alignItems: 'center'
   },
   headerCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 4,
-    ...theme.shadows.sm
+    backgroundColor: 'transparent',
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+    gap: 4
   },
   cardHighContrast: {
     backgroundColor: '#0f172a',
@@ -4585,15 +4608,16 @@ function makeStyles(theme: Theme) {
     gap: 6
   },
   menuButton: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.primarySoft,
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...theme.shadows.sm
   },
   menuIcon: {
-    fontSize: 22,
+    fontSize: 20,
     color: theme.colors.primaryInk
   },
   adminBadge: {
@@ -4711,11 +4735,11 @@ function makeStyles(theme: Theme) {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.bgSoft,
+    backgroundColor: 'transparent',
     borderRadius: theme.radii.full,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    minHeight: 36,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    minHeight: 38,
     justifyContent: 'center',
     alignSelf: 'flex-start'
   },
@@ -4723,14 +4747,15 @@ function makeStyles(theme: Theme) {
     fontSize: 15
   },
   categoryButtonHighContrast: {
-    backgroundColor: theme.colors.surface2
+    backgroundColor: 'transparent'
   },
   categoryButtonActive: {
-    backgroundColor: theme.colors.primary
+    backgroundColor: theme.colors.primary,
+    ...theme.shadows.sm
   },
   categoryButtonText: {
     ...theme.typography.subheadline,
-    color: theme.colors.text
+    color: theme.colors.textMuted
   },
   categoryButtonTextActive: {
     color: '#FFFFFF'
@@ -4880,44 +4905,47 @@ function makeStyles(theme: Theme) {
     fontSize: 12,
     fontWeight: '600'
   },
-  composerCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 6,
-    ...theme.shadows.sm
+  dockRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    paddingTop: 6
   },
-  phraseChipsRow: {
+  dockBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xs
+    gap: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 32,
+    padding: 8,
+    minHeight: 64,
+    ...theme.shadows.md
   },
-  phraseChipsScroll: {
-    flex: 1
+  dockMiddle: {
+    flex: 1,
+    minWidth: 0
   },
-  selectedList: {
-    gap: 4,
-    minHeight: 32,
-    alignItems: 'center'
+  dockChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44
   },
-  selectedImage: {
-    width: 30,
-    height: 30,
-    borderRadius: theme.radii.sm,
+  dockThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface
+    backgroundColor: theme.colors.surface2
   },
-  selectedTextChip: {
-    minWidth: 40,
-    height: 30,
-    paddingHorizontal: 8,
-    borderRadius: theme.radii.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
+  dockWordChip: {
+    minWidth: 44,
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     backgroundColor: theme.colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center'
@@ -4926,13 +4954,10 @@ function makeStyles(theme: Theme) {
     borderColor: '#facc15',
     backgroundColor: '#1e293b'
   },
-  selectedTextChipText: {
-    ...theme.typography.caption1,
+  dockWordChipText: {
+    ...theme.typography.subheadline,
     color: theme.colors.primaryInk,
     letterSpacing: 0.4
-  },
-  selectedTextChipTextHighContrast: {
-    color: '#fde68a'
   },
   coreVocabRow: {
     flexDirection: 'row',
@@ -5764,98 +5789,72 @@ function makeStyles(theme: Theme) {
     justifyContent: 'center',
     minHeight: 32
   },
-  iconActionRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-    justifyContent: 'space-between'
+  dockTypeInput: {
+    flexGrow: 1,
+    minWidth: 96,
+    fontFamily: theme.typography.subheadline.fontFamily,
+    color: theme.colors.text,
+    paddingVertical: 8,
+    paddingHorizontal: 4
   },
-  iconGlyph: {
-    fontSize: 22,
-    lineHeight: 26
+  dockGenLine: {
+    fontFamily: theme.typography.headline.fontFamily,
+    color: theme.colors.text,
+    paddingHorizontal: 6,
+    paddingTop: 0,
+    paddingBottom: 4
   },
-  clearLink: {
-    flexShrink: 0,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    alignSelf: 'center'
-  },
-  clearLinkText: {
-    ...theme.typography.footnote,
-    color: theme.colors.textMuted,
-    textDecorationLine: 'underline'
-  },
-  generateButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: theme.colors.generate,
+  dockGenerate: {
+    width: 48,
+    height: 48,
     borderRadius: theme.radii.full,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    backgroundColor: theme.colors.generateSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 64,
-    gap: 8,
-    ...theme.shadows.sm
+    alignSelf: 'flex-end'
   },
-  generateGlyph: {
-    fontSize: 18,
-    lineHeight: 22,
-    color: theme.colors.generateInk
-  },
-  generateButtonLabel: {
-    ...theme.typography.headline,
+  dockGenerateIcon: {
+    fontSize: 20,
+    lineHeight: 24,
     color: theme.colors.generateInk,
-    letterSpacing: 0.2
+    fontFamily: theme.typography.headline.fontFamily
   },
-  generateButtonPressed: {
-    backgroundColor: theme.colors.generateHover
+  dockGeneratePressed: {
+    backgroundColor: theme.colors.generate
   },
   generateButtonBusy: {
     opacity: 0.6
   },
-  saveGroupButton: {
-    flex: 1,
-    flexDirection: 'row',
+  dockRoundAction: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.full,
     backgroundColor: theme.colors.bgSoft,
-    borderWidth: 0,
-    borderRadius: theme.radii.full,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 64,
-    gap: 8
+    alignSelf: 'flex-end',
+    marginBottom: 6
   },
-  saveGroupButtonLabel: {
-    ...theme.typography.footnote,
-    color: theme.colors.text,
-    letterSpacing: 0.2
+  dockRoundActionIcon: {
+    fontSize: 15,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.headline.fontFamily
   },
-  playButton: {
-    flex: 1.9,
-    flexDirection: 'row',
+  dockPlay: {
+    width: 64,
+    height: 64,
+    borderRadius: theme.radii.full,
     backgroundColor: theme.colors.accent,
-    borderRadius: theme.radii.full,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 64,
-    gap: 10,
     ...theme.shadows.md
   },
-  playGlyph: {
-    fontSize: 20,
-    lineHeight: 24,
+  dockPlayIcon: {
+    fontSize: 26,
+    lineHeight: 30,
     color: theme.colors.accentInk
   },
-  playButtonLabel: {
-    ...theme.typography.title3,
-    color: theme.colors.accentInk,
-    letterSpacing: 0.2
-  },
-  playButtonPressed: {
+  dockPlayPressed: {
     backgroundColor: theme.colors.accentHover
   },
   actionPrimary: {

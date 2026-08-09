@@ -91,7 +91,7 @@ describe('App', () => {
     fireEvent.press(screen.getByText('Tudo'));
     const symbol = await screen.findByText('agua');
     fireEvent.press(symbol);
-    fireEvent.press(screen.getByText('Gerar'));
+    fireEvent.press(screen.getByLabelText('Gerar frase com IA'));
 
     await waitFor(() => {
       expect(screen.getByText('IA indisponivel no momento.')).toBeTruthy();

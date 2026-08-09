@@ -1,6 +1,7 @@
 import { BlurView } from 'expo-blur';
 import React, { memo, ReactNode } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -64,7 +65,7 @@ function IOSBottomSheetBase({
         onPress={closeOnBackdropPress ? onRequestClose : undefined}
         style={styles.backdropTap}
       />
-      <View pointerEvents="box-none" style={styles.container}>
+      <KeyboardAvoidingView pointerEvents="box-none" behavior="padding" style={styles.container}>
         <SafeAreaView
           style={[
             styles.sheet,
@@ -94,7 +95,7 @@ function IOSBottomSheetBase({
           ) : null}
           <View style={styles.content}>{children}</View>
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
