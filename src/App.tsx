@@ -2126,13 +2126,13 @@ function FalaApp() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { paddingBottom: androidBottomInset + 16 }]}>
       <StatusBar
         barStyle={theme.isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.bg}
       />
       <KeyboardAvoidingView
-        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10, paddingBottom: androidBottomInset + 16 }]}
+        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10 }]}
         behavior="padding"
       >
         <View style={[styles.headerCard, isHighContrast && styles.cardHighContrast]}>
@@ -4572,7 +4572,8 @@ function makeStyles(theme: Theme) {
     flex: 1,
     paddingHorizontal: 12,
     paddingTop: 10,
-    paddingBottom: 10,
+    // paddingBottom fica no SafeAreaView: KeyboardAvoidingView (behavior="padding")
+    // sobrescreve o paddingBottom do proprio estilo
     gap: 10
   },
   bootLoadingState: {
