@@ -13,3 +13,4 @@ coverage/
 .screenshot.png
 *.aab
 *.apk
+google-service-account.json
