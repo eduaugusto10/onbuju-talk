@@ -48,6 +48,7 @@ import {
 } from './types';
 import { NUNITO_FONT_MAP, resolveTheme, type Theme, type ThemeName } from './theme';
 import { useFonts } from 'expo-font';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOSBottomSheet } from './ui';
 import { triggerHaptic } from './services/hapticsService';
 import {
@@ -432,7 +433,7 @@ function padToColumns<T extends { id: string }>(
   return [...data, ...fillers];
 }
 
-export default function App() {
+function FalaApp() {
   const hasPrimedExtendedCache = useRef(false);
   const searchInputRef = useRef<TextInput>(null);
   const configScrollRef = useRef<ScrollView>(null);
@@ -513,6 +514,8 @@ export default function App() {
   const isHighContrast = isDarkTheme;
   const effectiveGridColumns: GridColumns = gridColumns;
   const androidTopInset = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0;
+  const safeAreaInsets = useSafeAreaInsets();
+  const androidBottomInset = Platform.OS === 'android' ? safeAreaInsets.bottom : 0;
 
   const phraseText = useMemo(() => {
     return normalizedPhrase || selectedSymbols.map(s => s.label.toUpperCase()).join(' + ');
@@ -2107,7 +2110,7 @@ export default function App() {
         backgroundColor={theme.colors.bg}
       />
       <KeyboardAvoidingView
-        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10 }]}
+        style={[styles.container, { paddingHorizontal: 12 * uiScaleFactor, paddingTop: androidTopInset + 10, paddingBottom: androidBottomInset + 8 }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.headerCard, isHighContrast && styles.cardHighContrast]}>
@@ -2684,7 +2687,7 @@ export default function App() {
           setIsConfigModalOpen(false);
           resetConfigFields();
         }}
-        title="Ajustes"
+        title={configRoute === 'home' ? 'Ajustes' : CONFIG_ROUTE_TITLES[configRoute]}
         leftAction={{
           label: 'Fechar',
           onPress: () => {
@@ -2754,9 +2757,6 @@ export default function App() {
                 >
                   <Text style={styles.configBackText}>‹ Ajustes</Text>
                 </Pressable>
-                <Text style={styles.configDetailTitle} numberOfLines={1}>
-                  {CONFIG_ROUTE_TITLES[configRoute]}
-                </Text>
               </View>
               <ScrollView
                 ref={configScrollRef}
@@ -3727,10 +3727,9 @@ export default function App() {
             {configRoute === 'senha' && (
               needsAdminSetup ? (
                 <>
-                  <Text style={styles.drillSectionTitle}>CRIAR SENHA DO CUIDADOR</Text>
                   <View style={styles.drillSectionCard}>
                     <Text style={styles.drillFieldHint}>
-                      Defina uma senha para proteger as configurações da criança. Apenas o cuidador deve saber.
+                      Defina uma senha com pelo menos 4 caracteres para proteger as configurações da criança. Apenas o cuidador deve saber.
                     </Text>
                     <TextInput
                       value={newAdminPassword}
@@ -3790,6 +3789,9 @@ export default function App() {
                 <>
                   <Text style={styles.drillSectionTitle}>ALTERAR SENHA</Text>
                   <View style={styles.drillSectionCard}>
+                    <Text style={styles.drillFieldHint}>
+                      A nova senha precisa ter pelo menos 4 caracteres.
+                    </Text>
                     <TextInput
                       value={adminPassword}
                       onChangeText={setAdminPassword}
@@ -3879,6 +3881,11 @@ export default function App() {
             )}
               </ScrollView>
             </>
+          )}
+          {toast && (
+            <View style={[styles.toast, toast.type === 'success' ? styles.toastSuccess : styles.toastError]}>
+              <Text style={styles.toastText}>{toast.message}</Text>
+            </View>
           )}
         </View>
       </IOSBottomSheet>
@@ -6127,13 +6134,6 @@ function makeStyles(theme: Theme) {
     ...theme.typography.body,
     color: theme.colors.primary
   },
-  configDetailTitle: {
-    ...theme.typography.title3,
-    color: theme.colors.text,
-    flex: 1,
-    textAlign: 'center',
-    marginRight: 60
-  },
   configDetailBody: {
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.xxl,
@@ -6421,4 +6421,12 @@ function makeStyles(theme: Theme) {
     fontWeight: '700'
   }
   });
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <FalaApp />
+    </SafeAreaProvider>
+  );
 }

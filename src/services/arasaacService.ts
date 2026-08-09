@@ -40,6 +40,19 @@ async function saveToCache(key: string, data: unknown, persistent: boolean = fal
   }
 }
 
+// ARASAAC devolve dezenas de pictogramas com o mesmo rotulo (varios desenhos de
+// "pessoa", "gente"...). Mostrar todos confunde a crianca; mantemos o primeiro
+// de cada rotulo.
+function dedupeByLabel(items: SymbolItem[]): SymbolItem[] {
+  const seen = new Set<string>();
+  return items.filter(item => {
+    const label = item.label.trim().toLowerCase();
+    if (seen.has(label)) return false;
+    seen.add(label);
+    return true;
+  });
+}
+
 async function fetchWithCache(url: string, persistent: boolean = false) {
   const cached = await getFromCache<unknown>(url);
   if (cached) return cached;
@@ -57,13 +70,13 @@ export const arasaacService = {
       const url = `${API_BASE_URL}/pictograms/${locale}/search/${term}`;
       const data = await fetchWithCache(url);
       if (!data) return [];
-      
-      return data.map((item: any) => ({
+
+      return dedupeByLabel(data.map((item: any) => ({
         id: item._id.toString(),
         label: item.keywords.find((k: any) => k.type === 1)?.keyword || item.keywords[0]?.keyword || 'Símbolo',
         imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
         category: 'General',
-      }));
+      })));
     } catch (error) {
       console.error('Error searching ARASAAC symbols:', error);
       return [];
@@ -137,7 +150,7 @@ export const arasaacService = {
 
   async getSymbolsByCategory(category: string, locale: string = 'pt'): Promise<SymbolItem[]> {
     try {
-      const cacheKey = `category_${category}_${locale}`;
+      const cacheKey = `category_v2_${category}_${locale}`;
       const cached = await getFromCache<SymbolItem[]>(cacheKey);
       if (cached) return cached;
 
@@ -145,12 +158,12 @@ export const arasaacService = {
       const catData = await fetchWithCache(catUrl);
       
       if (catData && Array.isArray(catData) && catData.length > 0) {
-        const results = catData.map((item: any) => ({
+        const results = dedupeByLabel(catData.map((item: any) => ({
           id: item._id.toString(),
           label: item.keywords.find((k: any) => k.type === 1)?.keyword || item.keywords[0]?.keyword || 'Símbolo',
           imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
           category: category,
-        }));
+        })));
         await saveToCache(cacheKey, results);
         return results;
       }
@@ -159,12 +172,12 @@ export const arasaacService = {
       const tagData = await fetchWithCache(tagUrl);
       
       if (tagData && Array.isArray(tagData) && tagData.length > 0) {
-        const results = tagData.map((item: any) => ({
+        const results = dedupeByLabel(tagData.map((item: any) => ({
           id: item._id.toString(),
           label: item.keywords.find((k: any) => k.type === 1)?.keyword || item.keywords[0]?.keyword || 'Símbolo',
           imageUrl: `${STATIC_BASE_URL}/${item._id}/${item._id}_300.png`,
           category: category,
-        }));
+        })));
         await saveToCache(cacheKey, results);
         return results;
       }

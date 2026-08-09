@@ -2,6 +2,7 @@ import { BlurView } from 'expo-blur';
 import React, { memo, ReactNode } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleProp,
@@ -10,6 +11,7 @@ import {
   View,
   ViewStyle
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../theme';
 
 export interface IOSBottomSheetAction {
@@ -46,6 +48,8 @@ function IOSBottomSheetBase({
   testID
 }: IOSBottomSheetProps) {
   const hasHeader = Boolean(title || leftAction || rightAction);
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === 'android' ? insets.bottom : 0;
 
   return (
     <Modal
@@ -64,7 +68,7 @@ function IOSBottomSheetBase({
         <SafeAreaView
           style={[
             styles.sheet,
-            { maxHeight: `${Math.round(maxHeightPct * 100)}%` },
+            { maxHeight: `${Math.round(maxHeightPct * 100)}%`, paddingBottom: bottomInset },
             style
           ]}
         >
