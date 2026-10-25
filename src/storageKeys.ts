@@ -1,0 +1,23 @@
+export const STORAGE_KEYS = {
+  favorites: 'arasaac_favorites',
+  customSymbols: 'arasaac_custom_symbols',
+  pitch: 'arasaac_pitch',
+  rate: 'arasaac_rate',
+  adminPasswordHash: 'admin_password_hash',
+  uiScale: 'ui_scale',
+  themeName: 'theme_name',
+  themeDarkReset: 'theme_dark_reset_v1',
+  visualFeedback: 'visual_feedback',
+  sectionVisibility: 'section_visibility',
+  gridColumns: 'grid_columns',
+  coreVocabulary: 'core_vocabulary',
+  coreSymbolImages: 'core_symbol_images_v3',
+  symbolColorStrength: 'symbol_color_strength_v1',
+  savedPhrases: 'arasaac_saved_phrases',
+  phraseHistory: 'arasaac_phrase_history',
+  personalSymbols: 'arasaac_personal_symbols',
+  customCategories: 'arasaac_custom_categories',
+  routineSteps: 'arasaac_routine_steps',
+  routineProgress: 'arasaac_routine_progress',
+  visualScenes: 'arasaac_visual_scenes'
+};

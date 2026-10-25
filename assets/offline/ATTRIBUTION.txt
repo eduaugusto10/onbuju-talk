@@ -1,0 +1,7 @@
+Pictogramas: Sergio Palao. Origem: ARASAAC (https://arasaac.org).
+Titular: Gobierno de Aragón. Licença: Creative Commons BY-NC-SA.
+Termos e atribuição: https://arasaac.org/terms-of-use
+
+Imagens originais baixadas do catálogo público em 24/10/2026, sem alterações.
+catalog.json registra os identificadores e URLs de origem. Os rótulos foram
+adaptados para português brasileiro (por exemplo, "banheiro" e "brincar").

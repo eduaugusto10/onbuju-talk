@@ -84,6 +84,33 @@ describe('App', () => {
     asyncStorageMock.setItem.mockImplementation(async () => undefined);
   });
 
+  it('preserva favoritos enquanto a leitura inicial está pendente', async () => {
+    let finish!: (value: string | null) => void;
+    asyncStorageMock.getItem.mockImplementation(key => key === 'arasaac_favorites'
+      ? new Promise(resolve => { finish = resolve; })
+      : Promise.resolve(null));
+    render(<App />);
+    await act(async () => {});
+    expect(asyncStorageMock.setItem).not.toHaveBeenCalled();
+    await act(async () => finish(JSON.stringify([{ id: 'saved', label: 'Casa', imageUrl: 'https://example.com/casa.png', category: 'Lugares' }])));
+    await waitFor(() => expect(screen.getByLabelText('Adicionar Casa à frase')).toBeTruthy());
+    expect(asyncStorageMock.setItem).not.toHaveBeenCalledWith('arasaac_favorites', '[]');
+  });
+
+  it('não sobrescreve dados quando a leitura do armazenamento falha', async () => {
+    asyncStorageMock.getItem.mockRejectedValue(new Error('storage unavailable'));
+    render(<App />);
+    await waitFor(() => expect(screen.getByText(/Não foi possível carregar os dados/)).toBeTruthy());
+    expect(asyncStorageMock.setItem).not.toHaveBeenCalled();
+  });
+
+  it('preserva favoritos corrompidos para recuperação sem derrubar a interface', async () => {
+    asyncStorageMock.getItem.mockImplementation(async key => key === 'arasaac_favorites' ? '{"invalid":true}' : null);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText(/Não foi possível carregar os dados/)).toBeTruthy());
+    expect(asyncStorageMock.setItem).not.toHaveBeenCalled();
+  });
+
   it('segue fluxo de gerar frase', async () => {
     render(<App />);
 

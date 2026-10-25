@@ -1,0 +1,98 @@
+[
+  {
+    "label": "eu",
+    "category": "eu",
+    "id": "6632",
+    "imageUrl": "https://static.arasaac.org/pictograms/6632/6632_300.png"
+  },
+  {
+    "label": "querer",
+    "category": "querer",
+    "id": "5441",
+    "imageUrl": "https://static.arasaac.org/pictograms/5441/5441_300.png"
+  },
+  {
+    "label": "comer",
+    "category": "comer",
+    "id": "6456",
+    "imageUrl": "https://static.arasaac.org/pictograms/6456/6456_300.png"
+  },
+  {
+    "label": "beber",
+    "category": "beber",
+    "id": "6061",
+    "imageUrl": "https://static.arasaac.org/pictograms/6061/6061_300.png"
+  },
+  {
+    "label": "ajuda",
+    "category": "ajuda",
+    "id": "12252",
+    "imageUrl": "https://static.arasaac.org/pictograms/12252/12252_300.png"
+  },
+  {
+    "label": "banheiro",
+    "category": "banheiro",
+    "id": "5921",
+    "imageUrl": "https://static.arasaac.org/pictograms/5921/5921_300.png"
+  },
+  {
+    "label": "casa",
+    "category": "casa",
+    "id": "6964",
+    "imageUrl": "https://static.arasaac.org/pictograms/6964/6964_300.png"
+  },
+  {
+    "label": "escola",
+    "category": "escola",
+    "id": "32446",
+    "imageUrl": "https://static.arasaac.org/pictograms/32446/32446_300.png"
+  },
+  {
+    "label": "mãe",
+    "category": "mãe",
+    "id": "2458",
+    "imageUrl": "https://static.arasaac.org/pictograms/2458/2458_300.png"
+  },
+  {
+    "label": "pai",
+    "category": "pai",
+    "id": "2497",
+    "imageUrl": "https://static.arasaac.org/pictograms/2497/2497_300.png"
+  },
+  {
+    "label": "brincar",
+    "category": "brincar",
+    "id": "23392",
+    "imageUrl": "https://static.arasaac.org/pictograms/23392/23392_300.png"
+  },
+  {
+    "label": "dormir",
+    "category": "dormir",
+    "id": "6479",
+    "imageUrl": "https://static.arasaac.org/pictograms/6479/6479_300.png"
+  },
+  {
+    "label": "não",
+    "category": "não",
+    "id": "5526",
+    "imageUrl": "https://static.arasaac.org/pictograms/5526/5526_300.png"
+  },
+  {
+    "label": "sim",
+    "category": "sim",
+    "id": "5584",
+    "imageUrl": "https://static.arasaac.org/pictograms/5584/5584_300.png"
+  },
+  {
+    "label": "mais",
+    "category": "mais",
+    "id": "3220",
+    "imageUrl": "https://static.arasaac.org/pictograms/3220/3220_300.png"
+  },
+  {
+    "label": "parar",
+    "category": "parar",
+    "id": "7196",
+    "imageUrl": "https://static.arasaac.org/pictograms/7196/7196_300.png"
+  }
+]

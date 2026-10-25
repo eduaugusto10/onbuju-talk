@@ -2,6 +2,8 @@ import { SymbolItem } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COMMON_TERMS, FALLBACK_CATEGORIES } from '../constants';
 import { classifyWordClass } from '../categoryColors';
+import { OFFLINE_SYMBOLS } from './offlineSymbols';
+import { getOfflineCategory, listOfflineCategories } from './categoryDownloadService';
 
 const API_BASE_URL = 'https://api.arasaac.org/api';
 const STATIC_BASE_URL = 'https://static.arasaac.org/pictograms';
@@ -67,32 +69,57 @@ function mapPictogram(item: any, category: string): SymbolItem {
   };
 }
 
-async function fetchWithCache(url: string, persistent: boolean = false) {
+async function fetchWithCache(url: string, persistent: boolean = true) {
   const cached = await getFromCache<unknown>(url);
   if (cached) return cached;
 
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = await response.json();
-  await saveToCache(url, data, persistent);
-  return data;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (Array.isArray(data) && data.length === 0) return data;
+    await saveToCache(url, data, persistent);
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+const normalized = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+function offlineSearch(term: string, locale: string) {
+  if (locale !== 'pt') return [];
+  const aliases: Record<string, string> = { quero: 'querer', mae: 'mãe', nao: 'não' };
+  const query = normalized(aliases[normalized(term)] || term);
+  const groups: Record<string, string[]> = {
+    alimentacao: ['comer', 'beber'], higiene: ['banheiro'], pessoas: ['eu', 'mãe', 'pai'],
+    lugares: ['casa', 'escola', 'banheiro'], escola: ['escola', 'brincar'],
+    acoes: ['querer', 'comer', 'beber', 'brincar', 'dormir', 'parar', 'ajuda']
+  };
+  return OFFLINE_SYMBOLS.filter(item => normalized(item.label).includes(query) || groups[query]?.includes(item.label));
 }
 
 export const arasaacService = {
   async searchSymbols(term: string, locale: string = 'pt'): Promise<SymbolItem[]> {
+    if (!term.trim()) return [];
+    const bundled = offlineSearch(term, locale);
+    if (bundled.some(item => normalized(item.label) === normalized(term)) || ['quero', 'mae', 'nao'].includes(normalized(term))) return bundled;
     try {
-      const url = `${API_BASE_URL}/pictograms/${locale}/search/${term}`;
+      const url = `${API_BASE_URL}/pictograms/${encodeURIComponent(locale)}/search/${encodeURIComponent(term)}`;
       const data = await fetchWithCache(url);
-      if (!data) return [];
+      if (!Array.isArray(data) || !data.length) return bundled;
 
       return dedupeByLabel(data.map((item: any) => mapPictogram(item, 'General')));
     } catch (error) {
       console.error('Error searching ARASAAC symbols:', error);
-      return [];
+      return bundled;
     }
   },
 
   async getBestSymbols(locale: string = 'pt'): Promise<SymbolItem[]> {
+    // Stable labels, order and bundled images are available even on the first offline launch.
+    if (locale === 'pt') return OFFLINE_SYMBOLS;
     // v3: one representative pictogram per term, tagged with its search term as
     // category. ARASAAC returns dozens of distinct pictograms sharing the same
     // label (e.g. many drawings of "eu"), so deduping by id alone flooded the
@@ -102,7 +129,7 @@ export const arasaacService = {
     // color (search results are otherwise category-less / 'General').
     const cacheKey = `best_symbols_v5_${locale}`;
     const cached = await getFromCache<SymbolItem[]>(cacheKey);
-    if (cached) return cached;
+    if (cached?.length) return cached;
 
     const results = await Promise.all(COMMON_TERMS.map(term => this.searchSymbols(term, locale)));
     const seenIds = new Set<string>();
@@ -121,7 +148,7 @@ export const arasaacService = {
       }
     });
 
-    await saveToCache(cacheKey, finalResults, true);
+    if (finalResults.length) await saveToCache(cacheKey, finalResults, true);
     return finalResults;
   },
 
@@ -129,7 +156,10 @@ export const arasaacService = {
     try {
       const cacheKey = `categories_${locale}`;
       const cached = await getFromCache<string[]>(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        const downloaded = locale === 'pt' ? await listOfflineCategories() : [];
+        return Array.from(new Set([...cached, ...downloaded.map(item => item.category)]));
+      }
 
       const [catData, tagData] = await Promise.all([
         fetchWithCache(`${API_BASE_URL}/pictograms/categories/${locale}`),
@@ -149,45 +179,57 @@ export const arasaacService = {
         .filter(c => c && typeof c === 'string' && c.length > 1 && !c.includes('_'))
         .sort((a, b) => a.localeCompare(b, locale));
 
-      await saveToCache(cacheKey, unique, true);
-      return unique;
+      if (catData || tagData) await saveToCache(cacheKey, unique, true);
+      const downloaded = locale === 'pt' ? await listOfflineCategories() : [];
+      return Array.from(new Set([...unique, ...downloaded.map(item => item.category)]));
     } catch (error) {
       console.error('Error fetching ARASAAC categories:', error);
-      return FALLBACK_CATEGORIES;
+      const downloaded = locale === 'pt' ? await listOfflineCategories().catch(() => []) : [];
+      return Array.from(new Set([...FALLBACK_CATEGORIES, ...downloaded.map(item => item.category)]));
     }
   },
 
-  async getSymbolsByCategory(category: string, locale: string = 'pt'): Promise<SymbolItem[]> {
+  async getSymbolsByCategory(category: string, locale: string = 'pt', forDownload = false): Promise<SymbolItem[]> {
     try {
+      if (!forDownload && locale === 'pt') {
+        const offline = await getOfflineCategory(category);
+        if (offline) return offline;
+      }
       // v4: inclui wordClass (codigo de cores Fitzgerald) no item mapeado
       const cacheKey = `category_v4_${category}_${locale}`;
       const cached = await getFromCache<SymbolItem[]>(cacheKey);
-      if (cached) return cached;
+      if (!forDownload && cached?.length) return cached;
 
-      const catUrl = `${API_BASE_URL}/pictograms/${locale}/category/${category}`;
+      const catUrl = `${API_BASE_URL}/pictograms/${encodeURIComponent(locale)}/category/${encodeURIComponent(category)}`;
       const catData = await fetchWithCache(catUrl);
       
       if (catData && Array.isArray(catData) && catData.length > 0) {
         const results = dedupeByLabel(catData.map((item: any) => mapPictogram(item, category)));
-        await saveToCache(cacheKey, results);
+        await saveToCache(cacheKey, results, true);
         return results;
       }
 
-      const tagUrl = `${API_BASE_URL}/pictograms/${locale}/tags/${category}`;
+      const tagUrl = `${API_BASE_URL}/pictograms/${encodeURIComponent(locale)}/tags/${encodeURIComponent(category)}`;
       const tagData = await fetchWithCache(tagUrl);
       
       if (tagData && Array.isArray(tagData) && tagData.length > 0) {
         const results = dedupeByLabel(tagData.map((item: any) => mapPictogram(item, category)));
-        await saveToCache(cacheKey, results);
+        await saveToCache(cacheKey, results, true);
         return results;
       }
 
-      const searchResults = await this.searchSymbols(category, locale);
-      await saveToCache(cacheKey, searchResults);
+      const searchData = forDownload
+        ? await fetchWithCache(`${API_BASE_URL}/pictograms/${encodeURIComponent(locale)}/search/${encodeURIComponent(category)}`)
+        : null;
+      const searchResults = forDownload
+        ? (Array.isArray(searchData) ? dedupeByLabel(searchData.map(item => mapPictogram(item, category))) : [])
+        : await this.searchSymbols(category, locale);
+      if (searchResults.length) await saveToCache(cacheKey, searchResults, true);
       return searchResults;
     } catch (error) {
+      if (forDownload) throw new Error('Não foi possível carregar a categoria. Confira sua conexão e tente novamente.');
       console.error('Error fetching symbols by group:', error);
-      return [];
+      return offlineSearch(category, locale);
     }
   }
 };

@@ -20,10 +20,13 @@ import {
   View
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from './storageKeys';
+import { usePersistedValue } from './hooks/usePersistedValue';
+import { usePhraseGeneration } from './hooks/usePhraseGeneration';
 import * as Speech from 'expo-speech';
 import { arasaacService } from './services/arasaacService';
 import { getCachedImageUri, getImageCacheMetrics, warmImageCache } from './services/imageCacheService';
-import { generateNormalizedPhrase, saveAiApiKey } from './services/aiService';
+import { saveAiApiKey } from './services/aiService';
 import * as ImagePicker from 'expo-image-picker';
 import {
   createAudioPlayer,
@@ -50,6 +53,9 @@ import { NUNITO_FONT_MAP, resolveTheme, type Theme, type ThemeName } from './the
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IOSBottomSheet } from './ui';
+import { BackupPanel } from './ui/BackupPanel';
+import { OfflineCategoriesPanel } from './ui/OfflineCategoriesPanel';
+import { recoverInterruptedRestore } from './services/backupService';
 import { triggerHaptic } from './services/hapticsService';
 import {
   CORE_VOCABULARY_MAX,
@@ -77,7 +83,7 @@ type ConfigRoute =
   | 'voz' | 'acessibilidade' | 'aparencia'
   | 'vocabulario' | 'frases' | 'simbolos' | 'categorias' | 'rotina' | 'cenas'
   | 'secoes'
-  | 'senha' | 'chave-ia';
+  | 'senha' | 'chave-ia' | 'backup' | 'downloads';
 
 type SectionVisibility = {
   frases: boolean;
@@ -116,31 +122,9 @@ const GRID_COLUMNS_OPTIONS: GridColumns[] = [2, 3, 4, 5];
 const DEFAULT_GRID_COLUMNS: GridColumns = 3;
 const MIN_GRID_COLUMNS = 2;
 const MAX_GRID_COLUMNS = 5;
-const DEFAULT_AI_API_KEY = (process.env.EXPO_PUBLIC_GOOGLE_AI_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_API_KEY || '').trim();
+const DEFAULT_AI_API_KEY = '';
 
-const STORAGE_KEYS = {
-  favorites: 'arasaac_favorites',
-  customSymbols: 'arasaac_custom_symbols',
-  pitch: 'arasaac_pitch',
-  rate: 'arasaac_rate',
-  adminPasswordHash: 'admin_password_hash',
-  uiScale: 'ui_scale',
-  themeName: 'theme_name',
-  themeDarkReset: 'theme_dark_reset_v1',
-  visualFeedback: 'visual_feedback',
-  sectionVisibility: 'section_visibility',
-  gridColumns: 'grid_columns',
-  coreVocabulary: 'core_vocabulary',
-  coreSymbolImages: 'core_symbol_images_v3',
-  symbolColorStrength: 'symbol_color_strength_v1',
-  savedPhrases: 'arasaac_saved_phrases',
-  phraseHistory: 'arasaac_phrase_history',
-  personalSymbols: 'arasaac_personal_symbols',
-  customCategories: 'arasaac_custom_categories',
-  routineSteps: 'arasaac_routine_steps',
-  routineProgress: 'arasaac_routine_progress',
-  visualScenes: 'arasaac_visual_scenes'
-};
+
 
 const VISUAL_SCENES_MAX = 20;
 const HOTSPOTS_PER_SCENE_MAX = 12;
@@ -444,7 +428,7 @@ function padToColumns<T extends { id: string }>(
   return [...data, ...fillers];
 }
 
-function FalaApp() {
+function FalaApp({ onRestored }: { onRestored: () => void }) {
   const hasPrimedExtendedCache = useRef(false);
   const searchInputRef = useRef<TextInput>(null);
   const configScrollRef = useRef<ScrollView>(null);
@@ -459,7 +443,7 @@ function FalaApp() {
   const [customSymbols, setCustomSymbols] = useState<CustomSymbol[]>([]);
   const [normalizedPhrase, setNormalizedPhrase] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isNamingModalOpen, setIsNamingModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -513,6 +497,7 @@ function FalaApp() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
   const [isBootHydrating, setIsBootHydrating] = useState(true);
+  const [persistenceReady, setPersistenceReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -548,6 +533,18 @@ function FalaApp() {
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type });
   }, []);
+
+  const reportSaveError = useCallback(() => showToast('Não foi possível salvar os dados no aparelho.', 'error'), [showToast]);
+  const reportGenerationError = useCallback((message: string) => showToast(message, 'error'), [showToast]);
+  const { generate, invalidate: invalidatePhrase, isGenerating } = usePhraseGeneration(setNormalizedPhrase, reportGenerationError);
+  const updateSelectedSymbols: typeof setSelectedSymbols = useCallback(value => {
+    invalidatePhrase();
+    setSelectedSymbols(value);
+  }, [invalidatePhrase]);
+  const editNormalizedPhrase: typeof setNormalizedPhrase = useCallback(value => {
+    invalidatePhrase();
+    setNormalizedPhrase(value);
+  }, [invalidatePhrase]);
 
   const resetConfigFields = useCallback(() => {
     setAdminPassword('');
@@ -680,6 +677,7 @@ function FalaApp() {
   useEffect(() => {
     const loadLocalData = async () => {
       try {
+        await recoverInterruptedRestore();
         const [
           savedFavorites,
           savedCustomSymbols,
@@ -733,16 +731,31 @@ function FalaApp() {
         }
 
         if (savedFavorites) {
-          setFavorites(JSON.parse(savedFavorites));
+          const restored: unknown = JSON.parse(savedFavorites);
+          if (!Array.isArray(restored) || restored.some(item => !item || ['id', 'label', 'imageUrl', 'category'].some(field => typeof item[field] !== 'string'))) {
+            throw new Error('Favoritos inválidos.');
+          }
+          setFavorites(restored);
+          if (restored.length === 0) setActiveCategory(CATEGORIES.all);
+        } else {
+          setActiveCategory(CATEGORIES.all);
         }
         if (savedCustomSymbols) {
-          setCustomSymbols(JSON.parse(savedCustomSymbols));
+          const restored: unknown = JSON.parse(savedCustomSymbols);
+          if (!Array.isArray(restored) || restored.some(item => !item || typeof item.id !== 'string' || typeof item.label !== 'string' || !Array.isArray(item.symbols) || item.symbols.some((symbol: SymbolItem) => !symbol || ['id', 'label', 'imageUrl', 'category'].some(field => typeof (symbol as unknown as Record<string, unknown>)[field] !== 'string')))) {
+            throw new Error('Grupos de símbolos inválidos.');
+          }
+          setCustomSymbols(restored);
         }
         if (savedRate) {
-          setRate(Number(savedRate));
+          const value = Number(savedRate);
+          if (!Number.isFinite(value) || value <= 0 || value > 3) throw new Error('Velocidade inválida.');
+          setRate(value);
         }
         if (savedPitch) {
-          setPitch(Number(savedPitch));
+          const value = Number(savedPitch);
+          if (!Number.isFinite(value) || value <= 0 || value > 3) throw new Error('Tom inválido.');
+          setPitch(value);
         }
         if (savedAdminPasswordHash) {
           setAdminPasswordHash(savedAdminPasswordHash);
@@ -760,9 +773,9 @@ function FalaApp() {
           // screen. Reset to the calm light default once. After this, the theme
           // picker is fully respected (re-selecting Sereno Escuro sticks).
           setThemeName('default');
-          void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'default');
-          void AsyncStorage.setItem(STORAGE_KEYS.themeDarkReset, '1');
-          void AsyncStorage.removeItem('contrast_mode');
+
+          await AsyncStorage.setItem(STORAGE_KEYS.themeDarkReset, '1');
+          await AsyncStorage.removeItem('contrast_mode');
         } else if (
           savedThemeName === 'default' ||
           savedThemeName === 'terracota' ||
@@ -772,8 +785,7 @@ function FalaApp() {
         } else {
           // 'padrao' ou ausente -> tema padrao claro.
           setThemeName('default');
-          void AsyncStorage.setItem(STORAGE_KEYS.themeName, 'default');
-          void AsyncStorage.removeItem('contrast_mode');
+          await AsyncStorage.removeItem('contrast_mode');
         }
         if (savedVisualFeedback) {
           setVisualFeedbackEnabled(savedVisualFeedback === '1');
@@ -884,6 +896,9 @@ function FalaApp() {
             /* keep empty */
           }
         }
+        setPersistenceReady(true);
+      } catch {
+        showToast('Não foi possível carregar os dados. Feche e abra o app para tentar novamente; os dados salvos foram preservados.', 'error');
       } finally {
         setIsBootHydrating(false);
       }
@@ -892,12 +907,9 @@ function FalaApp() {
     const loadInitialSymbols = async () => {
       setIsLoading(true);
       try {
-        const [symbolsData, categoriesData] = await Promise.all([
-          arasaacService.getBestSymbols('pt'),
-          arasaacService.getCategories('pt')
-        ]);
+        const symbolsData = await arasaacService.getBestSymbols('pt');
         setSymbols(symbolsData);
-        setCategories(categoriesData);
+        void arasaacService.getCategories('pt').then(setCategories);
       } finally {
         setIsLoading(false);
       }
@@ -914,45 +926,25 @@ function FalaApp() {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(favorites));
-  }, [favorites]);
+  usePersistedValue(STORAGE_KEYS.favorites, JSON.stringify(favorites), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.customSymbols, JSON.stringify(customSymbols));
-  }, [customSymbols]);
+  usePersistedValue(STORAGE_KEYS.customSymbols, JSON.stringify(customSymbols), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.rate, String(rate));
-  }, [rate]);
+  usePersistedValue(STORAGE_KEYS.rate, String(rate), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.pitch, String(pitch));
-  }, [pitch]);
+  usePersistedValue(STORAGE_KEYS.pitch, String(pitch), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.uiScale, uiScale);
-  }, [uiScale]);
+  usePersistedValue(STORAGE_KEYS.uiScale, uiScale, persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.themeName, themeName);
-  }, [themeName]);
+  usePersistedValue(STORAGE_KEYS.themeName, themeName, persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.visualFeedback, visualFeedbackEnabled ? '1' : '0');
-  }, [visualFeedbackEnabled]);
+  usePersistedValue(STORAGE_KEYS.visualFeedback, visualFeedbackEnabled ? '1' : '0', persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.sectionVisibility, JSON.stringify(sectionVisibility));
-  }, [sectionVisibility]);
+  usePersistedValue(STORAGE_KEYS.sectionVisibility, JSON.stringify(sectionVisibility), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.gridColumns, String(gridColumns));
-  }, [gridColumns]);
+  usePersistedValue(STORAGE_KEYS.gridColumns, String(gridColumns), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.coreVocabulary, JSON.stringify(coreVocabulary));
-  }, [coreVocabulary]);
+  usePersistedValue(STORAGE_KEYS.coreVocabulary, JSON.stringify(coreVocabulary), persistenceReady, reportSaveError);
 
   // Busca o pictograma de cada palavra do core que ainda nao tem um. O cuidador
   // pode cadastrar qualquer palavra, entao nao da para mapear icone fixo — o
@@ -994,44 +986,23 @@ function FalaApp() {
     };
   }, [coreVocabulary, coreSymbolImages, isBootHydrating]);
 
-  useEffect(() => {
-    // Nao grava mapa vazio: senao um boot offline apagaria os pictogramas ja
-    // resolvidos antes da hidratacao terminar.
-    if (Object.keys(coreSymbolImages).length === 0) return;
-    void AsyncStorage.setItem(STORAGE_KEYS.coreSymbolImages, JSON.stringify(coreSymbolImages));
-  }, [coreSymbolImages]);
+  usePersistedValue(STORAGE_KEYS.coreSymbolImages, JSON.stringify(coreSymbolImages), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.symbolColorStrength, symbolColorStrength);
-  }, [symbolColorStrength]);
+  usePersistedValue(STORAGE_KEYS.symbolColorStrength, symbolColorStrength, persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.savedPhrases, JSON.stringify(savedPhrases));
-  }, [savedPhrases]);
+  usePersistedValue(STORAGE_KEYS.savedPhrases, JSON.stringify(savedPhrases), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.phraseHistory, JSON.stringify(phraseHistory));
-  }, [phraseHistory]);
+  usePersistedValue(STORAGE_KEYS.phraseHistory, JSON.stringify(phraseHistory), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.personalSymbols, JSON.stringify(personalSymbols));
-  }, [personalSymbols]);
+  usePersistedValue(STORAGE_KEYS.personalSymbols, JSON.stringify(personalSymbols), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.customCategories, JSON.stringify(customCategories));
-  }, [customCategories]);
+  usePersistedValue(STORAGE_KEYS.customCategories, JSON.stringify(customCategories), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.routineSteps, JSON.stringify(routineSteps));
-  }, [routineSteps]);
+  usePersistedValue(STORAGE_KEYS.routineSteps, JSON.stringify(routineSteps), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.routineProgress, JSON.stringify(routineProgress));
-  }, [routineProgress]);
+  usePersistedValue(STORAGE_KEYS.routineProgress, JSON.stringify(routineProgress), persistenceReady, reportSaveError);
 
-  useEffect(() => {
-    void AsyncStorage.setItem(STORAGE_KEYS.visualScenes, JSON.stringify(visualScenes));
-  }, [visualScenes]);
+  usePersistedValue(STORAGE_KEYS.visualScenes, JSON.stringify(visualScenes), persistenceReady, reportSaveError);
 
   const toggleFavorite = useCallback((symbol: SymbolItem) => {
     if (!isAdmin) {
@@ -1055,8 +1026,8 @@ function FalaApp() {
 
   const addSymbol = useCallback((symbol: SymbolItem) => {
     triggerHaptic('light');
-    setSelectedSymbols(prev => [...prev, symbol]);
-    setNormalizedPhrase(prev => (prev ? `${prev} ${symbol.label}` : prev));
+    updateSelectedSymbols(prev => [...prev, symbol]);
+    editNormalizedPhrase(prev => (prev ? `${prev} ${symbol.label}` : prev));
   }, []);
 
   const addCoreWord = useCallback((word: string) => {
@@ -2013,8 +1984,8 @@ function FalaApp() {
 
   const clearSymbols = useCallback(() => {
     triggerHaptic('warning');
-    setSelectedSymbols([]);
-    setNormalizedPhrase('');
+    updateSelectedSymbols([]);
+    editNormalizedPhrase('');
     setTypedWord('');
   }, []);
 
@@ -2022,11 +1993,11 @@ function FalaApp() {
     const word = raw.trim();
     setTypedWord('');
     if (!word) return;
-    setSelectedSymbols(prev => [
+    updateSelectedSymbols(prev => [
       ...prev,
       { id: `typed-${prev.length}-${word}`, label: word, imageUrl: '', category: '' }
     ]);
-    setNormalizedPhrase('');
+    editNormalizedPhrase('');
   }, []);
 
   const handleTypedWordChange = useCallback((text: string) => {
@@ -2065,26 +2036,9 @@ function FalaApp() {
   }, [isPlaying, normalizedPhrase, pitch, rate, recordPhraseHistory, selectedSymbols, showToast]);
 
   const handleGenerate = useCallback(async () => {
-    if (selectedSymbols.length === 0) return;
     triggerHaptic('medium');
-    const labels = selectedSymbols.map(symbol => symbol.label);
-    setIsGenerating(true);
-    try {
-      const result = await generateNormalizedPhrase(labels);
-      setNormalizedPhrase(result.text.toUpperCase());
-      if (result.degraded && result.message) {
-        showToast(result.message, 'error');
-      }
-    } catch (error) {
-      if (__DEV__) {
-        console.error('Error generating phrase:', error);
-      }
-      showToast('Erro ao gerar frase. Usando fallback local.', 'error');
-      setNormalizedPhrase(labels.join(' ').toUpperCase());
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [selectedSymbols, showToast]);
+    await generate(selectedSymbols.map(symbol => symbol.label));
+  }, [generate, selectedSymbols]);
 
   const saveCustomSymbol = useCallback(() => {
     if (!isAdmin) {
@@ -2458,8 +2412,8 @@ function FalaApp() {
                 <CustomSymbolCard
                   item={item}
                   onUse={() => {
-                    setSelectedSymbols(prev => (prev.length ? [...prev, ...item.symbols] : item.symbols));
-                    setNormalizedPhrase(item.phrase || '');
+                    updateSelectedSymbols(prev => (prev.length ? [...prev, ...item.symbols] : item.symbols));
+                    editNormalizedPhrase(item.phrase || '');
                   }}
                   onDelete={() => removeCustomSymbol(item.id)}
                   isAdmin={isAdmin}
@@ -2680,8 +2634,8 @@ function FalaApp() {
                   <Pressable
                     key={`${symbol.id}-${index}`}
                     onPress={() => {
-                      setSelectedSymbols(prev => prev.filter((_, i) => i !== index));
-                      setNormalizedPhrase('');
+                      updateSelectedSymbols(prev => prev.filter((_, i) => i !== index));
+                      editNormalizedPhrase('');
                     }}
                     accessibilityRole="button"
                     accessibilityLabel={`Remover ${symbol.label}`}
@@ -2712,7 +2666,7 @@ function FalaApp() {
               {normalizedPhrase !== '' && (
                 <TextInput
                   value={normalizedPhrase}
-                  onChangeText={setNormalizedPhrase}
+                  onChangeText={editNormalizedPhrase}
                   style={[styles.dockGenLine, { fontSize: 15 * uiScaleFactor }, isHighContrast && styles.textHighContrast]}
                   returnKeyType="done"
                   blurOnSubmit
@@ -2896,6 +2850,7 @@ function FalaApp() {
                   <ConfigGroupRow icon="💬" label="Frases prontas" locked={!isAdmin} onPress={() => openConfigRoute('frases')} />
                   <ConfigGroupRow icon="📷" label="Símbolos pessoais" locked={!isAdmin} onPress={() => openConfigRoute('simbolos')} />
                   <ConfigGroupRow icon="🗂" label="Categorias" locked={!isAdmin} onPress={() => openConfigRoute('categorias')} />
+                  <ConfigGroupRow icon="⬇" label="Categorias offline" locked={!isAdmin} onPress={() => openConfigRoute('downloads')} />
                   <ConfigGroupRow icon="📅" label="Rotina do dia" locked={!isAdmin} onPress={() => openConfigRoute('rotina')} />
                   <ConfigGroupRow icon="🏠" label="Cenas visuais" locked={!isAdmin} onPress={() => openConfigRoute('cenas')} />
                   <ConfigGroupRow icon="🧩" label="Abas visíveis" locked={!isAdmin} onPress={() => openConfigRoute('secoes')} />
@@ -2912,6 +2867,7 @@ function FalaApp() {
                     first
                   />
                   <ConfigGroupRow icon="🔑" label="Chave da IA" locked={!isAdmin} onPress={() => openConfigRoute('chave-ia')} />
+                  <ConfigGroupRow icon="💾" label="Backup e restauração" locked={!isAdmin} onPress={() => openConfigRoute('backup')} />
                   {isAdmin ? (
                     <ConfigGroupRow
                       icon="🚪"
@@ -2922,6 +2878,7 @@ function FalaApp() {
                   ) : null}
                 </View>
               </View>
+              <Text style={styles.drillFieldHint}>Pictogramas: Sergio Palao · ARASAAC (arasaac.org) · Gobierno de Aragón · CC BY-NC-SA.</Text>
             </ScrollView>
           ) : (
             <>
@@ -4036,6 +3993,9 @@ function FalaApp() {
               )
             )}
 
+            {configRoute === 'downloads' && (isAdmin ? <OfflineCategoriesPanel categories={categories} /> : <Text style={styles.drillEmptyHint}>Entre como cuidador para baixar categorias.</Text>)}
+            {configRoute === 'backup' && (isAdmin && persistenceReady ? <BackupPanel onRestored={onRestored} /> : <Text style={styles.drillEmptyHint}>Entre como cuidador e aguarde o carregamento dos dados para usar o backup.</Text>)}
+
             {configRoute === 'chave-ia' && (
               !isAdmin ? (
                 <Text style={styles.drillEmptyHint}>Entre como cuidador para alterar a chave da IA.</Text>
@@ -4044,12 +4004,13 @@ function FalaApp() {
                   <Text style={styles.drillSectionTitle}>CHAVE DA IA (GEMINI)</Text>
                   <View style={styles.drillSectionCard}>
                     <Text style={styles.drillFieldHint}>
-                      A chave do `.env` é usada por padrão. Você pode substituir por outra aqui — fica salva apenas neste dispositivo.
+                      A chave fica no armazenamento seguro deste aparelho. Ao salvar uma chave vazia, a IA é desativada.
                     </Text>
                     <TextInput
+                      secureTextEntry
                       value={aiApiKeyInput}
                       onChangeText={setAiApiKeyInput}
-                      placeholder="EXPO_PUBLIC_GOOGLE_AI_API_KEY"
+                      placeholder="Chave do Gemini"
                       placeholderTextColor={theme.colors.textMuted}
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -4164,6 +4125,8 @@ const CONFIG_ROUTE_TITLES: Record<Exclude<ConfigRoute, 'home'>, string> = {
   cenas: 'Cenas visuais',
   secoes: 'Abas visíveis',
   senha: 'Senha do cuidador',
+  backup: 'Backup e restauração',
+  downloads: 'Categorias offline',
   'chave-ia': 'Chave da IA'
 };
 
@@ -4295,6 +4258,9 @@ function SymbolCard({
       style={[styles.symbolCard, isDense && styles.symbolCardDense, isUltraDense && styles.symbolCardUltraDense]}
       onPress={onPress}
       onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Adicionar ${item.label} à frase`}
+      accessibilityHint={hasAudio ? "Segure para ouvir a voz gravada" : undefined}
       delayLongPress={300}
     >
       {hasAudio && (
@@ -4303,7 +4269,7 @@ function SymbolCard({
         </View>
       )}
       {isAdmin && (
-        <Pressable onPress={onFavoritePress} style={[styles.favoriteButton, favorite && styles.favoriteButtonActive]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${favorite ? 'Remover' : 'Adicionar'} ${item.label} ${favorite ? 'dos' : 'aos'} favoritos`} accessibilityState={{ selected: favorite }} onPress={onFavoritePress} style={[styles.favoriteButton, favorite && styles.favoriteButtonActive]}>
           <Text style={styles.favoriteButtonText}>{favorite ? '★' : '☆'}</Text>
         </Pressable>
       )}
@@ -6618,9 +6584,11 @@ function makeStyles(theme: Theme) {
 }
 
 export default function App() {
+  const [profileVersion, setProfileVersion] = useState(0);
+  const onRestored = useCallback(() => setProfileVersion(value => value + 1), []);
   return (
     <SafeAreaProvider>
-      <FalaApp />
+      <FalaApp key={profileVersion} onRestored={onRestored} />
     </SafeAreaProvider>
   );
 }

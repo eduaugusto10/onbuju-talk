@@ -1,5 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { bundledImageUri } from './offlineSymbols';
+import { getOfflineImageUri } from './categoryDownloadService';
 
 const IMAGE_CACHE_DIR = `${FileSystem.documentDirectory}arasaac-images/`;
 const CACHE_INDEX_KEY = 'image_cache_index_v1';
@@ -116,7 +118,11 @@ async function cleanupCacheIfNeeded() {
 
 export async function getCachedImageUri(remoteUri: string) {
   if (!remoteUri) return remoteUri;
+  const bundled = bundledImageUri(remoteUri);
+  if (bundled) return bundled;
   if (!/^https?:\/\//i.test(remoteUri)) return remoteUri;
+  const offline = await getOfflineImageUri(remoteUri).catch(() => null);
+  if (offline) return offline;
   const fromMap = uriMap.get(remoteUri);
   if (fromMap) {
     metrics.cacheHit += 1;

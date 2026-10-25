@@ -1,5 +1,35 @@
 # Fala Mobile — Manual rápido
 
+## Desenvolvimento Android no Windows
+
+Use JDK 17, o SDK Android e um dispositivo iniciado no Device Manager do Android Studio.
+Defina `JAVA_HOME` para a pasta do JDK 17 (não para `bin`).
+Se `JAVA_HOME` não estiver definido, o comando procura um JDK 17 em
+`%LOCALAPPDATA%\FalaMobile\toolchain\jdk-17*` e, como alternativa, em
+`.expo/toolchain/jdk-17*`. Prefira o primeiro caminho para evitar acentos no Java.
+
+- `npm.cmd run android:prepare`: gera os arquivos Android sem compilar.
+- `npm.cmd run android`: compila e instala no emulador ou aparelho conectado.
+
+Esses scripts usam `scripts/expo-android.cjs`, que contorna uma falha na cópia recursiva
+do Node no Windows quando o caminho contém acentos. Use os scripts npm em vez de
+chamar `expo prebuild` diretamente nesse ambiente. O ajuste vale apenas para o processo
+do Expo e não altera `node_modules` nem a configuração global do Node.
+
+Ao compilar em um caminho com acentos, o comando sincroniza uma cópia de compilação
+em `C:\FalaBuild\<identificador-do-projeto>` (na unidade do Windows). O caminho curto
+evita o limite de 260 caracteres das ferramentas C++. Código e dependências são copiados;
+Git, arquivos `.env`, credenciais e builds anteriores ficam fora. O projeto original
+permanece no mesmo lugar. O Java recebe a opção UTF-8 para ler os caminhos corretamente.
+
+Para acompanhar edições nesta pasta durante o teste, mantenha `npm.cmd start` em
+um terminal e use `npm.cmd run android -- --no-bundler` em outro. A instalação
+conecta ao servidor na porta 8081. Mudanças nativas exigem executar o comando Android
+novamente para sincronizar e recompilar a cópia.
+
+Se outras ferramentas nativas rejeitarem o caminho com acentos, use uma cópia de trabalho
+em um caminho curto fora do OneDrive, como `C:\dev\fala`.
+
 App AAC (comunicação aumentativa) em pt-BR para crianças autistas. Símbolos ARASAAC, voz, fotos pessoais, rotina visual e cenas com hotspots. Tudo offline-first com cache local.
 
 ---
@@ -21,6 +51,19 @@ Palavras essenciais sempre visíveis na mesma posição (motor planning). Padrã
 ---
 
 ## Categorias (barra horizontal)
+
+### Baixar categorias para usar sem internet
+
+Nas configurações, entre como cuidador e abra **Categorias offline**. Toque em
+**Baixar categoria** para salvar todos os símbolos exibidos naquela categoria.
+Prefira Wi-Fi e mantenha a tela aberta. O progresso mostra as imagens salvas;
+ao concluir, aparece **Disponível offline**, junto com o espaço ocupado.
+
+Você pode pausar e continuar depois. Se a conexão falhar, **Continuar download**
+baixa apenas as imagens que faltam. Os arquivos ficam no aparelho, fora do cache
+temporário, e não aumentam o APK. **Remover download** libera esse espaço;
+os símbolos essenciais incluídos no app continuam disponíveis. Estes downloads
+não fazem parte do backup: em outro aparelho, baixe as categorias novamente.
 
 | Categoria | O que mostra |
 |---|---|
@@ -141,10 +184,23 @@ Acesso pelo botão ⚙ no header.
 | **Cenas** | Criar e editar cenas visuais |
 
 ### Chave IA (opcional)
-Configurável em Cuidador → Voz/Geral. Sem chave, o botão "Gerar" funciona em modo degradado (concatena palavras sem normalização). Variáveis aceitas em prioridade:
-1. `EXPO_PUBLIC_GOOGLE_AI_API_KEY` (env)
-2. `EXPO_PUBLIC_GOOGLE_API_KEY` (env)
-3. Chave salva no app
+Configurável em Cuidador → Chave da IA. Sem chave, o botão "Gerar" concatena as palavras sem normalização. A chave é guardada no armazenamento seguro do aparelho; chaves antigas salvas no AsyncStorage são migradas no primeiro uso da IA. Variáveis `EXPO_PUBLIC` não são mais usadas para credenciais. Quem configurava a chave apenas pelo `.env` deve inseri-la nos ajustes. Salvar uma chave vazia desativa a IA.
+
+Respostas pendentes são descartadas quando a frase é editada, limpa ou substituída. A geração pede que a intenção e as negações sejam preservadas; a frase continua editável antes de ser falada.
+
+## Backup e restauração
+
+Em **Cuidador → Backup e restauração**, use **Exportar backup** e escolha onde guardar o arquivo. Ele inclui configurações, favoritos, frases, histórico, símbolos pessoais, fotos, áudios, rotinas e cenas. Senha do cuidador e chave da IA ficam fora do arquivo.
+
+Para trocar de aparelho, transfira o arquivo, entre como cuidador no novo aparelho e escolha **Importar backup**. A confirmação informa que os dados atuais serão substituídos. As mídias são copiadas para o armazenamento do novo aparelho. Uma restauração interrompida recupera a configuração anterior na próxima abertura.
+
+O arquivo não é criptografado: guarde-o em um destino de confiança. Limites: 40 MB de mídias e 64 MB para o arquivo completo. O cache geral de pictogramas não é incluído; pictogramas adicionais podem precisar de internet após a troca de aparelho. A exportação falha com uma mensagem se algum arquivo pessoal estiver ausente, em vez de criar uma cópia incompleta.
+
+## Primeira abertura sem internet
+
+O app inclui 16 pictogramas básicos, com imagens e rótulos em português brasileiro. Sem favoritos cadastrados, inicia na aba Tudo. As buscas e categorias carregadas com sucesso são guardadas entre sessões. Falhas de rede não são salvas como resultados vazios permanentes.
+
+A voz sintetizada depende das vozes disponíveis no sistema do aparelho. Valide a reprodução em modo avião; áudios gravados ficam locais.
 
 ---
 
@@ -160,8 +216,8 @@ Configurável em Cuidador → Voz/Geral. Sem chave, o botão "Gerar" funciona em
 
 ## Persistência
 
-Tudo offline. Salvo localmente via AsyncStorage e FileSystem:
-- Configurações (voz, escala, contraste, senha admin, chave IA)
+Dados de comunicação e preferências são salvos localmente via AsyncStorage e FileSystem; a chave da IA usa o armazenamento seguro do sistema. Busca de pictogramas novos e geração de frases por IA exigem internet.
+- Configurações (voz, escala, contraste, senha admin)
 - Favoritos, frases prontas, histórico
 - Vocabulário core
 - Símbolos pessoais (imagem em disco) + voz gravada (áudio em disco)
